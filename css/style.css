@@ -1,0 +1,1704 @@
+/* ==========================================================================
+   PensionAlchemy Official Manual & Interactive Simulator Stylesheet
+   Modern Glassmorphic Dark & Light Theme with Jetpack Compose Material 3 Fidelity
+   ========================================================================== */
+
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+
+:root {
+    --primary: #10B981;
+    --primary-light: #34D399;
+    --primary-dark: #059669;
+    --primary-glow: rgba(16, 185, 129, 0.25);
+
+    --indigo: #6366F1;
+    --cyan: #06B6D4;
+    --amber: #F59E0B;
+    --rose: #F43F5E;
+    --blue: #3B82F6;
+    --purple: #8B5CF6;
+
+    --tier-national: #3B82F6;
+    --tier-retirement: #8B5CF6;
+    --tier-personal: #10B981;
+    --tier-housing: #F59E0B;
+
+    --font-sans: 'Pretendard', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    --transition-fast: 0.15s ease;
+    --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.15);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.25);
+    --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.35);
+    --shadow-phone: 0 24px 60px rgba(0, 0, 0, 0.45);
+}
+
+/* 다크 테마 (기본) */
+[data-theme="dark"] {
+    --bg-page: #0B1120;
+    --bg-surface: #131E32;
+    --bg-elevated: #1E293B;
+    --bg-card: rgba(30, 41, 59, 0.7);
+    --bg-card-hover: rgba(51, 65, 85, 0.8);
+    --border-color: rgba(255, 255, 255, 0.08);
+    --border-highlight: rgba(16, 185, 129, 0.35);
+
+    --text-primary: #F8FAFC;
+    --text-secondary: #94A3B8;
+    --text-muted: #64748B;
+
+    --phone-bezel: #1F2937;
+    --phone-screen-bg: #0F172A;
+    --phone-top-bar: #1E293B;
+    --phone-card-bg: #1E293B;
+    --phone-card-surface: #273549;
+
+    --code-bg: #0F172A;
+}
+
+/* 라이트 테마 */
+[data-theme="light"] {
+    --bg-page: #F8FAFC;
+    --bg-surface: #FFFFFF;
+    --bg-elevated: #F1F5F9;
+    --bg-card: rgba(255, 255, 255, 0.85);
+    --bg-card-hover: rgba(241, 245, 249, 0.95);
+    --border-color: rgba(0, 0, 0, 0.08);
+    --border-highlight: rgba(16, 185, 129, 0.4);
+
+    --text-primary: #0F172A;
+    --text-secondary: #475569;
+    --text-muted: #94A3B8;
+
+    --phone-bezel: #E2E8F0;
+    --phone-screen-bg: #F8FAFC;
+    --phone-top-bar: #FFFFFF;
+    --phone-card-bg: #FFFFFF;
+    --phone-card-surface: #F1F5F9;
+
+    --code-bg: #F1F5F9;
+}
+
+/* 기본 리셋 & 공통 타이포그래피 */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    scroll-behavior: smooth;
+    font-size: 15px;
+}
+
+body {
+    font-family: var(--font-sans);
+    background-color: var(--bg-page);
+    color: var(--text-primary);
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    transition: background-color var(--transition-normal), color var(--transition-normal);
+}
+
+a {
+    color: var(--primary);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+}
+
+a:hover {
+    color: var(--primary-light);
+    text-decoration: underline;
+}
+
+/* 상단 글로벌 헤더 */
+.global-header {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 2rem;
+    background-color: var(--bg-surface);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+}
+
+.brand-section {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.brand-logo-img {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px var(--primary-glow);
+}
+
+.brand-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.version-tag {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--primary);
+    background: rgba(16, 185, 129, 0.15);
+    padding: 0.15rem 0.45rem;
+    border-radius: 6px;
+}
+
+.brand-subtitle {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.search-box-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-box-wrap input {
+    width: 260px;
+    padding: 0.45rem 0.85rem 0.45rem 2rem;
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-elevated);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    transition: all var(--transition-fast);
+}
+
+.search-box-wrap input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-glow);
+    width: 320px;
+}
+
+.search-box-wrap .search-icon {
+    position: absolute;
+    left: 0.75rem;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    pointer-events: none;
+}
+
+.preset-dropdown {
+    padding: 0.45rem 0.85rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-elevated);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.header-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 0.85rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-elevated);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.header-btn:hover {
+    background-color: var(--bg-card-hover);
+    border-color: var(--primary);
+}
+
+/* 메인 레이아웃: 2열 스플릿 (좌측 매뉴얼 본문 + 우측 고정 폰 시뮬레이터) */
+.main-wrapper {
+    display: flex;
+    max-width: 1720px;
+    margin: 0 auto;
+    padding: 1.5rem 2rem 4rem 2rem;
+    gap: 2.5rem;
+}
+
+/* 좌측 매뉴얼 칼럼 */
+.manual-content-column {
+    flex: 1;
+    min-width: 0;
+}
+
+/* 우측 폰 디바이스 칼럼 (Sticky) */
+.phone-device-column {
+    width: 390px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 5rem;
+    height: calc(100vh - 6rem);
+}
+
+/* 폰 디바이스 프레임 */
+.phone-mockup-frame {
+    width: 100%;
+    height: 100%;
+    max-height: 820px;
+    background-color: var(--phone-bezel);
+    border-radius: 46px;
+    padding: 12px;
+    box-shadow: var(--shadow-phone);
+    display: flex;
+    flex-direction: column;
+    border: 4px solid rgba(255, 255, 255, 0.1);
+    position: relative;
+}
+
+/* 상단 스피커 & 노치 */
+.phone-notch-bar {
+    width: 110px;
+    height: 24px;
+    background-color: #000;
+    border-radius: 16px;
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.phone-speaker {
+    width: 48px;
+    height: 4px;
+    background-color: #333;
+    border-radius: 2px;
+}
+
+/* 폰 스크린 캔버스 내부 */
+.phone-screen-inner {
+    flex: 1;
+    background-color: var(--phone-screen-bg);
+    border-radius: 36px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+/* 폰 상단 상태바 & 앱바 */
+.phone-app-bar {
+    padding: 2.2rem 1.1rem 0.8rem 1.1rem;
+    background-color: var(--phone-top-bar);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+}
+
+.app-bar-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.app-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.app-bar-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--primary);
+}
+
+.app-bar-version {
+    font-size: 0.7rem;
+    color: var(--primary);
+    opacity: 0.8;
+}
+
+.app-bar-subtitle {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.phone-help-btn {
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    transition: background var(--transition-fast);
+}
+
+.phone-help-btn:hover {
+    background: rgba(16, 185, 129, 0.15);
+}
+
+/* 폰 스크린 메인 스크롤 콘텐츠 */
+.phone-screen-content {
+    flex: 1;
+    overflow-y: auto;
+    position: relative;
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary) transparent;
+}
+
+.screen-scroll-container {
+    padding: 12px 14px 20px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* 폰 하단 네비게이션 바 (Material 3 NavigationBar) */
+.phone-bottom-nav {
+    display: flex;
+    background-color: var(--phone-top-bar);
+    border-top: 1px solid var(--border-color);
+    padding: 6px 0;
+    flex-shrink: 0;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.app-nav-item {
+    flex: 1;
+    background: none;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 4px 0;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    font-weight: 500;
+    transition: all var(--transition-fast);
+}
+
+.app-nav-item .nav-icon {
+    font-size: 1.15rem;
+}
+
+.app-nav-item.active {
+    color: var(--primary);
+    font-weight: 700;
+}
+
+.app-nav-item.active .nav-icon {
+    transform: translateY(-2px);
+}
+
+/* 앱 내부 컴포넌트 카드들 (Material 3 Cards) */
+.app-card {
+    background-color: var(--phone-card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 14px;
+    box-shadow: var(--shadow-sm);
+}
+
+.primary-gradient-card {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%);
+    border-color: rgba(16, 185, 129, 0.35);
+}
+
+.card-row-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-caption {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.card-badge-sub {
+    font-size: 0.7rem;
+    background: rgba(16, 185, 129, 0.2);
+    color: var(--primary);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.net-worth-amount {
+    font-size: 1.65rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin: 6px 0;
+    letter-spacing: -0.02em;
+}
+
+.sub-assets-row {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    border-top: 1px solid var(--border-color);
+    padding-top: 8px;
+    margin-top: 6px;
+}
+
+/* 건강도 배너 */
+.score-banner-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.score-badge {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.score-number {
+    font-size: 1.25rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.score-grade {
+    font-size: 0.65rem;
+    font-weight: 700;
+}
+
+.score-text-col {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.score-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.score-feedback {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+/* 소득 크레바스 배너 */
+.warning-banner-card {
+    background-color: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.35);
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+.warning-icon {
+    font-size: 1.3rem;
+    line-height: 1;
+}
+
+.warning-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--amber);
+}
+
+.warning-desc {
+    font-size: 0.72rem;
+    color: var(--text-primary);
+    line-height: 1.4;
+}
+
+/* 2x2 지표 그리드 */
+.metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.metric-card {
+    background-color: var(--phone-card-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.metric-header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.metric-icon {
+    font-size: 0.85rem;
+}
+
+.metric-name {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.metric-value {
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.metric-sub {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+}
+
+/* 캔버스 차트 래퍼 */
+.chart-card {
+    padding: 12px;
+}
+
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.chart-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.chart-legend-badge {
+    font-size: 0.65rem;
+    background: rgba(148, 163, 184, 0.15);
+    color: var(--text-secondary);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.canvas-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.canvas-wrapper canvas {
+    display: block;
+    width: 100% !important;
+}
+
+.chart-legend-row {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 8px;
+    font-size: 0.68rem;
+    color: var(--text-secondary);
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.legend-line-dashed {
+    width: 12px;
+    height: 2px;
+    border-top: 2px dashed rgba(99, 102, 241, 0.8);
+    display: inline-block;
+}
+
+/* 도넛 차트 컨테이너 */
+.donut-chart-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 6px 0;
+}
+
+.donut-legend-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.donut-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+}
+
+.donut-legend-name {
+    width: 50px;
+    color: var(--text-secondary);
+}
+
+.donut-legend-val {
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+/* 인스펙터 슬라이더 & 카드 */
+.inspector-card {
+    background-color: var(--phone-card-surface);
+}
+
+.inspector-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.inspector-badge {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--primary);
+    background: rgba(16, 185, 129, 0.15);
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
+.slider-container {
+    margin: 10px 0 14px 0;
+}
+
+.app-slider {
+    width: 100%;
+    accent-color: var(--primary);
+    cursor: pointer;
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(148, 163, 184, 0.2);
+}
+
+.slider-national {
+    accent-color: var(--tier-national);
+}
+
+.slider-ticks {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.inspector-row-box {
+    background-color: var(--phone-card-bg);
+    border-radius: 10px;
+    padding: 10px;
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.highlight-box {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.box-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.box-icon {
+    font-size: 1.1rem;
+}
+
+.box-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.box-sub {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+}
+
+.box-amount {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.cashflow-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.cf-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.73rem;
+}
+
+.cf-val {
+    font-weight: 700;
+}
+
+.cf-divider {
+    height: 1px;
+    background-color: var(--border-color);
+    margin: 2px 0;
+}
+
+.sub-row {
+    font-size: 0.68rem;
+    padding-left: 8px;
+}
+
+.policy-alert-banner {
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 0.68rem;
+    margin-top: 6px;
+    line-height: 1.4;
+}
+
+.alert-amber {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--amber);
+    border-left: 3px solid var(--amber);
+}
+
+.alert-cyan {
+    background: rgba(6, 182, 212, 0.15);
+    color: var(--cyan);
+    border-left: 3px solid var(--cyan);
+}
+
+/* 3층 연금 피라미드 스택 바 */
+.pyramid-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.tier-bars-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.tier-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 0.72rem;
+}
+
+.tier-label span {
+    font-weight: 700;
+    font-size: 0.68rem;
+    opacity: 0.85;
+}
+
+.tier-val {
+    font-weight: 700;
+}
+
+.tier-3-personal { background: rgba(16, 185, 129, 0.15); color: #10B981; }
+.tier-3-annuity { background: rgba(6, 182, 212, 0.15); color: #06B6D4; }
+.tier-2-retire { background: rgba(139, 92, 246, 0.15); color: #8B5CF6; }
+.tier-1-national { background: rgba(59, 130, 246, 0.15); color: #3B82F6; }
+
+.pyramid-footer {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.72rem;
+}
+
+.national-result-banner {
+    display: flex;
+    justify-content: space-between;
+    background: var(--phone-card-bg);
+    padding: 8px 12px;
+    border-radius: 8px;
+    margin-top: 10px;
+    font-size: 0.72rem;
+}
+
+/* 탭 전환 버튼 */
+.app-tab-switch {
+    display: flex;
+    background: var(--phone-card-surface);
+    border-radius: 10px;
+    padding: 3px;
+    gap: 4px;
+}
+
+.tab-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    padding: 6px 0;
+    border-radius: 8px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.tab-btn.active {
+    background: var(--phone-card-bg);
+    color: var(--primary);
+    box-shadow: var(--shadow-sm);
+}
+
+/* 리스트 헤더 & 카드 */
+.item-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.78rem;
+    font-weight: 700;
+    margin-top: 4px;
+}
+
+.mini-add-btn {
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.item-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 12px;
+}
+
+.debt-item-card {
+    border-left: 3px solid var(--rose);
+}
+
+.item-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.item-title-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.item-type-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.badge-emerald { background: rgba(16, 185, 129, 0.15); color: var(--primary); }
+.badge-blue { background: rgba(59, 130, 246, 0.15); color: var(--blue); }
+.badge-danger { background: rgba(244, 63, 94, 0.15); color: var(--rose); }
+.badge-amber { background: rgba(245, 158, 11, 0.15); color: var(--amber); }
+
+.item-name {
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.item-val {
+    font-size: 0.8rem;
+    font-weight: 800;
+}
+
+.item-card-body, .item-card-footer {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.68rem;
+    color: var(--text-secondary);
+}
+
+/* 계산기 모드 스크롤 바 */
+.calc-modes-scroll-bar {
+    display: flex;
+    overflow-x: auto;
+    gap: 6px;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+}
+
+.calc-modes-scroll-bar::-webkit-scrollbar {
+    display: none;
+}
+
+.calc-mode-btn {
+    white-space: nowrap;
+    background: var(--phone-card-surface);
+    border: 1px solid var(--border-color);
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.calc-mode-btn.active {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+}
+
+.calc-card-title {
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: var(--primary);
+}
+
+.calc-card-desc {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    margin: 4px 0 10px 0;
+}
+
+.calc-inputs-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.calc-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.calc-input-group label {
+    font-size: 0.68rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.calc-input {
+    background: var(--phone-card-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 0.75rem;
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+}
+
+.calc-input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.calc-result-box {
+    background: var(--phone-card-surface);
+    border-radius: 10px;
+    padding: 12px;
+    margin-top: 12px;
+    text-align: center;
+}
+
+.result-label {
+    font-size: 0.68rem;
+    color: var(--text-secondary);
+}
+
+.result-big-val {
+    font-size: 1.35rem;
+    font-weight: 800;
+    margin: 4px 0;
+    letter-spacing: -0.02em;
+}
+
+.result-detail-row {
+    display: flex;
+    justify-content: space-around;
+    font-size: 0.68rem;
+    color: var(--text-secondary);
+    margin-top: 6px;
+    border-top: 1px solid var(--border-color);
+    padding-top: 6px;
+}
+
+.tax-bonus-banner {
+    background: rgba(16, 185, 129, 0.15);
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 0.68rem;
+    color: var(--primary);
+    margin-top: 8px;
+}
+
+.break-even-points-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    text-align: left;
+    margin-top: 8px;
+}
+
+.be-point {
+    background: var(--phone-card-bg);
+    padding: 8px 10px;
+    border-radius: 8px;
+}
+
+.be-label {
+    font-size: 0.68rem;
+    color: var(--text-secondary);
+}
+
+.be-age {
+    font-size: 1.1rem;
+    font-weight: 800;
+    margin: 2px 0;
+}
+
+.be-desc {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+}
+
+/* 프리셋 칩 바 */
+.preset-chips-box {
+    background: var(--phone-card-bg);
+    border-radius: 12px;
+    padding: 10px;
+}
+
+.preset-chips-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.preset-chips-row {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+}
+
+.preset-chip-btn {
+    white-space: nowrap;
+    background: var(--phone-card-surface);
+    border: 1px solid var(--border-color);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.preset-chip-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.action-btn-row {
+    display: flex;
+    gap: 8px;
+}
+
+.action-btn {
+    flex: 1;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 0;
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.btn-secondary { background: var(--phone-card-surface); color: var(--text-primary); }
+.btn-danger { background: rgba(244, 63, 94, 0.15); color: var(--rose); }
+
+/* 가이드 카드 */
+.guide-card {
+    background: var(--phone-card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 8px;
+}
+
+.guide-card-badge {
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: var(--primary);
+    margin-bottom: 2px;
+}
+
+.guide-card-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.guide-card-summary {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    line-height: 1.45;
+}
+
+.guide-tip-item {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+.guide-link-card {
+    background: var(--phone-card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: transform var(--transition-fast);
+}
+
+.guide-link-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--primary);
+}
+
+.guide-link-tag {
+    font-size: 0.65rem;
+    font-weight: 700;
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+}
+
+.tag-blue { background: rgba(59, 130, 246, 0.15); color: #3B82F6; }
+.tag-cyan { background: rgba(6, 182, 212, 0.15); color: #06B6D4; }
+.tag-amber { background: rgba(245, 158, 11, 0.15); color: #F59E0B; }
+.tag-danger { background: rgba(244, 63, 94, 0.15); color: #F43F5E; }
+
+.guide-link-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.guide-link-desc {
+    font-size: 0.68rem;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+/* ==========================================================================
+   좌측 종합 매뉴얼 (Documentation Article) 스타일
+   ========================================================================== */
+.manual-main-article {
+    display: flex;
+    flex-direction: column;
+    gap: 3.5rem;
+}
+
+.manual-section {
+    scroll-margin-top: 6rem;
+}
+
+.section-badge {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--primary);
+    background: rgba(16, 185, 129, 0.15);
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    margin-bottom: 0.75rem;
+}
+
+.section-title {
+    font-size: 1.85rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.025em;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.section-desc {
+    font-size: 1.05rem;
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+}
+
+.manual-card {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 1.5rem;
+    backdrop-filter: blur(12px);
+    transition: border-color var(--transition-fast);
+}
+
+.manual-card:hover {
+    border-color: var(--border-highlight);
+}
+
+.manual-card h3 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.manual-card p {
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+    line-height: 1.7;
+}
+
+/* 5대 원칙 그리드 */
+.principles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.25rem;
+    margin-top: 1.5rem;
+}
+
+.principle-card {
+    background-color: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.principle-icon {
+    font-size: 1.8rem;
+}
+
+.principle-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.principle-text {
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    line-height: 1.55;
+}
+
+/* 동적 인터랙션 및 결과 분석 2열 비교 블록 */
+.feature-split-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-top: 1.25rem;
+}
+
+.feature-col-card {
+    background-color: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 1.25rem;
+}
+
+.feature-col-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.feature-col-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.feature-col-list li {
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    position: relative;
+    padding-left: 1.2rem;
+}
+
+.feature-col-list li::before {
+    content: "•";
+    color: var(--primary);
+    font-weight: bold;
+    font-size: 1.2rem;
+    position: absolute;
+    left: 0;
+    top: -3px;
+}
+
+/* 코드 & 공식 블록 */
+.formula-block {
+    background-color: var(--code-bg);
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--indigo);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    margin: 1rem 0;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    line-height: 1.7;
+    overflow-x: auto;
+}
+
+/* 경고 알림 박스 */
+.alert-box {
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    margin: 1.25rem 0;
+    display: flex;
+    gap: 0.85rem;
+    align-items: flex-start;
+}
+
+.alert-amber {
+    background-color: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    color: var(--text-primary);
+}
+
+.alert-amber .alert-icon { color: var(--amber); }
+
+.alert-cyan {
+    background-color: rgba(6, 182, 212, 0.12);
+    border: 1px solid rgba(6, 182, 212, 0.3);
+    color: var(--text-primary);
+}
+
+.alert-cyan .alert-icon { color: var(--cyan); }
+
+.alert-title {
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin-bottom: 0.25rem;
+}
+
+.alert-desc {
+    font-size: 0.86rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+/* 테이블 스타일 */
+.manual-table-wrap {
+    overflow-x: auto;
+    margin: 1.25rem 0;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.manual-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.86rem;
+    text-align: left;
+}
+
+.manual-table th {
+    background-color: var(--bg-elevated);
+    color: var(--text-primary);
+    padding: 0.85rem 1rem;
+    font-weight: 700;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.manual-table td {
+    padding: 0.8rem 1rem;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.manual-table tr:last-child td {
+    border-bottom: none;
+}
+
+.manual-table tr:hover td {
+    background-color: var(--bg-card-hover);
+}
+
+/* 바로가기 버튼 */
+.jump-to-sim-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background-color: var(--primary);
+    color: #FFFFFF !important;
+    padding: 0.45rem 0.9rem;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-decoration: none !important;
+}
+
+.jump-to-sim-btn:hover {
+    background-color: var(--primary-light);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--primary-glow);
+}
+
+/* 유틸리티 텍스트 색상 */
+.text-emerald { color: var(--primary) !important; }
+.text-cyan { color: var(--cyan) !important; }
+.text-amber { color: var(--amber) !important; }
+.text-danger { color: var(--rose) !important; }
+.text-muted { color: var(--text-muted) !important; }
+.font-bold { font-weight: 700 !important; }
+
+/* 검색 결과 없음 */
+.search-no-result {
+    padding: 2rem;
+    text-align: center;
+    background-color: var(--bg-surface);
+    border-radius: 14px;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-size: 1rem;
+}
+
+/* ==========================================================================
+   반응형 미디어 쿼리 (Responsive Queries)
+   ========================================================================== */
+@media (max-width: 1200px) {
+    .main-wrapper {
+        flex-direction: column-reverse;
+        padding: 1rem;
+    }
+
+    .phone-device-column {
+        width: 100%;
+        max-width: 440px;
+        margin: 0 auto 2.5rem auto;
+        position: static;
+        height: 780px;
+    }
+}
+
+@media (max-width: 768px) {
+    .global-header {
+        padding: 0.6rem 1rem;
+    }
+
+    .search-box-wrap input {
+        width: 140px;
+    }
+
+    .search-box-wrap input:focus {
+        width: 180px;
+    }
+
+    .feature-split-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .section-title {
+        font-size: 1.45rem;
+    }
+}
+
+/* ==========================================================================
+   모달 오버레이 및 아이템 삭제 버튼 스타일
+   ========================================================================== */
+.item-delete-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+.item-delete-btn:hover {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.12);
+}
+
+.phone-modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    border-radius: 36px;
+    animation: fadeInModal 0.2s ease-out;
+}
+
+@keyframes fadeInModal {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.sim-modal-card {
+    width: 100%;
+    max-height: 85%;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.35);
+    animation: slideUpModal 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUpModal {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+
+.sim-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.sim-modal-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.sim-modal-close {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+}
+.sim-modal-close:hover {
+    color: var(--text-primary);
+    background: var(--bg-sub);
+}
+
+.sim-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sim-modal-footer {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-color);
+}
+
+.sim-modal-footer .action-btn {
+    flex: 1;
+}
+
+/* ==========================================================================
+   인쇄 / PDF 출력 스타일 (@media print)
+   ========================================================================== */
+@media print {
+    .global-header, .phone-device-column, .jump-to-sim-btn {
+        display: none !important;
+    }
+
+    body {
+        background: #fff !important;
+        color: #000 !important;
+    }
+
+    .main-wrapper {
+        padding: 0 !important;
+    }
+
+    .manual-card {
+        border: 1px solid #ccc !important;
+        box-shadow: none !important;
+        page-break-inside: avoid;
+    }
+}
+
