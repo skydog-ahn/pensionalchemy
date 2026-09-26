@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.PensionAlchemy" parent="android:Theme.Material.Light.NoActionBar">
+        <!-- 시스템 프리뷰 윈도우 비활성화 -->
+        <item name="android:windowDisablePreview">true</item>
+        <item name="android:windowBackground">@color/splash_bg_color</item>
+
+        <!-- Android 12+ Splash Screen에서 앱 아이콘이 뜨지 않도록 투명 처리 및 시간 최소화 -->
+        <item name="android:windowSplashScreenAnimatedIcon">@android:color/transparent</item>
+        <item name="android:windowSplashScreenBackground">@color/splash_bg_color</item>
+        <item name="android:windowSplashScreenAnimationDuration">0</item>
+    </style>
+</resources>
