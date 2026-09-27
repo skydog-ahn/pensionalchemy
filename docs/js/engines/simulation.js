@@ -134,8 +134,9 @@ const SimulationEngine = {
                 }
 
                 // B) 수령기
+                let monthlyPayout = 0;
                 if (age >= effectiveStartAge && age <= p.endAge) {
-                    let monthlyPayout = Number(p.expectedMonthlyAmount || 0);
+                    monthlyPayout = Number(p.expectedMonthlyAmount || 0);
 
                     if (p.type === 'NATIONAL') {
                         // 조기/연기 보정

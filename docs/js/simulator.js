@@ -1627,13 +1627,18 @@ const AppSimulator = {
         const chartW = width - padding.left - padding.right;
         const chartH = height - padding.top - padding.bottom;
 
-        // 최대값 산출
+        // 최대값 및 최저값 산출 (마이너스 순자산 동적 지원)
         const maxVal = Math.max(...results.map(r => r.totalGrossAssets), 100000000);
+        const minValRaw = Math.min(0, ...results.map(r => r.netAssetValue));
+        const minVal = minValRaw < 0 ? minValRaw * 1.15 : 0;
+        const valRange = (maxVal - minVal) || 1;
+
         const minAge = results[0].age;
         const maxAge = results[results.length - 1].age;
 
         const getX = (age) => padding.left + ((age - minAge) / (maxAge - minAge)) * chartW;
-        const getY = (val) => padding.top + chartH - (val / maxVal) * chartH;
+        const getY = (val) => padding.top + chartH - ((val - minVal) / valRange) * chartH;
+        const zeroY = getY(0);
 
         // 배경 그리드 라인
         ctx.strokeStyle = gridColor;
@@ -1645,11 +1650,23 @@ const AppSimulator = {
             ctx.lineTo(padding.left + chartW, y);
             ctx.stroke();
 
-            const v = maxVal * (1 - i / 4);
+            const v = minVal + valRange * (1 - i / 4);
             ctx.fillStyle = textColor;
             ctx.font = '10px Inter, sans-serif';
             ctx.textAlign = 'right';
             ctx.fillText(CurrencyFormatter.formatKoreanWon(v, true), padding.left - 6, y + 4);
+        }
+
+        // 0원 손익분기 기준선 (Dashed Line)
+        if (minValRaw < 0 && zeroY >= padding.top && zeroY <= padding.top + chartH) {
+            ctx.strokeStyle = 'rgba(244, 63, 94, 0.7)';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([6, 6]);
+            ctx.beginPath();
+            ctx.moveTo(padding.left, zeroY);
+            ctx.lineTo(padding.left + chartW, zeroY);
+            ctx.stroke();
+            ctx.setLineDash([]);
         }
 
         // 은퇴 나이 음영 영역
@@ -1677,8 +1694,8 @@ const AppSimulator = {
             });
 
             if (fillStyle) {
-                ctx.lineTo(getX(results[results.length - 1].age), padding.top + chartH);
-                ctx.lineTo(getX(results[0].age), padding.top + chartH);
+                ctx.lineTo(getX(results[results.length - 1].age), zeroY);
+                ctx.lineTo(getX(results[0].age), zeroY);
                 ctx.closePath();
                 ctx.fillStyle = fillStyle;
                 ctx.fill();
