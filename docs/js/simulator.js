@@ -70,15 +70,31 @@ const AppSimulator = {
                 this.state.assets,
                 this.state.incomes
             );
-
-            // 초기 selectedAge 조정
-            if (this.state.summary && (!this.state.selectedAge || this.state.selectedAge < this.state.summary.currentAge)) {
-                this.state.selectedAge = this.state.summary.currentAge < this.state.summary.retirementAge
-                    ? this.state.summary.retirementAge
-                    : this.state.summary.currentAge;
-            }
         } catch (err) {
             console.error('Simulation execution error:', err);
+            // 비정상 상태 감지 시 기본 40대 프리셋으로 안전 복원 후 재시도
+            try {
+                const fallback = Presets.preset40s();
+                this.state.profile = fallback.profile;
+                this.state.pensions = fallback.pensions;
+                this.state.assets = fallback.assets;
+                this.state.incomes = fallback.incomes;
+                this.state.summary = SimulationEngine.runComprehensiveSimulation(
+                    this.state.profile,
+                    this.state.pensions,
+                    this.state.assets,
+                    this.state.incomes
+                );
+            } catch (retryErr) {
+                console.error('Fallback simulation failed:', retryErr);
+            }
+        }
+
+        // 초기 selectedAge 조정
+        if (this.state.summary && (!this.state.selectedAge || this.state.selectedAge < this.state.summary.currentAge)) {
+            this.state.selectedAge = this.state.summary.currentAge < this.state.summary.retirementAge
+                ? this.state.summary.retirementAge
+                : this.state.summary.currentAge;
         }
     },
 
