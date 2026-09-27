@@ -277,4 +277,105 @@ class PensionAlchemyEngineTest {
         // 1200만 * 18% = 216만원
         assertEquals(2_160_000L, taxResult.taxRefundAmount)
     }
+
+    @Test
+    fun testPersistentDeficitSimulationTrajectory() {
+        // 수입이 없고 지출만 있는 시나리오: 30세 시작, 초기 자산 5천만원, 월 지출 200만원 (연 2,400만원 지출)
+        val profile = UserProfile(
+            birthYear = 1996, // 30세
+            retirementAge = 60,
+            targetEndAge = 40,
+            monthlyExpenses = 2_000_000L,
+            inflationRate = 0.0, // 직관적 검증을 위해 물가상승률 0% 가정
+            policySettings = PolicySettings(financialAssetReturnRate = 0.0)
+        )
+        val initialCash = 50_000_000L
+        val assets = listOf(
+            Asset(name = "초기 현금", type = AssetType.DEPOSIT, currentValue = initialCash, expectedGrowthRate = 0.0)
+        )
+        // 연금 없음, 수입 없음
+        val summary = SimulationEngine.runComprehensiveSimulation(profile, emptyList(), assets, emptyList())
+
+        // 30세부터 40세까지 11개 연도 결과
+        val results = summary.yearlyResults
+        assertEquals(11, results.size)
+
+        // 초기 자산 확인
+        assertEquals(initialCash, summary.currentNetWorth)
+
+        // 30세 말: 약 5,000만 - 2,400만 = 2,600만
+        val r30 = results.first { it.age == 30 }
+        assertTrue("30세 말 순자산은 2600만원 수준이어야 함", r30.netAssetValue in 25_000_000L..27_000_000L)
+
+        // 31세 말: 약 2,600만 - 2,400만 = 200만
+        val r31 = results.first { it.age == 31 }
+        assertTrue("31세 말 순자산은 200만원 수준이어야 함", r31.netAssetValue in 1_000_000L..3_000_000L)
+
+        // 32세 말: 200만 - 2,400만 = 약 -2,200만원 (음수 순자산 진입!)
+        val r32 = results.first { it.age == 32 }
+        assertTrue("32세 말 순자산은 마이너스여야 함 (실제: ${r32.netAssetValue})", r32.netAssetValue < 0L)
+        assertEquals("최초 고갈 나이는 32세여야 함", 32, summary.depletionAge)
+
+        // 33세 말, 34세 말... 특정 시점에 멈추지 않고 계속해서 음수로 지속 하락해야 함!
+        for (i in 0 until results.size - 1) {
+            val curr = results[i]
+            val next = results[i + 1]
+            assertTrue(
+                "적자 지속 시 순자산은 다음 해에 더 감소해야 함 (현재 ${curr.age}세: ${curr.netAssetValue}, 다음 ${next.age}세: ${next.netAssetValue})",
+                curr.netAssetValue > next.netAssetValue
+            )
+            // 특정 고정된 값으로 멈춰있는 구간이 없어야 함
+            assertNotEquals(
+                "연속된 두 해의 순자산이 고정된 값으로 멈춰있으면 안 됨",
+                curr.netAssetValue,
+                next.netAssetValue
+            )
+        }
+
+        // 최종 40세 순자산은 약 -2억원 수준이어야 함
+        val r40 = results.first { it.age == 40 }
+        assertTrue("40세 최종 순자산은 깊은 마이너스여야 함 (실제: ${r40.netAssetValue})", r40.netAssetValue < -150_000_000L)
+    }
+
+    @Test
+    fun testPensionAssetDepletionDuringPayout() {
+        // 개인연금 60세 시작 ~ 70세 종료 (10년 수령), 매월 100만원 수령, 60세 시점 잔액 1.2억원
+        val profile = UserProfile(
+            birthYear = 1966, // 60세
+            retirementAge = 60,
+            targetEndAge = 80,
+            monthlyExpenses = 1_000_000L,
+            inflationRate = 0.0
+        )
+        val personalPension = Pension(
+            name = "10년 확정 개인연금",
+            type = PensionType.PERSONAL,
+            startAge = 60,
+            endAge = 70,
+            expectedMonthlyAmount = 1_000_000L,
+            currentBalance = 120_000_000L,
+            expectedGrowthRate = 0.0,
+            contributionEndAge = 60
+        )
+        val summary = SimulationEngine.runComprehensiveSimulation(profile, listOf(personalPension), emptyList(), emptyList())
+        val results = summary.yearlyResults
+
+        // 60세 시점: 연금 수령(연 1,200만원) 후 잔여 연금 자산은 1.2억 - 1200만 = 1.08억원
+        val r60 = results.first { it.age == 60 }
+        assertEquals(108_000_000L, r60.pensionAssets)
+
+        // 65세 시점: 연금 자산이 중간 정도로 감소해 있어야 함
+        val r65 = results.first { it.age == 65 }
+        assertTrue("65세 연금 자산은 60세보다 감소해야 함", r65.pensionAssets < r60.pensionAssets && r65.pensionAssets > 0L)
+
+        // 70세 시점: 10년 수령 완료로 0원에 도달
+        val r70 = results.first { it.age == 70 }
+        assertEquals("70세 연금 수령 완료 시 잔액은 0원이어야 함", 0L, r70.pensionAssets)
+
+        // 71세 ~ 80세: 수령 종료 후에도 연금 자산이 0원으로 유지되어야 함 (고정된 값으로 남아있지 않아야 함)
+        for (age in 71..80) {
+            val r = results.first { it.age == age }
+            assertEquals("${age}세에 연금 자산은 0원이어야 함", 0L, r.pensionAssets)
+        }
+    }
 }

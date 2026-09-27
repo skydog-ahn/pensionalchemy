@@ -57,9 +57,9 @@ const SimulationEngine = {
         });
         let debtBalance = Object.values(debtBalances).reduce((a, b) => a + b, 0);
 
-        // 연금 적립금 추적 맵
+        // 연금 적립금 추적 맵 (국민연금, 주택연금은 적립식 계좌자산이 아니므로 제외)
         const pensionBalances = {};
-        pensions.forEach(p => {
+        pensions.filter(p => p.type !== 'NATIONAL' && p.type !== 'HOUSING').forEach(p => {
             pensionBalances[p.id] = Number(p.currentBalance) || 0;
         });
 
@@ -69,7 +69,7 @@ const SimulationEngine = {
         let currentMedicalExpenses = profile.monthlyExpenses * (profile.medicalExpenseRatio || 0.10);
 
         const yearlyResults = [];
-        let peakAsset = 0;
+        let peakAsset = -Infinity;
         let peakAge = currentAge;
         let depletionAge = 0;
 
@@ -116,22 +116,22 @@ const SimulationEngine = {
                     ? nationalPensionStartAge
                     : p.startAge;
 
-                let currentBal = pensionBalances[p.id] || 0;
+                const isFunded = (p.type !== 'NATIONAL' && p.type !== 'HOUSING');
+                let currentBal = isFunded ? (pensionBalances[p.id] || 0) : 0;
 
                 // A) 적립기
-                if (age <= p.contributionEndAge && (p.monthlyContribution || 0) > 0) {
-                    const annualContribution = p.monthlyContribution * 12;
-                    const rate = (p.expectedGrowthRate || 0) / 100.0;
-                    currentBal = (currentBal + annualContribution) * (1.0 + rate);
-                    pensionBalances[p.id] = currentBal;
-                } else if (age < effectiveStartAge && currentBal > 0) {
-                    // 수령 전 운용수익 복리 증식
-                    const rate = (p.expectedGrowthRate || 0) / 100.0;
-                    currentBal = currentBal * (1.0 + rate);
-                    pensionBalances[p.id] = currentBal;
+                if (isFunded) {
+                    if (age <= p.contributionEndAge && (p.monthlyContribution || 0) > 0) {
+                        const annualContribution = p.monthlyContribution * 12;
+                        const rate = (p.expectedGrowthRate || 0) / 100.0;
+                        currentBal = (currentBal + annualContribution) * (1.0 + rate);
+                        pensionBalances[p.id] = currentBal;
+                    } else if (age < effectiveStartAge && currentBal > 0) {
+                        const rate = (p.expectedGrowthRate || 0) / 100.0;
+                        currentBal = currentBal * (1.0 + rate);
+                        pensionBalances[p.id] = currentBal;
+                    }
                 }
-
-                totalPensionAssets += Math.round(currentBal);
 
                 // B) 수령기
                 if (age >= effectiveStartAge && age <= p.endAge) {
@@ -164,6 +164,19 @@ const SimulationEngine = {
                         case 'HOUSING': grossMonthlyHousing += payoutLong; break;
                         case 'OTHER': default: grossMonthlyOther += payoutLong; break;
                     }
+                }
+
+                // C) 수령기 적립금 인출 및 잔여 자산 갱신
+                if (isFunded) {
+                    if (age >= effectiveStartAge && age <= p.endAge) {
+                        const rate = (p.expectedGrowthRate || 0) / 100.0;
+                        const balWithYield = (pensionBalances[p.id] || currentBal) * (1.0 + rate);
+                        const annualWithdrawal = monthlyPayout * 12;
+                        pensionBalances[p.id] = Math.max(0, balWithYield - annualWithdrawal);
+                    } else if (age > p.endAge) {
+                        pensionBalances[p.id] = 0;
+                    }
+                    totalPensionAssets += Math.round(pensionBalances[p.id] || 0);
                 }
             }
 
@@ -260,29 +273,52 @@ const SimulationEngine = {
             const realEstateYield = policy.realEstateGrowthRate / 100.0;
 
             if (annualCashFlow >= 0) {
-                liquidFinancialAssets = Math.round((liquidFinancialAssets * (1.0 + financialYield)) + annualCashFlow);
+                const base = (liquidFinancialAssets > 0)
+                    ? Math.round(liquidFinancialAssets * (1.0 + financialYield))
+                    : liquidFinancialAssets;
+                liquidFinancialAssets = base + annualCashFlow;
             } else {
                 let deficit = Math.abs(annualCashFlow);
-                liquidFinancialAssets = Math.round(liquidFinancialAssets * (1.0 + financialYield));
 
-                if (liquidFinancialAssets >= deficit) {
-                    liquidFinancialAssets -= deficit;
-                } else {
-                    deficit -= liquidFinancialAssets;
-                    liquidFinancialAssets = 0;
-
-                    if (realEstateAssets > deficit) {
-                        realEstateAssets -= deficit;
+                // 1) 금융자산이 플러스인 경우 먼저 인출
+                if (liquidFinancialAssets > 0) {
+                    const grownAssets = Math.round(liquidFinancialAssets * (1.0 + financialYield));
+                    if (grownAssets >= deficit) {
+                        liquidFinancialAssets = grownAssets - deficit;
+                        deficit = 0;
                     } else {
+                        deficit -= grownAssets;
+                        liquidFinancialAssets = 0;
+                    }
+                }
+
+                // 2) 금융자산 소진 후 부동산 자산에서 차감
+                if (deficit > 0 && realEstateAssets > 0) {
+                    if (realEstateAssets >= deficit) {
+                        realEstateAssets -= deficit;
+                        deficit = 0;
+                    } else {
+                        deficit -= realEstateAssets;
                         realEstateAssets = 0;
                     }
                 }
+
+                // 3) 모든 유동자산과 부동산이 소진된 후에도 남은 적자: 누적 결손으로 계속 차감!
+                if (deficit > 0) {
+                    liquidFinancialAssets -= deficit;
+                }
             }
 
-            realEstateAssets = Math.round(realEstateAssets * (1.0 + realEstateYield));
+            if (realEstateAssets > 0) {
+                realEstateAssets = Math.round(realEstateAssets * (1.0 + realEstateYield));
+            }
 
-            const totalGrossAssets = liquidFinancialAssets + realEstateAssets + totalPensionAssets;
-            const netAssetValue = Math.max(0, totalGrossAssets - debtBalance);
+            const positiveFinancialAssets = Math.max(0, liquidFinancialAssets);
+            const totalGrossAssets = positiveFinancialAssets + realEstateAssets + totalPensionAssets;
+            // 순자산: 음수 허용
+            const netAssetValue = (liquidFinancialAssets < 0)
+                ? (totalGrossAssets - debtBalance + liquidFinancialAssets)
+                : (totalGrossAssets - debtBalance);
 
             if (netAssetValue <= 0 && depletionAge === 0 && age > currentAge) {
                 depletionAge = age;
@@ -359,9 +395,9 @@ const SimulationEngine = {
         const initialTotalDebt = assets.filter(a => isDebt(a)).reduce((s, a) => s + (Number(a.currentValue) || 0), 0);
         const initialFinancialAssets = assets.filter(a => !isDebt(a) && a.type !== 'REAL_ESTATE').reduce((s, a) => s + (Number(a.currentValue) || 0), 0);
         const initialRealEstate = assets.filter(a => !isDebt(a) && a.type === 'REAL_ESTATE').reduce((s, a) => s + (Number(a.currentValue) || 0), 0);
-        const initialPensionAssets = pensions.reduce((s, p) => s + (Number(p.currentBalance) || 0), 0);
+        const initialPensionAssets = pensions.filter(p => p.type !== 'NATIONAL' && p.type !== 'HOUSING').reduce((s, p) => s + (Number(p.currentBalance) || 0), 0);
         const initialTotalAssets = initialFinancialAssets + initialRealEstate + initialPensionAssets;
-        const initialNetWorth = Math.max(0, initialTotalAssets - initialTotalDebt);
+        const initialNetWorth = initialTotalAssets - initialTotalDebt;
 
         return {
             currentAge,
@@ -377,7 +413,7 @@ const SimulationEngine = {
             isSafeRetirement: depletionAge === 0,
             depletionAge,
             postRetirementMonthlyPension: yearlyResults.find(r => r.age === 65)?.monthlyPensionIncome || postRetirementPension,
-            peakAssetValue: peakAsset,
+            peakAssetValue: (peakAsset === -Infinity) ? initialNetWorth : peakAsset,
             peakAssetAge: peakAge,
             yearlyResults,
             crevasseInfo,

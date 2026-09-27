@@ -57,8 +57,11 @@ object SimulationEngine {
         val debtBalances = debtAssets.associate { it.id to it.currentValue }.toMutableMap()
         var debtBalance = debtBalances.values.sum()
 
-        // 연금 적립금 추적 맵
-        val pensionBalances = pensions.associate { it.id to it.currentBalance.toDouble() }.toMutableMap()
+        // 연금 적립금 추적 맵 (공적연금인 국민연금과 역모기지인 주택연금은 적립식 계좌자산이 아니므로 제외)
+        val pensionBalances = pensions
+            .filter { it.type != PensionType.NATIONAL && it.type != PensionType.HOUSING }
+            .associate { it.id to it.currentBalance.toDouble() }
+            .toMutableMap()
 
         // 생활비 초기값 (90% 기본생활비, 10% 의료비)
         val generalInflationRate = profile.inflationRate / 100.0
@@ -66,7 +69,7 @@ object SimulationEngine {
         var currentMedicalExpenses = profile.monthlyExpenses * profile.medicalExpenseRatio
 
         val yearlyResults = mutableListOf<YearlySimulationResult>()
-        var peakAsset = 0L
+        var peakAsset = Long.MIN_VALUE
         var peakAge = currentAge
         var depletionAge = 0
 
@@ -116,26 +119,27 @@ object SimulationEngine {
                     p.startAge
                 }
 
-                val currentBal = pensionBalances[p.id] ?: 0.0
+                val isFundedPension = p.type != PensionType.NATIONAL && p.type != PensionType.HOUSING
+                val currentBal = if (isFundedPension) (pensionBalances[p.id] ?: 0.0) else 0.0
 
-                // A) 적립기
-                if (age <= p.contributionEndAge && p.monthlyContribution > 0L) {
-                    val annualContribution = p.monthlyContribution * 12.0
-                    val rate = p.expectedGrowthRate / 100.0
-                    val updatedBal = (currentBal + annualContribution) * (1.0 + rate)
-                    pensionBalances[p.id] = updatedBal
-                } else if (age < effectiveStartAge && currentBal > 0.0) {
-                    // 납입 완료 후 수령 전까지 운용수익 복리 증식
-                    val rate = p.expectedGrowthRate / 100.0
-                    pensionBalances[p.id] = currentBal * (1.0 + rate)
+                // A) 적립기 (수령 개시 전 및 납입기)
+                if (isFundedPension) {
+                    if (age <= p.contributionEndAge && p.monthlyContribution > 0L) {
+                        val annualContribution = p.monthlyContribution * 12.0
+                        val rate = p.expectedGrowthRate / 100.0
+                        val updatedBal = (currentBal + annualContribution) * (1.0 + rate)
+                        pensionBalances[p.id] = updatedBal
+                    } else if (age < effectiveStartAge && currentBal > 0.0) {
+                        // 납입 완료 후 수령 전까지 운용수익 복리 증식
+                        val rate = p.expectedGrowthRate / 100.0
+                        pensionBalances[p.id] = currentBal * (1.0 + rate)
+                    }
                 }
 
-                val activeBal = pensionBalances[p.id] ?: 0.0
-                totalPensionAssets += activeBal.roundToLong()
-
-                // B) 수령기
+                // B) 수령기 지급액 계산
+                var monthlyPayout = 0.0
                 if (age >= effectiveStartAge && age <= p.endAge) {
-                    var monthlyPayout = p.expectedMonthlyAmount.toDouble()
+                    monthlyPayout = p.expectedMonthlyAmount.toDouble()
 
                     if (p.type == PensionType.NATIONAL) {
                         // 조기/연기 수령 보정률 (설정된 연간 감액/증액률 반영)
@@ -167,6 +171,21 @@ object SimulationEngine {
                         PensionType.HOUSING -> grossMonthlyHousing += payoutLong
                         PensionType.OTHER -> grossMonthlyOther += payoutLong
                     }
+                }
+
+                // C) 수령기 적립금 인출 및 잔여 자산 갱신
+                if (isFundedPension) {
+                    if (age >= effectiveStartAge && age <= p.endAge) {
+                        val rate = p.expectedGrowthRate / 100.0
+                        val balWithYield = (pensionBalances[p.id] ?: currentBal) * (1.0 + rate)
+                        val annualWithdrawal = monthlyPayout * 12.0
+                        val remainingBal = (balWithYield - annualWithdrawal).coerceAtLeast(0.0)
+                        pensionBalances[p.id] = remainingBal
+                    } else if (age > p.endAge) {
+                        // 수령 기간 만료 후 계좌 잔액 완전 소진
+                        pensionBalances[p.id] = 0.0
+                    }
+                    totalPensionAssets += (pensionBalances[p.id] ?: 0.0).roundToLong()
                 }
             }
 
@@ -266,40 +285,66 @@ object SimulationEngine {
             // 총 지출 = 생활비/의료비 + 부채 원리금 상환액
             val annualTotalExpenses = annualExpenses + annualDebtService
             val annualCashFlow = annualIncome - annualTotalExpenses
-            val financialYield = if (liquidFinancialAssets > 0) policy.financialAssetReturnRate / 100.0 else 0.0
+            val financialYield = if (liquidFinancialAssets > 0L) policy.financialAssetReturnRate / 100.0 else 0.0
             val realEstateYield = policy.realEstateGrowthRate / 100.0
 
-            if (annualCashFlow >= 0) {
-                // 흑자: 잉여금이 금융자산에 축적
-                liquidFinancialAssets = ((liquidFinancialAssets * (1.0 + financialYield)) + annualCashFlow).roundToLong()
-            } else {
-                // 적자: 부족분을 금융자산에서 우선 인출
-                var deficit = abs(annualCashFlow)
-                liquidFinancialAssets = (liquidFinancialAssets * (1.0 + financialYield)).roundToLong()
-
-                if (liquidFinancialAssets >= deficit) {
-                    liquidFinancialAssets -= deficit
+            if (annualCashFlow >= 0L) {
+                // 흑자: 잉여금이 금융자산에 축적 (만약 마이너스 통장/결손이 있었다면 우선 메꿈)
+                val base = if (liquidFinancialAssets > 0L) {
+                    (liquidFinancialAssets * (1.0 + financialYield)).roundToLong()
                 } else {
-                    deficit -= liquidFinancialAssets
-                    liquidFinancialAssets = 0L
+                    liquidFinancialAssets
+                }
+                liquidFinancialAssets = base + annualCashFlow
+            } else {
+                // 적자: 지출 부족분 발생
+                var deficit = abs(annualCashFlow)
 
-                    // 금융자산 소진 후 부동산 자산에서 차감 (주택연금화 또는 유동화 가정)
-                    if (realEstateAssets > deficit) {
-                        realEstateAssets -= deficit
+                // 1) 금융자산이 플러스인 경우 먼저 인출
+                if (liquidFinancialAssets > 0L) {
+                    val grownAssets = (liquidFinancialAssets * (1.0 + financialYield)).roundToLong()
+                    if (grownAssets >= deficit) {
+                        liquidFinancialAssets = grownAssets - deficit
+                        deficit = 0L
                     } else {
+                        deficit -= grownAssets
+                        liquidFinancialAssets = 0L
+                    }
+                }
+
+                // 2) 금융자산 소진 후 부동산 자산에서 차감 (주택연금화, 축소, 유동화 가정)
+                if (deficit > 0L && realEstateAssets > 0L) {
+                    if (realEstateAssets >= deficit) {
+                        realEstateAssets -= deficit
+                        deficit = 0L
+                    } else {
+                        deficit -= realEstateAssets
                         realEstateAssets = 0L
                     }
                 }
+
+                // 3) 모든 유동자산과 부동산이 소진된 후에도 남은 적자: 순자산 결손(신규 부채/마이너스)으로 누적 반영!
+                if (deficit > 0L) {
+                    liquidFinancialAssets -= deficit
+                }
             }
 
-            // 부동산 자산 자연 성장
-            realEstateAssets = (realEstateAssets * (1.0 + realEstateYield)).roundToLong()
+            // 부동산 자산 자연 성장 (부동산이 남아있을 때만)
+            if (realEstateAssets > 0L) {
+                realEstateAssets = (realEstateAssets * (1.0 + realEstateYield)).roundToLong()
+            }
 
             // 총 자산 및 순자산 산출
-            val totalGrossAssets = liquidFinancialAssets + realEstateAssets + totalPensionAssets
-            val netAssetValue = (totalGrossAssets - debtBalance).coerceAtLeast(0L)
+            val positiveFinancialAssets = liquidFinancialAssets.coerceAtLeast(0L)
+            val totalGrossAssets = positiveFinancialAssets + realEstateAssets + totalPensionAssets
+            // 순자산: 총자산 - 대출부채 - 누적적자(금융자산 결손분)
+            val netAssetValue = if (liquidFinancialAssets < 0L) {
+                totalGrossAssets - debtBalance + liquidFinancialAssets // liquidFinancialAssets is negative
+            } else {
+                totalGrossAssets - debtBalance
+            }
 
-            // 고갈 나이 추적
+            // 고갈 나이 추적 (처음으로 순자산이 0 이하가 된 시점)
             if (netAssetValue <= 0L && depletionAge == 0 && age > currentAge) {
                 depletionAge = age
             }
@@ -379,9 +424,9 @@ object SimulationEngine {
         val initialTotalDebt = assets.filter { it.isLiability }.sumOf { it.currentValue }
         val initialFinancialAssets = assets.filter { !it.isLiability && it.type != AssetType.REAL_ESTATE }.sumOf { it.currentValue }
         val initialRealEstateAssets = assets.filter { !it.isLiability && it.type == AssetType.REAL_ESTATE }.sumOf { it.currentValue }
-        val initialPensionAssets = pensions.sumOf { it.currentBalance }
+        val initialPensionAssets = pensions.filter { it.type != PensionType.NATIONAL && it.type != PensionType.HOUSING }.sumOf { it.currentBalance }
         val initialGrossAssets = initialFinancialAssets + initialRealEstateAssets + initialPensionAssets
-        val initialNetWorth = (initialGrossAssets - initialTotalDebt).coerceAtLeast(0L)
+        val initialNetWorth = initialGrossAssets - initialTotalDebt
 
         val firstYear = yearlyResults.firstOrNull()
         return SimulationSummary(
@@ -398,7 +443,7 @@ object SimulationEngine {
             depletionAge = depletionAge,
             isSafeRetirement = depletionAge == 0,
             peakAssetAge = peakAge,
-            peakAssetValue = peakAsset,
+            peakAssetValue = if (peakAsset == Long.MIN_VALUE) initialNetWorth else peakAsset,
             finalAssetValue = yearlyResults.lastOrNull()?.netAssetValue ?: 0L,
             preRetirementMonthlyIncome = preRetirementWorkIncome,
             postRetirementMonthlyPension = postRetirementPension,

@@ -15,6 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pension.alchemy.BuildConfig
 import com.pension.alchemy.data.repository.PensionAlchemyRepository
 import com.pension.alchemy.domain.engine.SimulationEngine
 import kotlinx.coroutines.launch
@@ -79,7 +80,7 @@ fun MainScreen(
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "v 1.2.5",
+                                    text = "v ${BuildConfig.VERSION_NAME}",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Medium,
                                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.75f)

@@ -326,9 +326,9 @@ fun DashboardScreen(
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
-                                        text = "총자산 - 총부채",
+                                        text = if (selectedYearResult.netAssetValue < 0L) "자산 소진 후 누적 결손" else "총자산 - 총부채",
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = if (selectedYearResult.netAssetValue < 0L) RoseDanger else MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
@@ -338,7 +338,7 @@ fun DashboardScreen(
                                     fontWeight = FontWeight.ExtraBold,
                                     fontSize = 17.sp
                                 ),
-                                color = MaterialTheme.colorScheme.onSurface,
+                                color = if (selectedYearResult.netAssetValue < 0L) RoseDanger else MaterialTheme.colorScheme.onSurface,
                                 softWrap = false,
                                 maxLines = 1
                             )

@@ -11,8 +11,8 @@ android {
         applicationId = "com.pension.alchemy"
         minSdk = 24
         targetSdk = 36
-        versionCode = 5
-        versionName = "1.2.5"
+        versionCode = 7
+        versionName = "1.2.7"
     }
 
     signingConfigs {
@@ -38,7 +38,7 @@ android {
     buildFeatures {
       compose = true
       aidl = false
-      buildConfig = false
+      buildConfig = true
       shaders = false
     }
 
