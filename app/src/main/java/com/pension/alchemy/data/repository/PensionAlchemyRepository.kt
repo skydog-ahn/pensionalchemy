@@ -393,6 +393,19 @@ class PensionAlchemyRepository(private val context: Context) {
         }
     }
 
+    // --- Onboarding Guide Preferences ---
+    private val guidePrefs by lazy {
+        context.getSharedPreferences("pension_alchemy_guide_prefs", Context.MODE_PRIVATE)
+    }
+
+    fun shouldShowOnboardingGuide(): Boolean {
+        return !guidePrefs.getBoolean("hide_onboarding_guide", false)
+    }
+
+    fun setHideOnboardingGuide(hide: Boolean) {
+        guidePrefs.edit().putBoolean("hide_onboarding_guide", hide).apply()
+    }
+
     companion object {
         @Volatile
         private var instance: PensionAlchemyRepository? = null

@@ -45,6 +45,7 @@ fun SettingsScreen(
     onApplyPreset: (Int) -> Unit,
     onResetData: () -> Unit,
     onOpenHelp: () -> Unit = {},
+    onOpenOnboardingGuide: () -> Unit = {},
     repository: PensionAlchemyRepository? = null,
     calculatorViewModel: CalculatorViewModel? = null,
     modifier: Modifier = Modifier
@@ -110,6 +111,7 @@ fun SettingsScreen(
     var birthYearStr by remember(profile.birthYear) { mutableStateOf(profile.birthYear.toString()) }
     var retirementAgeStr by remember(profile.retirementAge) { mutableStateOf(profile.retirementAge.toString()) }
     var targetEndAgeStr by remember(profile.targetEndAge) { mutableStateOf(profile.targetEndAge.toString()) }
+    var currentExpensesManwonStr by remember(profile.currentMonthlyExpenses) { mutableStateOf((profile.currentMonthlyExpenses / 10_000L).toString()) }
     var expensesManwonStr by remember(profile.monthlyExpenses) { mutableStateOf((profile.monthlyExpenses / 10_000L).toString()) }
     var inflationStr by remember(profile.inflationRate) { mutableStateOf(profile.inflationRate.toString()) }
 
@@ -150,6 +152,7 @@ fun SettingsScreen(
         birthYearStr = profile.birthYear.toString()
         retirementAgeStr = profile.retirementAge.toString()
         targetEndAgeStr = profile.targetEndAge.toString()
+        currentExpensesManwonStr = (profile.currentMonthlyExpenses / 10_000L).toString()
         expensesManwonStr = (profile.monthlyExpenses / 10_000L).toString()
         inflationStr = profile.inflationRate.toString()
 
@@ -187,6 +190,7 @@ fun SettingsScreen(
         val birth = birthYearStr.toIntOrNull() ?: 1985
         val ret = retirementAgeStr.toIntOrNull() ?: 60
         val endAge = targetEndAgeStr.toIntOrNull() ?: 100
+        val currentExp = (currentExpensesManwonStr.toLongOrNull() ?: 300L) * 10_000L
         val exp = (expensesManwonStr.toLongOrNull() ?: 250L) * 10_000L
         val inf = inflationStr.toDoubleOrNull() ?: 2.0
 
@@ -220,6 +224,7 @@ fun SettingsScreen(
                 birthYear = birth,
                 retirementAge = ret,
                 targetEndAge = endAge,
+                currentMonthlyExpenses = currentExp,
                 monthlyExpenses = exp,
                 inflationRate = inf,
                 policySettings = updatedPolicy
@@ -298,6 +303,29 @@ fun SettingsScreen(
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(text = "기본 프로필 & 생애 주기 목표", fontWeight = FontWeight.Bold, fontSize = 15.sp)
 
+                        // 시작 가이드 버튼 배너
+                        OutlinedButton(
+                            onClick = onOpenOnboardingGuide,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.primary
+                            ),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "✨ 연금술사 시작 가이드 (처음 사용 안내)",
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 13.sp
+                            )
+                        }
+
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             AutoSelectOutlinedTextField(
                                 value = birthYearStr,
@@ -322,10 +350,11 @@ fun SettingsScreen(
                             )
                         }
 
+                        // 1. 현재 월 생활 소비 지출 (은퇴 전 소비액)
                         AutoSelectOutlinedTextField(
-                            value = expensesManwonStr,
-                            onValueChange = { expensesManwonStr = it.filter { c -> c.isDigit() } },
-                            label = { Text("은퇴 후 월 희망 생활비 (현재 가치 기준 / 단위: 만원)") },
+                            value = currentExpensesManwonStr,
+                            onValueChange = { currentExpensesManwonStr = it.filter { c -> c.isDigit() } },
+                            label = { Text("현재 월 생활 소비 지출 (은퇴 전 소비 / 단위: 만원)") },
                             trailingIcon = {
                                 Text(
                                     text = "만원",
@@ -339,13 +368,32 @@ fun SettingsScreen(
                             modifier = Modifier.fillMaxWidth()
                         )
 
-                        // 현재 가치 안내 및 은퇴 시점 미래가치 자동 환산 미리보기 배너
+                        // 2. 은퇴 후 월 필요 생활비 (현재가치 기준)
+                        AutoSelectOutlinedTextField(
+                            value = expensesManwonStr,
+                            onValueChange = { expensesManwonStr = it.filter { c -> c.isDigit() } },
+                            label = { Text("은퇴 후 월 필요 지출 (현재 가치 기준 / 단위: 만원)") },
+                            trailingIcon = {
+                                Text(
+                                    text = "만원",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(end = 12.dp)
+                                )
+                            },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        // 현재 가치 안내 및 은퇴 시점 미래가치 자동 환산 실시간 배너
                         val currentAgeCalc = (LocalDate.now().year - (birthYearStr.toIntOrNull() ?: 1985)).coerceAtLeast(0)
                         val retAgeCalc = retirementAgeStr.toIntOrNull() ?: 60
                         val yearsToRet = (retAgeCalc - currentAgeCalc).coerceAtLeast(0)
-                        val currentExpensesManwon = expensesManwonStr.toDoubleOrNull() ?: 0.0
+                        val currentExpManwon = currentExpensesManwonStr.toDoubleOrNull() ?: 0.0
+                        val retExpManwon = expensesManwonStr.toDoubleOrNull() ?: 0.0
                         val inflRate = (inflationStr.toDoubleOrNull() ?: 2.0) / 100.0
-                        val futureExpensesManwon = (currentExpensesManwon * (1.0 + inflRate).pow(yearsToRet.toDouble())).roundToLong()
+                        val futureExpensesManwon = (retExpManwon * (1.0 + inflRate).pow(yearsToRet.toDouble())).roundToLong()
 
                         Surface(
                             color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
@@ -363,28 +411,28 @@ fun SettingsScreen(
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = "현재 가치 기준 입력 안내",
+                                        text = "지출 산출 및 현재가치 ↔ 미래가치 안내",
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.primary
                                     )
                                 }
-                                Spacer(modifier = Modifier.height(4.dp))
+                                Spacer(modifier = Modifier.height(6.dp))
                                 Text(
-                                    text = "• 입력하시는 생활비는 '현재 물가 기준 가치'입니다.\n" +
-                                            "• 시뮬레이션 시 은퇴 시점까지의 연간 물가상승률(연 ${String.format(Locale.US, "%.1f", inflRate * 100)}%)이 복리로 자동 환산되어 미래 생활비로 반영됩니다.",
+                                    text = "• 은퇴 전 지출: '현재 월 생활 소비액'이 은퇴 시점 전까지 물가상승률(연 ${String.format(Locale.US, "%.1f", inflRate * 100)}%)을 반영하여 차감 및 자산 축적에 계산됩니다.\n" +
+                                            "• 은퇴 후 지출: 현재 물가 기준 가치로 기재하시며, 실제 은퇴 시점(${retAgeCalc}세)부터 미래가치로 복리 자동 환산되어 소비로 계산됩니다.",
                                     fontSize = 11.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     lineHeight = 16.sp
                                 )
-                                if (currentExpensesManwon > 0.0 && yearsToRet > 0) {
+                                if (retExpManwon > 0.0 && yearsToRet > 0) {
                                     Spacer(modifier = Modifier.height(6.dp))
                                     HorizontalDivider(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
                                     Spacer(modifier = Modifier.height(6.dp))
                                     Text(
-                                        text = "🎯 ${retAgeCalc}세 은퇴 시점 미래가치 환산액: 월 약 ${futureExpensesManwon}만원 (${yearsToRet}년간 물가 복리 반영)",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.SemiBold,
+                                        text = "🎯 ${retAgeCalc}세 은퇴 시점 미래가치 환산액: 월 약 ${futureExpensesManwon}만원 (${yearsToRet}년간 물가 연 ${String.format(Locale.US, "%.1f", inflRate * 100)}% 복리 반영)",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.primary
                                     )
                                 }
@@ -1109,7 +1157,7 @@ fun SettingsScreen(
                             Text("• 연금 플랜: ${preview.pensions.size}건", fontSize = 12.sp)
                             Text("• 자산/부채: ${preview.assets.size}건", fontSize = 12.sp)
                             Text("• 정기 소득: ${preview.incomes.size}건", fontSize = 12.sp)
-                            Text("• 프로필: ${preview.userProfile.birthYear}년생 (은퇴 ${preview.userProfile.retirementAge}세 / 희망월 ${preview.userProfile.monthlyExpenses / 10000}만원)", fontSize = 12.sp)
+                            Text("• 프로필: ${preview.userProfile.birthYear}년생 (은퇴 ${preview.userProfile.retirementAge}세 / 현재월 ${preview.userProfile.currentMonthlyExpenses / 10000}만 / 은퇴월 ${preview.userProfile.monthlyExpenses / 10000}만원)", fontSize = 12.sp)
                             Text("• 계산기 사용자 설정값 포함됨", fontSize = 12.sp)
                         }
                     }

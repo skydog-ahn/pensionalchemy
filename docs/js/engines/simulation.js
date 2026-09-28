@@ -63,10 +63,19 @@ const SimulationEngine = {
             pensionBalances[p.id] = Number(p.currentBalance) || 0;
         });
 
-        // 생활비 초기값
+        // 생활비 초기값 (은퇴 전: 현재 월 생활소비 / 은퇴 후: 현재가치 기준 희망생활비의 은퇴시점 미래가치 환산)
         const generalInflationRate = (profile.inflationRate || 2.0) / 100.0;
-        let currentLivingExpenses = profile.monthlyExpenses * (1.0 - (profile.medicalExpenseRatio || 0.10));
-        let currentMedicalExpenses = profile.monthlyExpenses * (profile.medicalExpenseRatio || 0.10);
+        const medicalInflationRate = generalInflationRate + ((policy.medicalInflationSurcharge || 3.0) / 100.0);
+
+        // 1) 은퇴 전: 현재 월 생활비 (현재가치 기준에서 매년 물가상승률 복리 적용)
+        let preRetireLivingExpense = Number(profile.currentMonthlyExpenses || 3000000);
+
+        // 2) 은퇴 후: 은퇴 시점까지 물가상승 복리 반영한 미래가치 기준 (기본생활비 + 의료비 가중치)
+        const yearsToRetirement = Math.max(0, retirementAge - currentAge);
+        const postRetireBaseLiving = profile.monthlyExpenses * (1.0 - (profile.medicalExpenseRatio || 0.10));
+        const postRetireBaseMed = profile.monthlyExpenses * (profile.medicalExpenseRatio || 0.10);
+        let postRetireLivingExpense = postRetireBaseLiving * Math.pow(1.0 + generalInflationRate, yearsToRetirement);
+        let postRetireMedExpense = postRetireBaseMed * Math.pow(1.0 + medicalInflationRate, yearsToRetirement);
 
         const yearlyResults = [];
         let peakAsset = -Infinity;
@@ -85,8 +94,10 @@ const SimulationEngine = {
             const yearsPassed = age - currentAge;
             const year = currentYear + yearsPassed;
 
-            // 1. 월 지출
-            const monthlyExpenses = Math.round(currentLivingExpenses + currentMedicalExpenses);
+            // 1. 월 지출: 은퇴 전에는 현재 생활 소비액, 은퇴 시점부터는 은퇴 후 필요 생활비(미래가치) 적용
+            const monthlyExpenses = age < retirementAge
+                ? Math.round(preRetireLivingExpense)
+                : Math.round(postRetireLivingExpense + postRetireMedExpense);
             const annualExpenses = monthlyExpenses * 12;
 
             // 2. 근로 및 기타 정기 소득
@@ -139,7 +150,7 @@ const SimulationEngine = {
                     monthlyPayout = Number(p.expectedMonthlyAmount || 0);
 
                     if (p.type === 'NATIONAL') {
-                        // 조기/연기 보정
+                        // 국민연금 조기/연기 보정
                         if (p.claimOffsetYears) {
                             const adj = (p.claimOffsetYears < 0)
                                 ? 1.0 + (p.claimOffsetYears * (policy.nationalEarlyReductionRatePerYear / 100.0))
@@ -149,10 +160,21 @@ const SimulationEngine = {
                         // 물가상승률 복리 연동
                         const cpiFactor = Math.pow(1.0 + generalInflationRate, yearsPassed);
                         monthlyPayout *= cpiFactor;
+                    } else if (p.type === 'HOUSING' || p.type === 'OTHER') {
+                        // 명목 고정 지급
                     } else {
-                        if (p.expectedGrowthRate > 0) {
-                            const growthFactor = Math.pow(1.0 + p.expectedGrowthRate / 100.0, yearsPassed);
-                            monthlyPayout *= growthFactor;
+                        // 사적연금(개인연금, 퇴직연금, 연금보험)은 이미 잔여적립금 복리운용을 포함한 PMT 연금화 금액
+                        const hasTrackedBalance = (p.currentBalance > 0 || p.monthlyContribution > 0);
+                        if (hasTrackedBalance) {
+                            const currentAccBal = pensionBalances[p.id] || 0;
+                            const rate = (p.expectedGrowthRate || 0) / 100.0;
+                            const availableThisYear = currentAccBal * (1.0 + rate);
+                            const requestedAnnual = monthlyPayout * 12;
+                            if (availableThisYear < requestedAnnual && availableThisYear > 0) {
+                                monthlyPayout = availableThisYear / 12;
+                            } else if (availableThisYear <= 0 && age > effectiveStartAge) {
+                                monthlyPayout = 0;
+                            }
                         }
                     }
 
@@ -169,15 +191,18 @@ const SimulationEngine = {
 
                 // C) 수령기 적립금 인출 및 잔여 자산 갱신
                 if (isFunded) {
-                    if (age >= effectiveStartAge && age <= p.endAge) {
-                        const rate = (p.expectedGrowthRate || 0) / 100.0;
-                        const balWithYield = (pensionBalances[p.id] || currentBal) * (1.0 + rate);
-                        const annualWithdrawal = monthlyPayout * 12;
-                        pensionBalances[p.id] = Math.max(0, balWithYield - annualWithdrawal);
-                    } else if (age > p.endAge) {
-                        pensionBalances[p.id] = 0;
+                    const hasTrackedBalance = (p.currentBalance > 0 || p.monthlyContribution > 0);
+                    if (hasTrackedBalance) {
+                        if (age >= effectiveStartAge && age <= p.endAge) {
+                            const rate = (p.expectedGrowthRate || 0) / 100.0;
+                            const balWithYield = (pensionBalances[p.id] || currentBal) * (1.0 + rate);
+                            const annualWithdrawal = monthlyPayout * 12;
+                            pensionBalances[p.id] = Math.max(0, balWithYield - annualWithdrawal);
+                        } else if (age > p.endAge) {
+                            pensionBalances[p.id] = 0;
+                        }
+                        totalPensionAssets += Math.round(pensionBalances[p.id] || 0);
                     }
-                    totalPensionAssets += Math.round(pensionBalances[p.id] || 0);
                 }
             }
 
@@ -193,9 +218,7 @@ const SimulationEngine = {
             for (const p of pensions) {
                 if (p.type === 'RETIREMENT' && age >= p.startAge && age <= p.endAge) {
                     const yearsSinceStart = Math.max(1, age - p.startAge + 1);
-                    const pPayout = (p.expectedGrowthRate > 0)
-                        ? Math.round(p.expectedMonthlyAmount * Math.pow(1.0 + p.expectedGrowthRate / 100.0, yearsPassed))
-                        : p.expectedMonthlyAmount;
+                    const pPayout = p.expectedMonthlyAmount;
                     retirementMonthlyTax += PensionTaxCalculator.calculateMonthlyRetirementPensionTax(pPayout, yearsSinceStart, policy);
                 }
             }
@@ -357,8 +380,13 @@ const SimulationEngine = {
                 isPrivatePensionLimitExceeded
             });
 
-            currentLivingExpenses *= (1.0 + generalInflationRate);
-            currentMedicalExpenses *= (1.0 + generalInflationRate + (policy.medicalInflationSurcharge / 100.0));
+            // 익년 물가상승 반영
+            if (age < retirementAge) {
+                preRetireLivingExpense *= (1.0 + generalInflationRate);
+            } else {
+                postRetireLivingExpense *= (1.0 + generalInflationRate);
+                postRetireMedExpense *= (1.0 + medicalInflationRate);
+            }
         }
 
         // 소득대체율

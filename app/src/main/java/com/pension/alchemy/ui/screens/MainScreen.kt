@@ -56,6 +56,25 @@ fun MainScreen(
 
     var currentTab by remember { mutableStateOf(ScreenTab.DASHBOARD) }
     var showHelpScreen by remember { mutableStateOf(false) }
+    var showOnboardingGuide by remember { mutableStateOf(false) }
+
+    // 앱 시작 시 온보딩 가이드 노출 여부 확인
+    LaunchedEffect(Unit) {
+        if (repository.shouldShowOnboardingGuide()) {
+            showOnboardingGuide = true
+        }
+    }
+
+    if (showOnboardingGuide) {
+        com.pension.alchemy.ui.components.OnboardingGuideDialog(
+            onDismiss = { dontShowAgain ->
+                if (dontShowAgain) {
+                    repository.setHideOnboardingGuide(true)
+                }
+                showOnboardingGuide = false
+            }
+        )
+    }
 
     if (showHelpScreen) {
         GuideHelpScreen(
@@ -63,7 +82,8 @@ fun MainScreen(
                 currentTab = targetTab
                 showHelpScreen = false
             },
-            onClose = { showHelpScreen = false }
+            onClose = { showHelpScreen = false },
+            onOpenOnboardingGuide = { showOnboardingGuide = true }
         )
     } else {
         Scaffold(
@@ -152,7 +172,8 @@ fun MainScreen(
                     ScreenTab.PENSIONS -> PensionScreen(
                         pensions = pensions,
                         onSavePension = { scope.launch { repository.savePension(it) } },
-                        onDeletePension = { scope.launch { repository.deletePension(it) } }
+                        onDeletePension = { scope.launch { repository.deletePension(it) } },
+                        currentAge = profile.currentAge
                     )
                     ScreenTab.CALCULATOR -> CalculatorScreen(
                         profile = profile,
@@ -165,7 +186,8 @@ fun MainScreen(
                         onUpdateProfile = { scope.launch { repository.updateProfile(it) } },
                         onApplyPreset = { preset -> scope.launch { repository.applyPreset(preset) } },
                         onResetData = { scope.launch { repository.resetAllData() } },
-                        onOpenHelp = { showHelpScreen = true }
+                        onOpenHelp = { showHelpScreen = true },
+                        onOpenOnboardingGuide = { showOnboardingGuide = true }
                     )
                 }
             }

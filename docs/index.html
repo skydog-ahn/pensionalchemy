@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>연금술사 (PensionAlchemy) v1.2.7 - 상세 사용설명서 & 인터랙티브 시뮬레이터</title>
-    <meta name="description" content="대한민국 100세 생애 은퇴·연금 시뮬레이터 '연금술사' 공식 종합 매뉴얼 및 인터랙티브 앱 시뮬레이터. 3층 연금 피라미드, 소득 크레바스 방어, 4% 룰, 6대 재무 계산기, 순자산 백분위 분석.">
+    <title>연금술사 (PensionAlchemy) v1.2.9 - 상세 사용설명서 & 인터랙티브 시뮬레이터</title>
+    <meta name="description" content="대한민국 100세 생애 은퇴·연금 시뮬레이터 '연금술사' 공식 종합 매뉴얼 및 인터랙티브 앱 시뮬레이터. 개인연금·IRP 적립금 예측 및 수급기간·수령액 상호연동, 개인연금보험 종신/확정형 지원, 현재 생활비 및 은퇴 후 미래가치 지출 분리 시뮬레이션, 3층 연금 피라미드, 소득 크레바스 방어, 4% 룰, 6대 재무 계산기, 순자산 백분위 분석.">
     
     <!-- 파비콘 및 앱 아이콘 -->
     <link rel="icon" type="image/png" href="assets/images/appicon.png">
     
     <!-- CSS 스타일시트 -->
-    <link rel="stylesheet" href="css/style.css?v=1.2.7">
+    <link rel="stylesheet" href="css/style.css?v=1.2.9">
 </head>
 <body>
 
@@ -21,7 +21,7 @@
             <div>
                 <div class="brand-title">
                     연금술사 (PensionAlchemy)
-                    <span class="version-tag">v 1.2.7</span>
+                    <span class="version-tag">v 1.2.9</span>
                 </div>
                 <div class="brand-subtitle">대한민국 100세 생애 은퇴·연금 시뮬레이터 공식 사용설명서</div>
             </div>
@@ -42,6 +42,12 @@
                 <option value="preset50s">50대 은퇴가속기</option>
                 <option value="preset60s">60대 은퇴생활기</option>
             </select>
+
+            <!-- 빠른 시작 가이드 팝업 버튼 -->
+            <button class="header-btn" onclick="AppSimulator.openOnboardingGuide()" title="연금술사 빠른 시작 가이드 보기" style="background: rgba(16, 185, 129, 0.15); border-color: var(--primary);">
+                <span>✨</span>
+                <span>시작 가이드</span>
+            </button>
 
             <!-- 테마 토글 버튼 -->
             <button class="header-btn" id="theme-toggle-btn" title="다크/라이트 테마 변경">
@@ -485,8 +491,37 @@
                     <span class="section-badge">Part 2. Screen & Feature Guide</span>
                     <h2 class="section-title">⚙️ 메뉴 5: 환경 설정 & 생애주기 프리셋</h2>
                     <p class="section-desc">
-                        출생연도, 은퇴 희망나이, 목표수명, 생활비, 물가상승률을 변경하고, 5대 생애주기 프리셋을 원터치로 불러오며, 향후 세법 개정에 맞춰 정책 변수(상수)를 자유롭게 커스터마이징합니다.
+                        출생연도, 은퇴 희망나이, 목표수명, '현재 월 생활소비'와 '은퇴 후 필요생활비(현재가치 ↔ 은퇴시점 미래가치 자동 환산)'를 설정하고, 5대 맞춤 프리셋을 원터치로 불러옵니다.
                     </p>
+
+                    <!-- v1.2.8 핵심 신규 기능 안내 카드 -->
+                    <div class="manual-card" style="border: 1px solid var(--primary); background: rgba(16, 185, 129, 0.04);">
+                        <div class="card-row-between">
+                            <h3 style="color: var(--primary);">🌟 [v1.2.8 신기능] 현재 생활 소비 vs 은퇴 후 지출 분리 시뮬레이션</h3>
+                            <button class="jump-to-sim-btn" onclick="AppSimulator.openOnboardingGuide()">
+                                ✨ 시작 가이드 열기
+                            </button>
+                        </div>
+                        <p>
+                            은퇴 전 생활과 은퇴 후 생활은 지출 규모와 성격이 완전히 다릅니다. 연금술사 v1.2.8에서는 이 두 가지 지출을 완벽하게 분리하여 정밀 시뮬레이션을 수행합니다:
+                        </p>
+                        <div class="principles-grid" style="margin-top: 12px;">
+                            <div class="principle-card">
+                                <span class="principle-icon">🛒</span>
+                                <div class="principle-title">1. 은퇴 전: 현재 월 생활 소비 지출</div>
+                                <div class="principle-text">
+                                    현재 나이부터 은퇴 직전까지 매월 소득에서 차감되는 실제 생활비입니다. 물가상승률이 누적 적용되며, 근로소득에서 생활비와 부채 원리금을 뺀 잉여금이 매년 금융자산(저축/투자)으로 정밀하게 축적됩니다.
+                                </div>
+                            </div>
+                            <div class="principle-card">
+                                <span class="principle-icon">🎯</span>
+                                <div class="principle-title">2. 은퇴 후: 미래가치 자동 환산 지출</div>
+                                <div class="principle-text">
+                                    설정에는 편안한 입력을 위해 '현재 물가 기준 필요 지출'을 기재합니다. 입력 즉시 은퇴 시점까지의 연간 물가상승률이 복리로 자동 환산된 <strong>실제 은퇴 시점 미래가치(FV)</strong>가 실시간으로 안내되며, 지정한 은퇴 나이부터 해당 금액이 소비로 계산됩니다.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     <div class="manual-card">
                         <div class="card-row-between">
@@ -669,7 +704,7 @@
                         <div class="app-bar-info">
                             <div class="app-bar-row">
                                 <span class="app-bar-title" id="phone-header-title">연금술사</span>
-                                <span class="app-bar-version">v 1.2.7</span>
+                                <span class="app-bar-version">v 1.2.8</span>
                             </div>
                             <span class="app-bar-subtitle" id="phone-header-subtitle">대시보드 종합 진단</span>
                         </div>
@@ -712,17 +747,57 @@
 
     </div>
 
-    <!-- JS 스크립트 모듈 로드 (캐시 방지 v1.2.7) -->
-    <script src="js/models.js?v=1.2.7"></script>
-    <script src="js/currency.js?v=1.2.7"></script>
-    <script src="js/engines/distribution.js?v=1.2.7"></script>
-    <script src="js/engines/loan.js?v=1.2.7"></script>
-    <script src="js/engines/tax.js?v=1.2.7"></script>
-    <script src="js/engines/health.js?v=1.2.7"></script>
-    <script src="js/engines/calculators.js?v=1.2.7"></script>
-    <script src="js/engines/simulation.js?v=1.2.7"></script>
-    <script src="js/simulator.js?v=1.2.7"></script>
-    <script src="js/manual.js?v=1.2.7"></script>
+    <!-- 초보자를 위한 빠른 시작 가이드 모달 다이얼로그 (v1.2.8) -->
+    <div id="onboardingGuideModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content onboarding-modal-content">
+            <div class="modal-header">
+                <div class="modal-title-wrap">
+                    <span class="step-badge" id="guideStepBadge">1/4</span>
+                    <h3 class="modal-title">✨ 연금술사 빠른 시작 가이드</h3>
+                </div>
+                <button class="modal-close-btn" onclick="AppSimulator.closeOnboardingGuide(false)">✕</button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="onboarding-cards-slider" id="onboardingCardsSlider">
+                    <!-- JS AppSimulator.renderOnboardingStep()에 의해 동적 렌더링 -->
+                </div>
+
+                <!-- 도트 인디케이터 -->
+                <div class="onboarding-dots" id="onboardingDots">
+                    <span class="dot active" onclick="AppSimulator.setOnboardingStep(0)"></span>
+                    <span class="dot" onclick="AppSimulator.setOnboardingStep(1)"></span>
+                    <span class="dot" onclick="AppSimulator.setOnboardingStep(2)"></span>
+                    <span class="dot" onclick="AppSimulator.setOnboardingStep(3)"></span>
+                </div>
+
+                <!-- 다시 보지 않기 체크박스 -->
+                <div class="dont-show-again-wrap">
+                    <label>
+                        <input type="checkbox" id="dontShowGuideCheck">
+                        <span>이 시작 가이드를 다시 보지 않기 (도움말/설정 탭에서 언제든 다시 볼 수 있습니다)</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="guidePrevBtn" onclick="AppSimulator.prevOnboardingStep()" style="display: none;">이전</button>
+                <button class="btn btn-primary" id="guideNextBtn" onclick="AppSimulator.nextOnboardingStep()">다음 단계 ➔</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS 스크립트 모듈 로드 (캐시 방지 v1.2.8) -->
+    <script src="js/models.js?v=1.2.8"></script>
+    <script src="js/currency.js?v=1.2.8"></script>
+    <script src="js/engines/distribution.js?v=1.2.8"></script>
+    <script src="js/engines/loan.js?v=1.2.8"></script>
+    <script src="js/engines/tax.js?v=1.2.8"></script>
+    <script src="js/engines/health.js?v=1.2.8"></script>
+    <script src="js/engines/calculators.js?v=1.2.8"></script>
+    <script src="js/engines/simulation.js?v=1.2.8"></script>
+    <script src="js/simulator.js?v=1.2.8"></script>
+    <script src="js/manual.js?v=1.2.8"></script>
 
     <!-- 초기화 실행 -->
     <script>

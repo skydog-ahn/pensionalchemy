@@ -63,10 +63,19 @@ object SimulationEngine {
             .associate { it.id to it.currentBalance.toDouble() }
             .toMutableMap()
 
-        // 생활비 초기값 (90% 기본생활비, 10% 의료비)
+        // 생활비 초기값 (은퇴 전: 현재 월 생활소비 / 은퇴 후: 현재가치 기준 희망생활비의 은퇴시점 미래가치 환산)
         val generalInflationRate = profile.inflationRate / 100.0
-        var currentLivingExpenses = profile.monthlyExpenses * (1.0 - profile.medicalExpenseRatio)
-        var currentMedicalExpenses = profile.monthlyExpenses * profile.medicalExpenseRatio
+        val medicalInflationRate = generalInflationRate + (policy.medicalInflationSurcharge / 100.0)
+
+        // 1) 은퇴 전: 현재 월 생활비 (현재가치 기준에서 매년 물가상승률 복리 적용)
+        var preRetireLivingExpense = profile.currentMonthlyExpenses.toDouble()
+
+        // 2) 은퇴 후: 은퇴 시점까지 물가상승 복리 반영한 미래가치 기준 (기본생활비 + 의료비 가중치)
+        val yearsToRetirement = (retirementAge - currentAge).coerceAtLeast(0)
+        val postRetireBaseLiving = profile.monthlyExpenses * (1.0 - profile.medicalExpenseRatio)
+        val postRetireBaseMed = profile.monthlyExpenses * profile.medicalExpenseRatio
+        var postRetireLivingExpense = postRetireBaseLiving * (1.0 + generalInflationRate).pow(yearsToRetirement.toDouble())
+        var postRetireMedExpense = postRetireBaseMed * (1.0 + medicalInflationRate).pow(yearsToRetirement.toDouble())
 
         val yearlyResults = mutableListOf<YearlySimulationResult>()
         var peakAsset = Long.MIN_VALUE
@@ -85,8 +94,12 @@ object SimulationEngine {
             val yearsPassed = age - currentAge
             val year = currentYear + yearsPassed
 
-            // 1. 월 지출 (물가상승 누적 반영, 의료비는 물가+가중치 가산)
-            val monthlyExpenses = (currentLivingExpenses + currentMedicalExpenses).roundToLong()
+            // 1. 월 지출: 은퇴 전에는 현재 생활 소비액, 은퇴 시점부터는 은퇴 후 필요 생활비(미래가치) 적용
+            val monthlyExpenses: Long = if (age < retirementAge) {
+                preRetireLivingExpense.roundToLong()
+            } else {
+                (postRetireLivingExpense + postRetireMedExpense).roundToLong()
+            }
             val annualExpenses = monthlyExpenses * 12L
 
             // 2. 근로 및 기타 정기 소득
@@ -151,14 +164,25 @@ object SimulationEngine {
                             }
                             monthlyPayout *= adjustmentFactor
                         }
-                        // 물가상승률 복리 연동
+                        // 국민연금은 법률에 따라 매년 물가상승률(CPI) 복리 연동 인상
                         val cpiFactor = (1.0 + generalInflationRate).pow(yearsPassed.toDouble())
                         monthlyPayout *= cpiFactor
+                    } else if (p.type == PensionType.HOUSING || p.type == PensionType.OTHER) {
+                        // 주택연금 및 기타 확정연금은 명목 고정 지급
                     } else {
-                        // 사적연금의 자체 기대 성장률 반영
-                        if (p.expectedGrowthRate > 0.0) {
-                            val growthFactor = (1.0 + p.expectedGrowthRate / 100.0).pow(yearsPassed.toDouble())
-                            monthlyPayout *= growthFactor
+                        // 사적연금(개인연금, 퇴직연금, 연금보험)은 이미 잔여적립금 복리운용을 포함한 PMT 연금화 금액이므로
+                        // 추적 잔액이 있는 경우 잔액 한도 내에서 안전하게 인출 지급
+                        val hasTrackedBalance = (p.currentBalance > 0L || p.monthlyContribution > 0L)
+                        if (hasTrackedBalance) {
+                            val currentAccBal = pensionBalances[p.id] ?: 0.0
+                            val rate = p.expectedGrowthRate / 100.0
+                            val availableThisYear = currentAccBal * (1.0 + rate)
+                            val requestedAnnual = monthlyPayout * 12.0
+                            if (availableThisYear < requestedAnnual && availableThisYear > 0.0) {
+                                monthlyPayout = availableThisYear / 12.0
+                            } else if (availableThisYear <= 0.0 && age > effectiveStartAge) {
+                                monthlyPayout = 0.0
+                            }
                         }
                     }
 
@@ -175,17 +199,20 @@ object SimulationEngine {
 
                 // C) 수령기 적립금 인출 및 잔여 자산 갱신
                 if (isFundedPension) {
-                    if (age >= effectiveStartAge && age <= p.endAge) {
-                        val rate = p.expectedGrowthRate / 100.0
-                        val balWithYield = (pensionBalances[p.id] ?: currentBal) * (1.0 + rate)
-                        val annualWithdrawal = monthlyPayout * 12.0
-                        val remainingBal = (balWithYield - annualWithdrawal).coerceAtLeast(0.0)
-                        pensionBalances[p.id] = remainingBal
-                    } else if (age > p.endAge) {
-                        // 수령 기간 만료 후 계좌 잔액 완전 소진
-                        pensionBalances[p.id] = 0.0
+                    val hasTrackedBalance = (p.currentBalance > 0L || p.monthlyContribution > 0L)
+                    if (hasTrackedBalance) {
+                        if (age >= effectiveStartAge && age <= p.endAge) {
+                            val rate = p.expectedGrowthRate / 100.0
+                            val balWithYield = (pensionBalances[p.id] ?: currentBal) * (1.0 + rate)
+                            val annualWithdrawal = monthlyPayout * 12.0
+                            val remainingBal = (balWithYield - annualWithdrawal).coerceAtLeast(0.0)
+                            pensionBalances[p.id] = remainingBal
+                        } else if (age > p.endAge) {
+                            // 수령 기간 만료 후 계좌 잔액 소진
+                            pensionBalances[p.id] = 0.0
+                        }
+                        totalPensionAssets += (pensionBalances[p.id] ?: 0.0).roundToLong()
                     }
-                    totalPensionAssets += (pensionBalances[p.id] ?: 0.0).roundToLong()
                 }
             }
 
@@ -201,11 +228,7 @@ object SimulationEngine {
             for (p in pensions) {
                 if (p.type == PensionType.RETIREMENT && age in p.startAge..p.endAge) {
                     val yearsSinceStart = (age - p.startAge + 1).coerceAtLeast(1)
-                    val pPayout = if (p.expectedGrowthRate > 0.0) {
-                        (p.expectedMonthlyAmount * (1.0 + p.expectedGrowthRate / 100.0).pow(yearsPassed.toDouble())).roundToLong()
-                    } else {
-                        p.expectedMonthlyAmount
-                    }
+                    val pPayout = p.expectedMonthlyAmount
                     retirementMonthlyTax += PensionTaxCalculator.calculateMonthlyRetirementPensionTax(pPayout, yearsSinceStart, policy)
                 }
             }
@@ -386,8 +409,12 @@ object SimulationEngine {
             )
 
             // 익년 물가상승 반영
-            currentLivingExpenses *= (1.0 + generalInflationRate)
-            currentMedicalExpenses *= (1.0 + generalInflationRate + (policy.medicalInflationSurcharge / 100.0))
+            if (age < retirementAge) {
+                preRetireLivingExpense *= (1.0 + generalInflationRate)
+            } else {
+                postRetireLivingExpense *= (1.0 + generalInflationRate)
+                postRetireMedExpense *= (1.0 + medicalInflationRate)
+            }
         }
 
         // 소득대체율 계산

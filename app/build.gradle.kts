@@ -11,8 +11,8 @@ android {
         applicationId = "com.pension.alchemy"
         minSdk = 24
         targetSdk = 36
-        versionCode = 7
-        versionName = "1.2.7"
+        versionCode = 9
+        versionName = "1.2.9"
     }
 
     signingConfigs {

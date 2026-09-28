@@ -276,3 +276,119 @@ const CalculatorsEngine = {
         };
     }
 };
+
+/**
+ * 개인연금, 퇴직연금/IRP, 개인연금보험 전용 상호연동 연산 엔진
+ */
+const PensionPlanCalculator = {
+    /**
+     * 1. 수급 개시 시점 예상 적립금 (FV) 계산
+     */
+    calculateAccumulatedAtStartAge(currentAge, startAge, currentBalance, monthlyContribution, contributionEndAge, annualGrowthRate) {
+        if (startAge <= currentAge) {
+            return Math.max(0, Number(currentBalance) || 0);
+        }
+
+        const monthlyRate = ((Number(annualGrowthRate) || 0) / 100.0) / 12.0;
+        const totalMonths = (startAge - currentAge) * 12;
+        const payEnd = Math.max(currentAge, Math.min(Number(contributionEndAge) || startAge, startAge));
+        const payMonths = (payEnd - currentAge) * 12;
+
+        let balance = Number(currentBalance) || 0;
+        const depositAmount = Number(monthlyContribution) || 0;
+
+        for (let m = 1; m <= totalMonths; m++) {
+            const deposit = (m <= payMonths) ? depositAmount : 0;
+            balance = (balance + deposit) * (1.0 + monthlyRate);
+        }
+
+        return Math.max(0, Math.round(balance));
+    },
+
+    /**
+     * 2. 수급 기간(년수)을 바탕으로 월 예상 수령액 계산 (PMT 공식)
+     */
+    calculateMonthlyPayoutFromPeriod(accumulatedFund, periodYears, annualGrowthRate) {
+        const fund = Number(accumulatedFund) || 0;
+        const years = Number(periodYears) || 0;
+        if (fund <= 0 || years <= 0) return 0;
+
+        const totalMonths = years * 12;
+        const monthlyRate = ((Number(annualGrowthRate) || 0) / 100.0) / 12.0;
+
+        if (monthlyRate <= 0) {
+            return Math.max(0, Math.round(fund / totalMonths));
+        }
+
+        const discountFactor = 1.0 - Math.pow(1.0 + monthlyRate, -totalMonths);
+        if (discountFactor <= 0) return 0;
+
+        const monthlyPayout = fund * monthlyRate / discountFactor;
+        return Math.max(0, Math.round(monthlyPayout));
+    },
+
+    /**
+     * 3. 희망 월 수령액을 바탕으로 수급 가능 기간(년수) 및 종료 나이 계산 (NPER 공식)
+     */
+    calculatePeriodFromMonthlyPayout(accumulatedFund, desiredMonthlyPayout, startAge, annualGrowthRate, maxAge = 100) {
+        const fund = Number(accumulatedFund) || 0;
+        const payout = Number(desiredMonthlyPayout) || 0;
+        const start = Number(startAge) || 60;
+        const maxA = Number(maxAge) || 100;
+
+        if (fund <= 0 || payout <= 0) {
+            return { endAge: start, periodYears: 0, isForeverSafe: false };
+        }
+
+        const monthlyRate = ((Number(annualGrowthRate) || 0) / 100.0) / 12.0;
+
+        // 이자만으로 월 인출액 충당 가능 (영구 수급 / 원금 보존)
+        if (monthlyRate > 0 && (fund * monthlyRate) >= payout) {
+            const maxYears = Math.max(1, maxA - start);
+            return {
+                endAge: maxA,
+                periodYears: maxYears,
+                isForeverSafe: true
+            };
+        }
+
+        if (monthlyRate <= 0) {
+            const months = fund / payout;
+            const years = Math.max(1, Math.round(months / 12));
+            const endAge = Math.min(maxA, start + years);
+            return {
+                endAge,
+                periodYears: endAge - start,
+                isForeverSafe: false
+            };
+        }
+
+        const numerator = 1.0 - (fund * monthlyRate / payout);
+        if (numerator <= 0) {
+            const maxYears = Math.max(1, maxA - start);
+            return { endAge: maxA, periodYears: maxYears, isForeverSafe: true };
+        }
+
+        const months = -Math.log(numerator) / Math.log(1.0 + monthlyRate);
+        const years = Math.max(1, Math.round(months / 12));
+        const calculatedEndAge = start + years;
+        const finalEndAge = Math.min(maxA, Math.max(start + 1, calculatedEndAge));
+
+        return {
+            endAge: finalEndAge,
+            periodYears: finalEndAge - start,
+            isForeverSafe: false
+        };
+    },
+
+    /**
+     * 4. 개인연금보험 월 수령액 계산
+     */
+    calculateAnnuityInsurancePayout(accumulatedFund, startAge, isWholeLife, fixedPeriodYears = 20, annualGrowthRate = 3.5) {
+        const periodYears = isWholeLife ? Math.max(5, 100 - startAge) : Math.max(1, fixedPeriodYears);
+        const endAge = startAge + periodYears;
+        const monthlyPayout = this.calculateMonthlyPayoutFromPeriod(accumulatedFund, periodYears, annualGrowthRate);
+        return { endAge, monthlyPayout };
+    }
+};
+

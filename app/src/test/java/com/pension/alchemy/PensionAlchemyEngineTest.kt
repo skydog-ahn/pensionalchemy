@@ -285,6 +285,7 @@ class PensionAlchemyEngineTest {
             birthYear = 1996, // 30세
             retirementAge = 60,
             targetEndAge = 40,
+            currentMonthlyExpenses = 2_000_000L,
             monthlyExpenses = 2_000_000L,
             inflationRate = 0.0, // 직관적 검증을 위해 물가상승률 0% 가정
             policySettings = PolicySettings(financialAssetReturnRate = 0.0)
@@ -377,5 +378,32 @@ class PensionAlchemyEngineTest {
             val r = results.first { it.age == age }
             assertEquals("${age}세에 연금 자산은 0원이어야 함", 0L, r.pensionAssets)
         }
+    }
+
+    @Test
+    fun testPreAndPostRetirementExpenseSeparation() {
+        val currentAge = 40
+        val birthYear = java.time.LocalDate.now().year - currentAge
+        val profile = UserProfile(
+            birthYear = birthYear,
+            retirementAge = 60,
+            targetEndAge = 70,
+            currentMonthlyExpenses = 3_000_000L, // 은퇴 전 현재 생활비
+            monthlyExpenses = 2_500_000L,        // 은퇴 후 필요 생활비 (현재가치)
+            inflationRate = 0.0,                 // 검증 용이성을 위해 물가 0%
+            medicalExpenseRatio = 0.0
+        )
+        val summary = SimulationEngine.runComprehensiveSimulation(profile, emptyList(), emptyList(), emptyList())
+        val results = summary.yearlyResults
+
+        // 은퇴 전 (45세): 월 지출은 현재 생활비인 300만원이어야 함
+        val r45 = results.first { it.age == 45 }
+        assertEquals(3_000_000L, r45.monthlyExpenses)
+
+        // 은퇴 시점 및 이후 (60세, 65세): 월 지출은 은퇴 후 필요 생활비인 250만원이어야 함
+        val r60 = results.first { it.age == 60 }
+        assertEquals(2_500_000L, r60.monthlyExpenses)
+        val r65 = results.first { it.age == 65 }
+        assertEquals(2_500_000L, r65.monthlyExpenses)
     }
 }

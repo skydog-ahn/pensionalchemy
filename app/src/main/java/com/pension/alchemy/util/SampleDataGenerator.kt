@@ -12,7 +12,8 @@ object SampleDataGenerator {
             birthYear = 2000, // 26세
             retirementAge = 60,
             targetEndAge = 100,
-            monthlyExpenses = 1_800_000L,
+            currentMonthlyExpenses = 1_800_000L,
+            monthlyExpenses = 2_000_000L,
             medicalExpenseRatio = 0.08,
             inflationRate = 2.0,
             currency = "KRW"
@@ -78,6 +79,7 @@ object SampleDataGenerator {
             birthYear = 1991, // 35세
             retirementAge = 60,
             targetEndAge = 100,
+            currentMonthlyExpenses = 2_800_000L,
             monthlyExpenses = 2_600_000L,
             medicalExpenseRatio = 0.09,
             inflationRate = 2.0,
@@ -165,6 +167,7 @@ object SampleDataGenerator {
         birthYear = 1981, // 45세 기준
         retirementAge = 60,
         targetEndAge = 100,
+        currentMonthlyExpenses = 3_800_000L,
         monthlyExpenses = 3_300_000L,
         medicalExpenseRatio = 0.10,
         inflationRate = 2.0,
@@ -246,6 +249,7 @@ object SampleDataGenerator {
             birthYear = 1971, // 55세
             retirementAge = 60,
             targetEndAge = 100,
+            currentMonthlyExpenses = 4_200_000L,
             monthlyExpenses = 3_500_000L,
             medicalExpenseRatio = 0.12,
             inflationRate = 2.0,
@@ -333,6 +337,7 @@ object SampleDataGenerator {
             birthYear = 1963, // 63세 (은퇴 완료)
             retirementAge = 60,
             targetEndAge = 100,
+            currentMonthlyExpenses = 2_800_000L,
             monthlyExpenses = 2_800_000L,
             medicalExpenseRatio = 0.15,
             inflationRate = 2.0,

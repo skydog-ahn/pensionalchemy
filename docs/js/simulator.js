@@ -13,6 +13,7 @@ const AppSimulator = {
         calculatorMode: 0, // 0: 적립·예탁, 1: 자산 인출, 2: 고갈 타이머, 3: 목표 필요자산, 4: 국민연금 손익, 5: 절세 연금술사
         settingsTab: 0, // 0: 기본 프로필, 1: 세법·정책 변수
         guideCategory: 0, // 0: 앱 사용 도움말, 1: 재무비법, 2: 정부 포털, 3: 유튜브 채널
+        onboardingStep: 0, // 0~3 단계
 
         // 데이터 모델
         profile: Presets.preset40s().profile,
@@ -60,6 +61,14 @@ const AppSimulator = {
         this.runSimulation();
         this.renderAll();
         this.setupEventListeners();
+
+        // 첫 방문 시 또는 다시 보지 않기를 선택하지 않은 경우 시작 가이드 자동 팝업
+        setTimeout(() => {
+            const hideGuide = localStorage.getItem('pension_alchemy_hide_guide');
+            if (hideGuide !== 'true') {
+                this.openOnboardingGuide();
+            }
+        }, 300);
     },
 
     runSimulation() {
@@ -700,13 +709,13 @@ const AppSimulator = {
                 <!-- 3. 연금 리스트 헤더 -->
                 <div class="item-list-header">
                     <span>나의 연금 플랜 목록 (${pensions.length})</span>
-                    <button class="mini-add-btn" onclick="AppSimulator.openAddPensionModal()">+ 연금 추가</button>
+                    <button class="mini-add-btn" onclick="AppSimulator.openPensionModal()">+ 연금 추가</button>
                 </div>
 
                 <!-- 4. 연금 목록 카드 -->
                 <div class="items-list">
                     ${pensions.map(p => `
-                        <div class="app-card item-card">
+                        <div class="app-card item-card" style="cursor: pointer;" onclick="AppSimulator.openPensionModal('${p.id}')">
                             <div class="item-card-header">
                                 <div class="item-title-row">
                                     <span class="item-type-badge" style="background-color: ${PensionType[p.type]?.color}22; color: ${PensionType[p.type]?.color};">
@@ -719,7 +728,7 @@ const AppSimulator = {
                                         ${CurrencyFormatter.formatKoreanWon(p.expectedMonthlyAmount)}/월
                                     </span>
                                     ${p.type !== 'NATIONAL' ? `
-                                    <button class="item-delete-btn" onclick="AppSimulator.deletePension('${p.id}')" title="삭제">✕</button>
+                                    <button class="item-delete-btn" onclick="event.stopPropagation(); AppSimulator.deletePension('${p.id}')" title="삭제">✕</button>
                                     ` : ''}
                                 </div>
                             </div>
@@ -1109,6 +1118,11 @@ const AppSimulator = {
 
                 ${this.state.settingsTab === 0 ? `
                 <div class="app-card settings-card">
+                    <div style="margin-bottom: 14px;">
+                        <button class="btn btn-outline" style="width: 100%; justify-content: center; padding: 10px; font-weight: 700; border-color: var(--primary-color); color: var(--primary-color);" onclick="AppSimulator.openOnboardingGuide()">
+                            ✨ 연금술사 시작 가이드 (초보자 안내 카드) 보기
+                        </button>
+                    </div>
                     <div class="calc-inputs-grid">
                         <div class="calc-input-group">
                             <label>출생 연도 (현재 나이: ${p.currentAge}세)</label>
@@ -1121,16 +1135,44 @@ const AppSimulator = {
                                    onchange="AppSimulator.updateProfileParam('retirementAge', this.value)">
                         </div>
                         <div class="calc-input-group">
-                            <label>은퇴 후 월 희망 생활비 (만원)</label>
+                            <label>현재 월 생활 소비 지출 (은퇴 전 소비 / 만원)</label>
+                            <input type="number" class="calc-input" value="${(p.currentMonthlyExpenses || 3000000) / 10000}"
+                                   onchange="AppSimulator.updateProfileParam('currentMonthlyExpenses', this.value * 10000)">
+                        </div>
+                        <div class="calc-input-group">
+                            <label>은퇴 후 월 필요 지출 (현재 가치 기준 / 만원)</label>
                             <input type="number" class="calc-input" value="${p.monthlyExpenses / 10000}"
                                    onchange="AppSimulator.updateProfileParam('monthlyExpenses', this.value * 10000)">
                         </div>
-                        <div class="calc-input-group">
+                        <div class="calc-input-group" style="grid-column: 1 / -1;">
                             <label>연간 물가상승률 (%)</label>
                             <input type="number" step="0.1" class="calc-input" value="${p.inflationRate}"
                                    onchange="AppSimulator.updateProfileParam('inflationRate', this.value)">
                         </div>
                     </div>
+
+                    <!-- 은퇴 시점 미래가치 자동 환산 실시간 배너 -->
+                    ${(() => {
+                        const yearsToRet = Math.max(0, p.retirementAge - p.currentAge);
+                        const rate = (p.inflationRate || 2.0) / 100.0;
+                        const futureExp = Math.round((p.monthlyExpenses / 10000) * Math.pow(1.0 + rate, yearsToRet));
+                        return `
+                        <div class="future-value-banner" style="margin-top: 14px; padding: 12px 14px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 10px;">
+                            <div style="font-weight: 700; font-size: 13px; color: var(--primary-color); display: flex; align-items: center; gap: 6px;">
+                                ℹ️ 지출 산출 및 현재가치 ↔ 미래가치 안내
+                            </div>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 6px; line-height: 1.5;">
+                                • <b>은퇴 전 지출</b>: 입력하신 '현재 월 생활 소비액'이 은퇴 시점 전까지 물가상승률(연 ${p.inflationRate}%)을 반영하여 지출 및 자산 축적에 계산됩니다.<br>
+                                • <b>은퇴 후 지출</b>: 현재 물가 기준 가치로 기재하시며, 실제 은퇴 시점(${p.retirementAge}세)부터 미래가치로 복리 자동 환산되어 소비로 계산됩니다.
+                            </div>
+                            ${yearsToRet > 0 ? `
+                            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(16, 185, 129, 0.25); font-weight: 700; font-size: 13px; color: var(--primary-color);">
+                                🎯 ${p.retirementAge}세 은퇴 시점 미래가치 환산액: 월 약 <b>${futureExp.toLocaleString()}만원</b> (${yearsToRet}년간 물가 연 ${p.inflationRate}% 복리 반영)
+                            </div>
+                            ` : ''}
+                        </div>
+                        `;
+                    })()}
                 </div>
                 ` : `
                 <div class="app-card settings-card">
@@ -1236,6 +1278,15 @@ const AppSimulator = {
 
                 <div class="guide-content-area">
                     ${cat === 0 ? `
+                        <div class="guide-card" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(99, 102, 241, 0.12)); border: 1px solid var(--primary-color); margin-bottom: 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                                <div>
+                                    <div class="guide-card-title" style="margin-bottom: 4px; color: var(--primary-color);">✨ 초보자 필수! 빠른 시작 가이드</div>
+                                    <div style="font-size: 12px; color: var(--text-secondary);">프리셋 선택부터 현재/은퇴지출 입력, 자산/연금 등록 및 대시보드 진단까지 스와이프 카드로 확인하세요.</div>
+                                </div>
+                                <button class="btn btn-primary" onclick="AppSimulator.openOnboardingGuide()">가이드 카드 보기</button>
+                            </div>
+                        </div>
                         <div class="guide-card">
                             <div class="guide-card-title">💡 연금술사 핵심 기능 안내</div>
                             <div class="guide-tip-item"><strong>1. 대시보드:</strong> 순자산, 65세 월연금, 건강 점수 및 나이별 인스펙터 슬라이더</div>
@@ -1492,91 +1543,403 @@ const AppSimulator = {
         this.renderAll();
     },
 
-    openAddPensionModal() {
+    openPensionModal(pensionId = null) {
+        const pension = pensionId ? this.state.pensions.find(p => p.id === pensionId) : null;
+        const currentAge = Number(this.state.profile?.currentAge) || 40;
         const modalContainer = this.getOrCreateModalContainer();
+
+        const pType = pension?.type || 'PERSONAL';
+        const pName = pension?.name || (pType === 'PERSONAL' ? '개인연금저축' : pType === 'RETIREMENT' ? '퇴직연금 (IRP)' : '개인연금보험');
+        const startAge = pension?.startAge || 60;
+        const endAge = pension?.endAge || (pType === 'ANNUITY_INSURANCE' ? 100 : 85);
+        const monthlyPayout = pension?.expectedMonthlyAmount || 500000;
+        const currentBalance = pension?.currentBalance || (pension ? 0 : 10000000);
+        const monthlyContribution = pension?.monthlyContribution || (pension ? 0 : 200000);
+        const contributionEndAge = pension?.contributionEndAge || startAge;
+        const growthRate = pension?.expectedGrowthRate ?? (pType === 'ANNUITY_INSURANCE' ? 3.5 : pType === 'NATIONAL' ? 2.0 : 4.5);
+
+        this._pensionModalState = {
+            pensionId,
+            currentAge,
+            linkageMode: 0, // 0: 기간->수령액, 1: 희망수령액->기간
+            insuranceOption: (endAge === 100) ? 0 : (endAge - startAge === 10) ? 1 : 2
+        };
+
         modalContainer.innerHTML = `
-            <div class="sim-modal-card">
+            <div class="sim-modal-card" style="max-height: 90vh; overflow-y: auto;">
                 <div class="sim-modal-header">
-                    <span class="sim-modal-title">새 연금 플랜 추가</span>
+                    <span class="sim-modal-title">${pension ? '연금 플랜 수정' : '새 연금 플랜 추가'}</span>
                     <button class="sim-modal-close" onclick="AppSimulator.closeModal()">✕</button>
                 </div>
                 <div class="sim-modal-body">
                     <div class="calc-input-group">
                         <label>연금 명칭</label>
-                        <input type="text" id="modal-pension-name" class="calc-input" placeholder="예: 개인연금저축(신한), 퇴직IRP 등" value="신규 개인연금">
+                        <input type="text" id="modal-pension-name" class="calc-input" value="${pName}">
                     </div>
                     <div class="calc-input-group">
-                        <label>연금 유형</label>
-                        <select id="modal-pension-type" class="calc-input">
-                            <option value="PERSONAL">3층 개인연금저축 (세제적격)</option>
-                            <option value="RETIREMENT">2층 퇴직연금 / IRP</option>
-                            <option value="ANNUITY_INSURANCE">3층 개인연금보험 (비과세)</option>
-                            <option value="HOUSING">주택연금 (역모기지)</option>
-                            <option value="OTHER">기타 연금</option>
+                        <label>연금 분류</label>
+                        <select id="modal-pension-type" class="calc-input" onchange="AppSimulator.onPensionTypeChange()">
+                            <option value="PERSONAL" ${pType === 'PERSONAL' ? 'selected' : ''}>3층 개인연금저축 (세제적격)</option>
+                            <option value="RETIREMENT" ${pType === 'RETIREMENT' ? 'selected' : ''}>2층 퇴직연금 / IRP</option>
+                            <option value="ANNUITY_INSURANCE" ${pType === 'ANNUITY_INSURANCE' ? 'selected' : ''}>3층 개인연금보험 (비과세)</option>
+                            <option value="NATIONAL" ${pType === 'NATIONAL' ? 'selected' : ''}>1층 국민/공적연금</option>
+                            <option value="HOUSING" ${pType === 'HOUSING' ? 'selected' : ''}>주택연금 (역모기지)</option>
+                            <option value="OTHER" ${pType === 'OTHER' ? 'selected' : ''}>기타 연금</option>
                         </select>
                     </div>
-                    <div class="calc-inputs-grid">
-                        <div class="calc-input-group">
-                            <label>수령 시작 나이</label>
-                            <input type="number" id="modal-pension-start" class="calc-input" value="60">
+
+                    <!-- 국민연금 전용 안내 -->
+                    <div id="modal-pension-national-info" class="modal-pension-banner info" style="display: ${pType === 'NATIONAL' ? 'flex' : 'none'};">
+                        <div class="modal-banner-title">🏛️ 국민연금 (공적연금)</div>
+                        <div class="modal-banner-sub">국민연금공단 예상연금액을 기준으로 수령 시점의 예상 월 수령액을 입력합니다. (물가상승률 및 조기/연기 수령 옵션 연동)</div>
+                    </div>
+
+                    <!-- 사적연금(개인연금, IRP, 연금보험) 적립 조건 입력 섹션 -->
+                    <div id="modal-pension-funded-section" style="display: ${pType === 'PERSONAL' || pType === 'RETIREMENT' || pType === 'ANNUITY_INSURANCE' ? 'block' : 'none'};">
+                        <div style="font-size: 11.5px; font-weight: 700; color: var(--primary); margin: 6px 0;">1. 적립 및 복리 운용 조건 (현재 나이: ${currentAge}세)</div>
+                        
+                        <div class="calc-inputs-grid">
+                            <div class="calc-input-group">
+                                <label>현재 적립금 (원)</label>
+                                <input type="number" id="modal-pension-bal" class="calc-input" value="${currentBalance}" oninput="AppSimulator.recalcPensionModal('accumulation')">
+                            </div>
+                            <div class="calc-input-group">
+                                <label>월 납입액 (원)</label>
+                                <input type="number" id="modal-pension-contrib" class="calc-input" value="${monthlyContribution}" oninput="AppSimulator.recalcPensionModal('accumulation')">
+                            </div>
                         </div>
+
+                        <div class="calc-inputs-grid">
+                            <div class="calc-input-group">
+                                <label>납입 종료 나이</label>
+                                <input type="number" id="modal-pension-contrib-end" class="calc-input" value="${contributionEndAge}" oninput="AppSimulator.recalcPensionModal('accumulation')">
+                            </div>
+                            <div class="calc-input-group">
+                                <label>기대 운용수익률 (%)</label>
+                                <input type="number" step="0.1" id="modal-pension-rate" class="calc-input" value="${growthRate}" oninput="AppSimulator.recalcPensionModal('accumulation')">
+                            </div>
+                        </div>
+
                         <div class="calc-input-group">
-                            <label>수령 종료 나이</label>
-                            <input type="number" id="modal-pension-end" class="calc-input" value="85">
+                            <label>수령 개시 나이</label>
+                            <input type="number" id="modal-pension-start" class="calc-input" value="${startAge}" oninput="AppSimulator.recalcPensionModal('startAge')">
+                        </div>
+
+                        <!-- ⭐ 수급 개시 시점 예상 적립금 실시간 카드 -->
+                        <div id="modal-pension-accumulated-card" class="modal-pension-banner" style="margin-top: 6px;">
+                            <div class="modal-banner-title">🎯 수급 개시 시점 예상 적립금</div>
+                            <div class="modal-banner-val" id="modal-accumulated-val">0원</div>
+                            <div class="modal-banner-sub" id="modal-accumulated-sub">원금 + 복리이자</div>
                         </div>
                     </div>
-                    <div class="calc-input-group">
-                        <label>예상 월 수령액 (원)</label>
-                        <input type="number" id="modal-pension-amount" class="calc-input" value="500000">
+
+                    <!-- 개인연금저축 / IRP 상호연동 섹션 -->
+                    <div id="modal-pension-linkage-section" style="display: ${pType === 'PERSONAL' || pType === 'RETIREMENT' ? 'block' : 'none'}; margin-top: 10px;">
+                        <div style="font-size: 11.5px; font-weight: 700; color: var(--primary); margin-bottom: 6px;">2. 수급 기간 ⇄ 월 수령액 상호 연동 계산</div>
+                        
+                        <div class="modal-segment-bar" style="margin-bottom: 8px;">
+                            <button type="button" id="seg-btn-period" class="modal-segment-btn active" onclick="AppSimulator.setPensionLinkageMode(0)">수급 기간 기준 ➜ 월 수령액</button>
+                            <button type="button" id="seg-btn-payout" class="modal-segment-btn" onclick="AppSimulator.setPensionLinkageMode(1)">희망 수령액 기준 ➜ 수급 기간</button>
+                        </div>
+
+                        <!-- 모드 0: 수급 기간 기준 빠른 칩 -->
+                        <div id="mode-period-chips" style="margin-bottom: 8px;">
+                            <div style="font-size: 10.5px; color: var(--text-muted); margin-bottom: 4px;">수급 기간 빠른 선택:</div>
+                            <div class="modal-chip-row">
+                                <button type="button" class="modal-quick-chip" onclick="AppSimulator.selectPensionPeriodChip(10)">10년</button>
+                                <button type="button" class="modal-quick-chip" onclick="AppSimulator.selectPensionPeriodChip(15)">15년</button>
+                                <button type="button" class="modal-quick-chip selected" onclick="AppSimulator.selectPensionPeriodChip(20)">20년</button>
+                                <button type="button" class="modal-quick-chip" onclick="AppSimulator.selectPensionPeriodChip(25)">25년</button>
+                                <button type="button" class="modal-quick-chip" onclick="AppSimulator.selectPensionPeriodChip(30)">30년</button>
+                            </div>
+                        </div>
+
+                        <!-- 모드 1: 희망 수령액 기준 빠른 칩 -->
+                        <div id="mode-payout-chips" style="display: none; margin-bottom: 8px;">
+                            <div style="font-size: 10.5px; color: var(--text-muted); margin-bottom: 4px;">희망 월 수령액 빠른 선택:</div>
+                            <div class="modal-chip-row">
+                                <button type="button" class="modal-quick-chip" onclick="AppSimulator.selectPensionPayoutChip(500000)">50만원</button>
+                                <button type="button" class="modal-quick-chip" onclick="AppSimulator.selectPensionPayoutChip(800000)">80만원</button>
+                                <button type="button" class="modal-quick-chip selected" onclick="AppSimulator.selectPensionPayoutChip(1000000)">100만원</button>
+                                <button type="button" class="modal-quick-chip" onclick="AppSimulator.selectPensionPayoutChip(1500000)">150만원</button>
+                                <button type="button" class="modal-quick-chip" onclick="AppSimulator.selectPensionPayoutChip(2000000)">200만원</button>
+                            </div>
+                        </div>
                     </div>
-                    <div class="calc-inputs-grid">
+
+                    <!-- 개인연금보험 전용 섹션 -->
+                    <div id="modal-pension-insurance-section" style="display: ${pType === 'ANNUITY_INSURANCE' ? 'block' : 'none'}; margin-top: 10px;">
+                        <div style="font-size: 11.5px; font-weight: 700; color: var(--primary); margin-bottom: 6px;">2. 수령 방식 선택 (비과세 연금보험)</div>
+                        <div class="modal-pension-banner info" style="margin-bottom: 8px;">
+                            <div class="modal-banner-sub">💡 10년 이상 유지 시 전액 비과세 혜택 및 사적연금 1,500만원 종합과세 한도 합산에서 제외됩니다.</div>
+                        </div>
+                        <div class="modal-chip-row" style="margin-bottom: 8px;">
+                            <button type="button" id="chip-ins-0" class="modal-quick-chip ${this._pensionModalState.insuranceOption === 0 ? 'selected' : ''}" onclick="AppSimulator.selectPensionInsuranceOption(0)">종신형 (100세)</button>
+                            <button type="button" id="chip-ins-1" class="modal-quick-chip ${this._pensionModalState.insuranceOption === 1 ? 'selected' : ''}" onclick="AppSimulator.selectPensionInsuranceOption(1)">10년 확정</button>
+                            <button type="button" id="chip-ins-2" class="modal-quick-chip ${this._pensionModalState.insuranceOption === 2 ? 'selected' : ''}" onclick="AppSimulator.selectPensionInsuranceOption(2)">20년 확정</button>
+                            <button type="button" id="chip-ins-3" class="modal-quick-chip ${this._pensionModalState.insuranceOption === 3 ? 'selected' : ''}" onclick="AppSimulator.selectPensionInsuranceOption(3)">직접 입력</button>
+                        </div>
+                    </div>
+
+                    <!-- 수령 기간 & 월 수령액 입력 필드 -->
+                    <div class="calc-inputs-grid" id="modal-pension-payout-grid">
                         <div class="calc-input-group">
-                            <label>현재 적립금 (원)</label>
-                            <input type="number" id="modal-pension-bal" class="calc-input" value="10000000">
+                            <label id="lbl-modal-end">수령 종료 나이</label>
+                            <input type="number" id="modal-pension-end" class="calc-input" value="${endAge}" oninput="AppSimulator.recalcPensionModal('endAge')">
                         </div>
                         <div class="calc-input-group">
-                            <label>월 납입액 (원)</label>
-                            <input type="number" id="modal-pension-contrib" class="calc-input" value="200000">
+                            <label id="lbl-modal-amount">예상 월 수령액 (원)</label>
+                            <input type="number" id="modal-pension-amount" class="calc-input" value="${monthlyPayout}" oninput="AppSimulator.recalcPensionModal('monthlyPayout')">
                         </div>
                     </div>
-                    <div class="calc-input-group">
-                        <label>운용 기대수익률 (%)</label>
-                        <input type="number" step="0.1" id="modal-pension-rate" class="calc-input" value="5.0">
+
+                    <!-- 상호연동 결과 피드백 안내 -->
+                    <div id="modal-pension-feedback" class="modal-pension-banner" style="display: ${pType === 'PERSONAL' || pType === 'RETIREMENT' || pType === 'ANNUITY_INSURANCE' ? 'flex' : 'none'};">
+                        <div class="modal-banner-sub" id="modal-feedback-text">계산 중...</div>
+                    </div>
+
+                    <!-- 공적연금/기타연금 기대수익률(물가연동률) -->
+                    <div id="modal-pension-nonfunded-rate" class="calc-input-group" style="display: ${pType === 'NATIONAL' || pType === 'HOUSING' || pType === 'OTHER' ? 'block' : 'none'};">
+                        <label>물가연동률 / 기대수익률 (%)</label>
+                        <input type="number" step="0.1" id="modal-pension-rate-simple" class="calc-input" value="${growthRate}">
                     </div>
                 </div>
                 <div class="sim-modal-footer">
                     <button class="action-btn btn-secondary" onclick="AppSimulator.closeModal()">취소</button>
-                    <button class="action-btn btn-primary" onclick="AppSimulator.submitAddPension()">연금 등록</button>
+                    <button class="action-btn btn-primary" onclick="AppSimulator.submitSavePension('${pensionId || ''}')">저장</button>
                 </div>
             </div>
         `;
         modalContainer.style.display = 'flex';
+        this.recalcPensionModal('initial');
     },
 
-    submitAddPension() {
+    onPensionTypeChange() {
+        const type = document.getElementById('modal-pension-type')?.value || 'PERSONAL';
+        const nameInput = document.getElementById('modal-pension-name');
+        const defaultNames = {
+            PERSONAL: '개인연금저축',
+            RETIREMENT: '퇴직연금 (IRP)',
+            ANNUITY_INSURANCE: '개인연금보험 (비과세)',
+            NATIONAL: '국민연금',
+            HOUSING: '주택연금 (역모기지)',
+            OTHER: '기타 연금'
+        };
+        if (nameInput && Object.values(defaultNames).includes(nameInput.value.trim())) {
+            nameInput.value = defaultNames[type] || '연금 플랜';
+        }
+
+        const isFunded = type === 'PERSONAL' || type === 'RETIREMENT' || type === 'ANNUITY_INSURANCE';
+        const fundedSec = document.getElementById('modal-pension-funded-section');
+        const linkageSec = document.getElementById('modal-pension-linkage-section');
+        const insSec = document.getElementById('modal-pension-insurance-section');
+        const nationalInfo = document.getElementById('modal-pension-national-info');
+        const feedback = document.getElementById('modal-pension-feedback');
+        const nonfundedRate = document.getElementById('modal-pension-nonfunded-rate');
+
+        if (fundedSec) fundedSec.style.display = isFunded ? 'block' : 'none';
+        if (linkageSec) linkageSec.style.display = (type === 'PERSONAL' || type === 'RETIREMENT') ? 'block' : 'none';
+        if (insSec) insSec.style.display = (type === 'ANNUITY_INSURANCE') ? 'block' : 'none';
+        if (nationalInfo) nationalInfo.style.display = (type === 'NATIONAL') ? 'flex' : 'none';
+        if (feedback) feedback.style.display = isFunded ? 'flex' : 'none';
+        if (nonfundedRate) nonfundedRate.style.display = !isFunded ? 'block' : 'none';
+
+        if (type === 'ANNUITY_INSURANCE') {
+            document.getElementById('modal-pension-rate').value = '3.5';
+            this.selectPensionInsuranceOption(0);
+        } else if (type === 'NATIONAL') {
+            document.getElementById('modal-pension-start').value = '65';
+            document.getElementById('modal-pension-end').value = '100';
+            document.getElementById('modal-pension-rate-simple').value = '2.0';
+        }
+
+        this.recalcPensionModal('type');
+    },
+
+    setPensionLinkageMode(mode) {
+        if (!this._pensionModalState) return;
+        this._pensionModalState.linkageMode = mode;
+
+        const btnPeriod = document.getElementById('seg-btn-period');
+        const btnPayout = document.getElementById('seg-btn-payout');
+        const chipsPeriod = document.getElementById('mode-period-chips');
+        const chipsPayout = document.getElementById('mode-payout-chips');
+        const lblEnd = document.getElementById('lbl-modal-end');
+        const lblAmount = document.getElementById('lbl-modal-amount');
+
+        if (mode === 0) {
+            btnPeriod?.classList.add('active');
+            btnPayout?.classList.remove('active');
+            if (chipsPeriod) chipsPeriod.style.display = 'block';
+            if (chipsPayout) chipsPayout.style.display = 'none';
+            if (lblEnd) lblEnd.innerText = '수령 종료 나이 (기준)';
+            if (lblAmount) lblAmount.innerText = '월 예상 수령액 (자동계산)';
+        } else {
+            btnPeriod?.classList.remove('active');
+            btnPayout?.classList.add('active');
+            if (chipsPeriod) chipsPeriod.style.display = 'none';
+            if (chipsPayout) chipsPayout.style.display = 'block';
+            if (lblEnd) lblEnd.innerText = '수령 종료 나이 (자동산출)';
+            if (lblAmount) lblAmount.innerText = '희망 월 수령액 (기준)';
+        }
+
+        this.recalcPensionModal('linkageMode');
+    },
+
+    selectPensionPeriodChip(years) {
+        const startAge = Number(document.getElementById('modal-pension-start')?.value) || 60;
+        const targetEnd = startAge + years;
+        const endInput = document.getElementById('modal-pension-end');
+        if (endInput) {
+            endInput.value = targetEnd;
+        }
+        document.querySelectorAll('#mode-period-chips .modal-quick-chip').forEach(c => c.classList.remove('selected'));
+        event?.target?.classList?.add('selected');
+        this.recalcPensionModal('endAge');
+    },
+
+    selectPensionPayoutChip(amount) {
+        const amtInput = document.getElementById('modal-pension-amount');
+        if (amtInput) {
+            amtInput.value = amount;
+        }
+        document.querySelectorAll('#mode-payout-chips .modal-quick-chip').forEach(c => c.classList.remove('selected'));
+        event?.target?.classList?.add('selected');
+        this.recalcPensionModal('monthlyPayout');
+    },
+
+    selectPensionInsuranceOption(opt) {
+        if (!this._pensionModalState) return;
+        this._pensionModalState.insuranceOption = opt;
+
+        const startAge = Number(document.getElementById('modal-pension-start')?.value) || 60;
+        const endInput = document.getElementById('modal-pension-end');
+
+        document.querySelectorAll('#modal-pension-insurance-section .modal-quick-chip').forEach((c, idx) => {
+            if (idx === opt) c.classList.add('selected');
+            else c.classList.remove('selected');
+        });
+
+        if (opt === 0 && endInput) {
+            endInput.value = 100;
+        } else if (opt === 1 && endInput) {
+            endInput.value = startAge + 10;
+        } else if (opt === 2 && endInput) {
+            endInput.value = startAge + 20;
+        }
+
+        this.recalcPensionModal('endAge');
+    },
+
+    recalcPensionModal(source) {
+        const type = document.getElementById('modal-pension-type')?.value || 'PERSONAL';
+        const isFunded = type === 'PERSONAL' || type === 'RETIREMENT' || type === 'ANNUITY_INSURANCE';
+        if (!isFunded) return;
+
+        const currentAge = this._pensionModalState?.currentAge || 40;
+        const startAge = Number(document.getElementById('modal-pension-start')?.value) || 60;
+        let endAge = Number(document.getElementById('modal-pension-end')?.value) || 85;
+        let monthlyPayout = Number(document.getElementById('modal-pension-amount')?.value) || 0;
+        const currentBalance = Number(document.getElementById('modal-pension-bal')?.value) || 0;
+        const monthlyContribution = Number(document.getElementById('modal-pension-contrib')?.value) || 0;
+        const contribEnd = Number(document.getElementById('modal-pension-contrib-end')?.value) || startAge;
+        const growthRate = Number(document.getElementById('modal-pension-rate')?.value) || 0;
+
+        // 1. 적립금 미래가치 계산
+        const accumulated = PensionPlanCalculator.calculateAccumulatedAtStartAge(
+            currentAge, startAge, currentBalance, monthlyContribution, contribEnd, growthRate
+        );
+
+        const cardVal = document.getElementById('modal-accumulated-val');
+        const cardSub = document.getElementById('modal-accumulated-sub');
+        if (cardVal) {
+            cardVal.innerText = CurrencyFormatter.formatKoreanWon(accumulated);
+        }
+        if (cardSub) {
+            const payYears = Math.max(0, Math.min(contribEnd, startAge) - currentAge);
+            const principal = currentBalance + (monthlyContribution * 12 * payYears);
+            const interest = Math.max(0, accumulated - principal);
+            cardSub.innerText = `원금 ${CurrencyFormatter.formatKoreanWon(principal, true)} + 복리이자 ${CurrencyFormatter.formatKoreanWon(interest, true)} (${startAge - currentAge}년 후)`;
+        }
+
+        const mode = this._pensionModalState?.linkageMode || 0;
+        const feedback = document.getElementById('modal-feedback-text');
+
+        if (type === 'ANNUITY_INSURANCE' || mode === 0 || source === 'endAge' || source === 'accumulation' || source === 'startAge') {
+            // 수급 기간 기준 -> 월 수령액 자동 연동
+            const period = Math.max(1, endAge - startAge);
+            const calculatedPayout = PensionPlanCalculator.calculateMonthlyPayoutFromPeriod(accumulated, period, growthRate);
+            if (source !== 'monthlyPayout') {
+                const amountInput = document.getElementById('modal-pension-amount');
+                if (amountInput) amountInput.value = calculatedPayout;
+                monthlyPayout = calculatedPayout;
+            }
+            if (feedback) {
+                feedback.innerText = `💡 ${startAge}세부터 ${endAge}세까지 ${period}년간 매월 약 ${CurrencyFormatter.formatKoreanWon(monthlyPayout)}씩 수령하게 됩니다. (잔여적립금 연 ${growthRate}% 복리운용)`;
+            }
+        } else {
+            // 희망 수령액 기준 -> 수급 기간 자동 연동
+            const result = PensionPlanCalculator.calculatePeriodFromMonthlyPayout(accumulated, monthlyPayout, startAge, growthRate);
+            const endInput = document.getElementById('modal-pension-end');
+            if (endInput) {
+                endInput.value = result.endAge;
+                endAge = result.endAge;
+            }
+            if (feedback) {
+                if (result.isForeverSafe) {
+                    feedback.innerText = `🎉 원금 보존! 운용 수익만으로 매월 ${CurrencyFormatter.formatKoreanWon(monthlyPayout)}을 평생(100세+) 수령 가능합니다.`;
+                } else {
+                    feedback.innerText = `⏳ 예상 적립금으로 약 ${result.periodYears}년간 (${result.endAge}세까지) 매월 ${CurrencyFormatter.formatKoreanWon(monthlyPayout)}을 수령할 수 있습니다.`;
+                }
+            }
+        }
+    },
+
+    submitSavePension(pensionId = '') {
         const name = document.getElementById('modal-pension-name')?.value.trim() || '신규 연금';
         const type = document.getElementById('modal-pension-type')?.value || 'PERSONAL';
         const startAge = Number(document.getElementById('modal-pension-start')?.value) || 60;
         const endAge = Number(document.getElementById('modal-pension-end')?.value) || 85;
         const expectedMonthlyAmount = Number(document.getElementById('modal-pension-amount')?.value) || 0;
-        const currentBalance = Number(document.getElementById('modal-pension-bal')?.value) || 0;
-        const monthlyContribution = Number(document.getElementById('modal-pension-contrib')?.value) || 0;
-        const expectedGrowthRate = Number(document.getElementById('modal-pension-rate')?.value) || 0;
+        const isFunded = type === 'PERSONAL' || type === 'RETIREMENT' || type === 'ANNUITY_INSURANCE';
 
-        const newPension = new Pension({
-            name,
-            type,
-            startAge,
-            endAge,
-            expectedMonthlyAmount,
-            currentBalance,
-            monthlyContribution,
-            expectedGrowthRate,
-            contributionEndAge: startAge,
-            isTaxDeductionEligible: type === 'PERSONAL' || type === 'RETIREMENT'
-        });
+        const currentBalance = isFunded ? (Number(document.getElementById('modal-pension-bal')?.value) || 0) : 0;
+        const monthlyContribution = isFunded ? (Number(document.getElementById('modal-pension-contrib')?.value) || 0) : 0;
+        const contributionEndAge = isFunded ? (Number(document.getElementById('modal-pension-contrib-end')?.value) || startAge) : startAge;
+        const expectedGrowthRate = isFunded 
+            ? (Number(document.getElementById('modal-pension-rate')?.value) || 0)
+            : (Number(document.getElementById('modal-pension-rate-simple')?.value) || 0);
 
-        this.state.pensions.push(newPension);
+        if (pensionId) {
+            const existing = this.state.pensions.find(p => p.id === pensionId);
+            if (existing) {
+                existing.name = name;
+                existing.type = type;
+                existing.startAge = startAge;
+                existing.endAge = endAge;
+                existing.expectedMonthlyAmount = expectedMonthlyAmount;
+                existing.currentBalance = currentBalance;
+                existing.monthlyContribution = monthlyContribution;
+                existing.contributionEndAge = contributionEndAge;
+                existing.expectedGrowthRate = expectedGrowthRate;
+                existing.isTaxDeductionEligible = (type === 'PERSONAL' || type === 'RETIREMENT');
+            }
+        } else {
+            const newPension = new Pension({
+                name,
+                type,
+                startAge,
+                endAge,
+                expectedMonthlyAmount,
+                currentBalance,
+                monthlyContribution,
+                expectedGrowthRate,
+                contributionEndAge,
+                isTaxDeductionEligible: (type === 'PERSONAL' || type === 'RETIREMENT')
+            });
+            this.state.pensions.push(newPension);
+        }
+
         this.closeModal();
         this.runSimulation();
         this.renderAll();
@@ -1977,6 +2340,150 @@ const AppSimulator = {
                 this.initDashboardCharts();
             }
         });
+    },
+
+    // ──────────────────────────────────────────────
+    // 7. 초보자 빠른 시작 가이드 (Onboarding Modal)
+    // ──────────────────────────────────────────────
+    openOnboardingGuide() {
+        this.state.onboardingStep = 0;
+        const modal = document.getElementById('onboardingGuideModal');
+        if (modal) {
+            modal.style.display = 'flex';
+            this.renderOnboardingStep();
+        }
+    },
+
+    closeOnboardingGuide(savePref = true) {
+        const modal = document.getElementById('onboardingGuideModal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+        if (savePref) {
+            const check = document.getElementById('dontShowGuideCheck');
+            if (check && check.checked) {
+                localStorage.setItem('pension_alchemy_hide_guide', 'true');
+            }
+        }
+    },
+
+    nextOnboardingStep() {
+        if (this.state.onboardingStep < 3) {
+            this.state.onboardingStep++;
+            this.renderOnboardingStep();
+        } else {
+            this.closeOnboardingGuide(true);
+        }
+    },
+
+    prevOnboardingStep() {
+        if (this.state.onboardingStep > 0) {
+            this.state.onboardingStep--;
+            this.renderOnboardingStep();
+        }
+    },
+
+    setOnboardingStep(idx) {
+        this.state.onboardingStep = idx;
+        this.renderOnboardingStep();
+    },
+
+    renderOnboardingStep() {
+        const stepIdx = this.state.onboardingStep;
+        const badge = document.getElementById('guideStepBadge');
+        const slider = document.getElementById('onboardingCardsSlider');
+        const prevBtn = document.getElementById('guidePrevBtn');
+        const nextBtn = document.getElementById('guideNextBtn');
+        const dots = document.getElementById('onboardingDots');
+
+        if (badge) badge.innerText = `${stepIdx + 1}/4`;
+        if (prevBtn) prevBtn.style.display = stepIdx > 0 ? 'inline-block' : 'none';
+        if (nextBtn) nextBtn.innerHTML = stepIdx === 3 ? '연금술사 시작하기 🎉' : '다음 단계 ➔';
+
+        if (dots) {
+            const dotEls = dots.querySelectorAll('.dot');
+            dotEls.forEach((dot, i) => {
+                dot.classList.toggle('active', i === stepIdx);
+            });
+        }
+
+        const steps = [
+            {
+                badge: "[설정] 탭 ➔ 생애주기 프리셋 터치",
+                title: "⚡ 맞춤형 프리셋으로 1초 만에 시작하기",
+                subtitle: "내 연령대와 상황에 꼭 맞는 현실적인 기본 데이터 자동 세팅",
+                icon: "⚡",
+                color: "#F59E0B",
+                desc: "처음 시작할 때 모든 것을 일일이 입력하기 어려우신가요? [설정] 탭의 생애주기 프리셋을 터치해보세요.",
+                tips: [
+                    "20대 사회초년생, 30대 신혼·맞벌이, 40대 대한민국 표준 가장",
+                    "50대 은퇴가속기, 60대 은퇴생활자 맞춤 시나리오 원터치 로드",
+                    "프리셋을 불러온 뒤 내 실제 상황에 맞게 손쉽게 숫자만 변경 가능"
+                ]
+            },
+            {
+                badge: "[설정] 탭 ➔ 현재 생활비 & 은퇴 후 생활비 입력",
+                title: "👤 내 프로필 & 현재/은퇴 후 지출 입력",
+                subtitle: "현재 생활비와 은퇴 후 필요 지출을 명확히 구분하여 계산",
+                icon: "👤",
+                color: "#10B981",
+                desc: "출생년도, 은퇴예정나이와 함께 '현재 생활 소비액'과 '은퇴 후 필요 지출'을 입력합니다.",
+                tips: [
+                    "현재 월 생활비: 현재 나이부터 은퇴 전까지 소득에서 차감되어 저축/자산 축적 계산에 반영",
+                    "은퇴 후 필요 지출: 현재가치 기준으로 입력하며, 은퇴 시점 실제 미래가치(FV)가 복리로 자동 환산되어 실시간 표기",
+                    "은퇴 시점 도달 시 은퇴 후 지출로 자동 전환되어 크레바스 및 자산 인출 계산 시작"
+                ]
+            },
+            {
+                badge: "[자산관리] & [연금플랜] 탭에서 입력",
+                title: "💰 자산·부채 및 3층 연금 플랜 등록",
+                subtitle: "국민·퇴직·개인·주택연금과 보유 자산/대출 정밀 등록",
+                icon: "💰",
+                color: "#06B6D4",
+                desc: "보유 중인 자산(예적금, 부동산, 주식/ETF)과 부채(대출 원리금 상환), 그리고 든든한 연금을 등록하세요.",
+                tips: [
+                    "[자산관리]: 자산별 기대수익률, 대출 상환방식(원리금균등 등)과 만기 연수 입력",
+                    "[연금플랜]: 국민연금 출생연도별 법정수령나이 자동 판정 및 조기/연기(-30%~+36%) 슬라이더 제공",
+                    "퇴직연금(DB/DC/IRP), 세액공제 개인연금저축, 주택연금 종신 수령액 정밀 반영"
+                ]
+            },
+            {
+                badge: "[대시보드] 탭 ➔ 나이 슬라이더 움직이며 확인",
+                title: "📊 대시보드에서 100세 인생 시뮬레이션 진단",
+                subtitle: "자산 궤적, 소득 크레바스, 연금 골든타임, 세금·건보료 한눈에 확인",
+                icon: "📊",
+                color: "#6366F1",
+                desc: "20세부터 100세까지 나이 슬라이더를 움직이며 내 노후 자산의 수명과 월 현금흐름을 시각적으로 탐색하세요.",
+                tips: [
+                    "소득 크레바스: 은퇴 후 국민연금 수령 전까지의 소득 공백기 부족액 정밀 진단",
+                    "세무 및 건보료: 사적연금 연 1,500만원 분리과세 한도 및 건보료 피부양자 자격 탈락 조기 경보",
+                    "100점 만점 연금술사 은퇴 건강 점수로 노후 준비도 즉시 평가"
+                ]
+            }
+        ];
+
+        const s = steps[stepIdx];
+        if (slider) {
+            slider.innerHTML = `
+                <div class="onboarding-card-view" style="border: 1px solid ${s.color};">
+                    <div class="onboarding-card-header">
+                        <div class="onboarding-icon-box" style="background: ${s.color}22; color: ${s.color};">
+                            ${s.icon}
+                        </div>
+                        <span class="onboarding-badge" style="background: ${s.color}22; color: ${s.color}; border: 1px solid ${s.color}55;">
+                            ${s.badge}
+                        </span>
+                    </div>
+                    <div class="onboarding-title">${s.title}</div>
+                    <div class="onboarding-subtitle" style="color: ${s.color};">${s.subtitle}</div>
+                    <p class="onboarding-desc">${s.desc}</p>
+                    <div class="onboarding-tips-box">
+                        <div class="onboarding-tips-title">💡 주요 활용 팁</div>
+                        ${s.tips.map(t => `<div class="onboarding-tip-item">• ${t}</div>`).join('')}
+                    </div>
+                </div>
+            `;
+        }
     }
 };
 

@@ -85,7 +85,8 @@ class UserProfile {
         this.birthYear = init.birthYear ?? 1985;
         this.retirementAge = init.retirementAge ?? 60;
         this.targetEndAge = init.targetEndAge ?? 100;
-        this.monthlyExpenses = init.monthlyExpenses ?? 2500000;
+        this.currentMonthlyExpenses = init.currentMonthlyExpenses ?? 3000000; // 은퇴 전 현재 생활 소비액
+        this.monthlyExpenses = init.monthlyExpenses ?? 2500000;               // 은퇴 후 필요 생활비 (현재가치 기준)
         this.medicalExpenseRatio = init.medicalExpenseRatio ?? 0.10;
         this.inflationRate = init.inflationRate ?? 2.0;
         this.currency = init.currency ?? 'KRW';
@@ -146,7 +147,8 @@ const Presets = {
             birthYear: 2000,
             retirementAge: 60,
             targetEndAge: 100,
-            monthlyExpenses: 1800000,
+            currentMonthlyExpenses: 1800000,
+            monthlyExpenses: 2000000,
             medicalExpenseRatio: 0.08,
             inflationRate: 2.0
         }),
@@ -171,6 +173,7 @@ const Presets = {
             birthYear: 1991,
             retirementAge: 60,
             targetEndAge: 100,
+            currentMonthlyExpenses: 2800000,
             monthlyExpenses: 2600000,
             medicalExpenseRatio: 0.09,
             inflationRate: 2.0
@@ -191,21 +194,22 @@ const Presets = {
         ]
     }),
 
-    // 40대 확장기 (41세) - 기본값
+    // 40대 확장기 (45세) - 기본값
     preset40s: () => ({
         profile: new UserProfile({
-            birthYear: 1985,
+            birthYear: 1981,
             retirementAge: 60,
             targetEndAge: 100,
-            monthlyExpenses: 2500000,
+            currentMonthlyExpenses: 3800000,
+            monthlyExpenses: 3300000,
             medicalExpenseRatio: 0.10,
             inflationRate: 2.0
         }),
         pensions: [
-            new Pension({ id: 'p_40_1', name: '국민연금', type: 'NATIONAL', startAge: 65, endAge: 100, expectedMonthlyAmount: 1600000, expectedGrowthRate: 2.0, claimOffsetYears: 0 }),
-            new Pension({ id: 'p_40_2', name: '퇴직연금 (DC/IRP)', type: 'RETIREMENT', startAge: 60, endAge: 80, expectedMonthlyAmount: 1200000, expectedGrowthRate: 4.5, currentBalance: 85000000, monthlyContribution: 500000, contributionEndAge: 60, isTaxDeductionEligible: true }),
-            new Pension({ id: 'p_40_3', name: '개인연금저축', type: 'PERSONAL', startAge: 60, endAge: 85, expectedMonthlyAmount: 900000, expectedGrowthRate: 5.0, currentBalance: 55000000, monthlyContribution: 500000, contributionEndAge: 60, isTaxDeductionEligible: true }),
-            new Pension({ id: 'p_40_4', name: '개인연금보험 (비과세)', type: 'ANNUITY_INSURANCE', startAge: 65, endAge: 90, expectedMonthlyAmount: 400000, expectedGrowthRate: 3.5, currentBalance: 20000000, monthlyContribution: 200000, contributionEndAge: 60, isTaxDeductionEligible: false })
+            new Pension({ id: 'p_40_1', name: '국민연금', type: 'NATIONAL', startAge: 65, endAge: 100, expectedMonthlyAmount: 1800000, expectedGrowthRate: 2.0, claimOffsetYears: 0 }),
+            new Pension({ id: 'p_40_2', name: '퇴직연금 (DC/IRP)', type: 'RETIREMENT', startAge: 60, endAge: 80, expectedMonthlyAmount: 1250000, expectedGrowthRate: 4.5, currentBalance: 85000000, monthlyContribution: 600000, contributionEndAge: 60, isTaxDeductionEligible: true }),
+            new Pension({ id: 'p_40_3', name: '개인연금저축', type: 'PERSONAL', startAge: 60, endAge: 85, expectedMonthlyAmount: 950000, expectedGrowthRate: 5.5, currentBalance: 55000000, monthlyContribution: 750000, contributionEndAge: 60, isTaxDeductionEligible: true }),
+            new Pension({ id: 'p_40_4', name: '개인연금보험 (비과세)', type: 'ANNUITY_INSURANCE', startAge: 60, endAge: 90, expectedMonthlyAmount: 400000, expectedGrowthRate: 3.5, currentBalance: 25000000, monthlyContribution: 300000, contributionEndAge: 60, isTaxDeductionEligible: false })
         ],
         assets: [
             new Asset({ id: 'a_40_1', name: '거주 아파트', type: 'REAL_ESTATE', currentValue: 700000000, expectedGrowthRate: 2.5, isLiability: false }),
@@ -225,6 +229,7 @@ const Presets = {
             birthYear: 1971,
             retirementAge: 60,
             targetEndAge: 100,
+            currentMonthlyExpenses: 4200000,
             monthlyExpenses: 3500000,
             medicalExpenseRatio: 0.12,
             inflationRate: 2.0
@@ -253,6 +258,7 @@ const Presets = {
             birthYear: 1963,
             retirementAge: 60,
             targetEndAge: 100,
+            currentMonthlyExpenses: 2800000,
             monthlyExpenses: 2800000,
             medicalExpenseRatio: 0.15,
             inflationRate: 2.0
