@@ -1811,15 +1811,16 @@ a:hover {
 }
 
 .onboarding-modal-content {
-    background: var(--bg-card, #1E293B);
+    background: var(--bg-surface, #1E293B);
     border: 1px solid var(--border-color, rgba(255, 255, 255, 0.12));
     border-radius: 20px;
     width: 100%;
     max-width: 580px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 24px 50px rgba(0, 0, 0, 0.5);
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .modal-header {
@@ -1873,12 +1874,14 @@ a:hover {
 }
 
 .onboarding-card-view {
-    background: rgba(15, 23, 42, 0.6);
+    background: rgba(15, 23, 42, 0.65);
     border-radius: 16px;
     padding: 20px;
     display: flex;
     flex-direction: column;
     gap: 10px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .onboarding-card-header {
@@ -1913,7 +1916,7 @@ a:hover {
 
 .onboarding-subtitle {
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 700;
 }
 
 .onboarding-desc {
@@ -1924,13 +1927,14 @@ a:hover {
 }
 
 .onboarding-tips-box {
-    background: rgba(255, 255, 255, 0.04);
+    background: rgba(15, 23, 42, 0.4);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
     padding: 12px 14px;
     display: flex;
     flex-direction: column;
     gap: 6px;
+    transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .onboarding-tips-title {
@@ -1987,11 +1991,123 @@ a:hover {
     justify-content: space-between;
     align-items: center;
     padding: 14px 22px;
-    background: rgba(15, 23, 42, 0.4);
+    background: rgba(15, 23, 42, 0.5);
     border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
     gap: 12px;
 }
 .modal-footer button {
     flex: 1;
+}
+
+/* ==========================================================================
+   라이트 테마 전용 시작 가이드(Onboarding Modal) 고대비 선명 시인성 스타일
+   ========================================================================== */
+[data-theme="light"] .modal-overlay {
+    background: rgba(15, 23, 42, 0.45);
+}
+
+[data-theme="light"] .onboarding-modal-content {
+    background: #FFFFFF !important;
+    border: 1px solid #E2E8F0 !important;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.2) !important;
+}
+
+[data-theme="light"] .onboarding-modal-content .modal-header {
+    border-bottom: 1px solid #F1F5F9 !important;
+}
+
+[data-theme="light"] .onboarding-modal-content .step-badge {
+    background: rgba(16, 185, 129, 0.12) !important;
+    color: #059669 !important;
+    border: 1px solid rgba(16, 185, 129, 0.3) !important;
+}
+
+[data-theme="light"] .onboarding-modal-content .modal-title {
+    color: #0F172A !important;
+    font-weight: 800;
+}
+
+[data-theme="light"] .onboarding-modal-content .modal-close-btn {
+    color: #64748B !important;
+}
+
+[data-theme="light"] .onboarding-modal-content .modal-close-btn:hover {
+    color: #0F172A !important;
+    background: #F1F5F9 !important;
+}
+
+[data-theme="light"] .onboarding-card-view {
+    background: #F8FAFC !important;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04) !important;
+}
+
+[data-theme="light"] .onboarding-title {
+    color: #0F172A !important;
+    font-weight: 800;
+}
+
+[data-theme="light"] .onboarding-desc {
+    color: #334155 !important;
+    font-weight: 500;
+}
+
+[data-theme="light"] .onboarding-tips-box {
+    background: #FFFFFF !important;
+    border: 1px solid #E2E8F0 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03) !important;
+}
+
+[data-theme="light"] .onboarding-tips-title {
+    color: #059669 !important;
+    font-weight: 800;
+}
+
+[data-theme="light"] .onboarding-tip-item {
+    color: #1E293B !important;
+    font-weight: 500;
+}
+
+[data-theme="light"] .onboarding-dots .dot {
+    background: #CBD5E1 !important;
+}
+
+[data-theme="light"] .onboarding-dots .dot.active {
+    background: #059669 !important;
+}
+
+[data-theme="light"] .dont-show-again-wrap {
+    color: #64748B !important;
+}
+
+[data-theme="light"] .dont-show-again-wrap label:hover {
+    color: #0F172A !important;
+}
+
+[data-theme="light"] .onboarding-modal-content .modal-footer {
+    background: #F8FAFC !important;
+    border-top: 1px solid #E2E8F0 !important;
+}
+
+[data-theme="light"] .onboarding-modal-content .modal-footer .btn-outline {
+    background: #FFFFFF !important;
+    color: #334155 !important;
+    border: 1px solid #CBD5E1 !important;
+}
+
+[data-theme="light"] .onboarding-modal-content .modal-footer .btn-outline:hover {
+    background: #F1F5F9 !important;
+    color: #0F172A !important;
+    border-color: #94A3B8 !important;
+}
+
+[data-theme="light"] .onboarding-modal-content .modal-footer .btn-primary {
+    background: #059669 !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25) !important;
+}
+
+[data-theme="light"] .onboarding-modal-content .modal-footer .btn-primary:hover {
+    background: #047857 !important;
 }
 

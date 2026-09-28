@@ -14,32 +14,60 @@ const ManualController = {
         this.setupPresetSelector();
     },
 
+    getSystemTheme() {
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+            return 'light';
+        }
+        return 'dark'; // 윈도우 다크테마 또는 미지원 브라우저는 다크테마 기본
+    },
+
     setupTheme() {
-        const saved = localStorage.getItem('pa_manual_theme') || 'dark';
-        this.setTheme(saved);
+        const saved = localStorage.getItem('pa_manual_theme');
+        const initialTheme = saved || this.getSystemTheme();
+        this.setTheme(initialTheme, false);
 
         const btn = document.getElementById('theme-toggle-btn');
         if (btn) {
             btn.addEventListener('click', () => {
                 const nextTheme = this.currentTheme === 'dark' ? 'light' : 'dark';
-                this.setTheme(nextTheme);
+                this.setTheme(nextTheme, true);
+            });
+        }
+
+        // 윈도우 OS 테마 변경 실시간 감지
+        if (window.matchMedia) {
+            const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+            mediaQuery.addEventListener('change', (e) => {
+                // 사용자가 명시적으로 수동 고정하지 않은 경우 시스템 테마를 실시간 추종
+                if (!localStorage.getItem('pa_manual_theme_explicit')) {
+                    const sysTheme = e.matches ? 'dark' : 'light';
+                    this.setTheme(sysTheme, false);
+                }
             });
         }
     },
 
-    setTheme(theme) {
+    setTheme(theme, isUserAction = false) {
         this.currentTheme = theme;
         document.documentElement.setAttribute('data-theme', theme);
         localStorage.setItem('pa_manual_theme', theme);
+        if (isUserAction) {
+            localStorage.setItem('pa_manual_theme_explicit', 'true');
+        }
 
         const icon = document.getElementById('theme-toggle-icon');
         const text = document.getElementById('theme-toggle-text');
         if (icon) icon.textContent = theme === 'dark' ? '☀️' : '🌙';
         if (text) text.textContent = theme === 'dark' ? '라이트 모드' : '다크 모드';
 
-        // 시뮬레이터 차트 재렌더링
-        if (window.AppSimulator && window.AppSimulator.state.currentTab === 'DASHBOARD') {
-            window.AppSimulator.initDashboardCharts();
+        // 시뮬레이터 차트 및 가이드 카드 재렌더링
+        if (window.AppSimulator) {
+            if (window.AppSimulator.state && window.AppSimulator.state.currentTab === 'DASHBOARD') {
+                window.AppSimulator.initDashboardCharts();
+            }
+            if (typeof window.AppSimulator.renderOnboardingStep === 'function') {
+                window.AppSimulator.renderOnboardingStep();
+            }
         }
     },
 

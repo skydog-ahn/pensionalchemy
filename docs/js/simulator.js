@@ -2407,13 +2407,16 @@ const AppSimulator = {
             });
         }
 
+        const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+
         const steps = [
             {
                 badge: "[설정] 탭 ➔ 생애주기 프리셋 터치",
                 title: "⚡ 맞춤형 프리셋으로 1초 만에 시작하기",
                 subtitle: "내 연령대와 상황에 꼭 맞는 현실적인 기본 데이터 자동 세팅",
                 icon: "⚡",
-                color: "#F59E0B",
+                color: isLight ? "#B45309" : "#F59E0B",
+                borderColor: isLight ? "#F59E0B" : "#F59E0B",
                 desc: "처음 시작할 때 모든 것을 일일이 입력하기 어려우신가요? [설정] 탭의 생애주기 프리셋을 터치해보세요.",
                 tips: [
                     "20대 사회초년생, 30대 신혼·맞벌이, 40대 대한민국 표준 가장",
@@ -2426,7 +2429,8 @@ const AppSimulator = {
                 title: "👤 내 프로필 & 현재/은퇴 후 지출 입력",
                 subtitle: "현재 생활비와 은퇴 후 필요 지출을 명확히 구분하여 계산",
                 icon: "👤",
-                color: "#10B981",
+                color: isLight ? "#047857" : "#10B981",
+                borderColor: isLight ? "#10B981" : "#10B981",
                 desc: "출생년도, 은퇴예정나이와 함께 '현재 생활 소비액'과 '은퇴 후 필요 지출'을 입력합니다.",
                 tips: [
                     "현재 월 생활비: 현재 나이부터 은퇴 전까지 소득에서 차감되어 저축/자산 축적 계산에 반영",
@@ -2439,7 +2443,8 @@ const AppSimulator = {
                 title: "💰 자산·부채 및 3층 연금 플랜 등록",
                 subtitle: "국민·퇴직·개인·주택연금과 보유 자산/대출 정밀 등록",
                 icon: "💰",
-                color: "#06B6D4",
+                color: isLight ? "#0E7490" : "#06B6D4",
+                borderColor: isLight ? "#06B6D4" : "#06B6D4",
                 desc: "보유 중인 자산(예적금, 부동산, 주식/ETF)과 부채(대출 원리금 상환), 그리고 든든한 연금을 등록하세요.",
                 tips: [
                     "[자산관리]: 자산별 기대수익률, 대출 상환방식(원리금균등 등)과 만기 연수 입력",
@@ -2452,7 +2457,8 @@ const AppSimulator = {
                 title: "📊 대시보드에서 100세 인생 시뮬레이션 진단",
                 subtitle: "자산 궤적, 소득 크레바스, 연금 골든타임, 세금·건보료 한눈에 확인",
                 icon: "📊",
-                color: "#6366F1",
+                color: isLight ? "#4338CA" : "#6366F1",
+                borderColor: isLight ? "#6366F1" : "#6366F1",
                 desc: "20세부터 100세까지 나이 슬라이더를 움직이며 내 노후 자산의 수명과 월 현금흐름을 시각적으로 탐색하세요.",
                 tips: [
                     "소득 크레바스: 은퇴 후 국민연금 수령 전까지의 소득 공백기 부족액 정밀 진단",
@@ -2465,12 +2471,12 @@ const AppSimulator = {
         const s = steps[stepIdx];
         if (slider) {
             slider.innerHTML = `
-                <div class="onboarding-card-view" style="border: 1px solid ${s.color};">
+                <div class="onboarding-card-view" style="border: 1px solid ${s.borderColor};">
                     <div class="onboarding-card-header">
-                        <div class="onboarding-icon-box" style="background: ${s.color}22; color: ${s.color};">
+                        <div class="onboarding-icon-box" style="background: ${s.color}1A; color: ${s.color};">
                             ${s.icon}
                         </div>
-                        <span class="onboarding-badge" style="background: ${s.color}22; color: ${s.color}; border: 1px solid ${s.color}55;">
+                        <span class="onboarding-badge" style="background: ${s.color}15; color: ${s.color}; border: 1px solid ${s.color}40;">
                             ${s.badge}
                         </span>
                     </div>
