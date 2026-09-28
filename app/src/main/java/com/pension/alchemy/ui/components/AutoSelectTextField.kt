@@ -1,6 +1,8 @@
 package com.pension.alchemy.ui.components
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -17,10 +19,13 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * 처음 선택(포커스 획득) 시 텍스트 전체가 선택되고,
  * 이미 선택된 상태에서 다시 탭하면 터치한 특정 위치로 커서가 이동하여 수정 가능한 OutlinedTextField
+ * 키보드(소프트 IME)가 활성화될 때 입력창이 가려지지 않도록 자동으로 뷰포트 내로 스크롤(BringIntoView) 지원
  */
 @Composable
 fun AutoSelectOutlinedTextField(
@@ -53,6 +58,9 @@ fun AutoSelectOutlinedTextField(
     }
     var isFocused by remember { mutableStateOf(false) }
     var justGainedFocus by remember { mutableStateOf(false) }
+
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    val coroutineScope = rememberCoroutineScope()
 
     // 외부에서 value가 변경되었을 때(슬라이더 조작, 리셋 등) 동기화
     LaunchedEffect(value) {
@@ -87,20 +95,29 @@ fun AutoSelectOutlinedTextField(
                 }
             }
         },
-        modifier = modifier.onFocusChanged { focusState ->
-            if (focusState.isFocused) {
-                if (!isFocused) {
-                    isFocused = true
-                    justGainedFocus = true
-                    textFieldValue = textFieldValue.copy(
-                        selection = TextRange(0, textFieldValue.text.length)
-                    )
+        modifier = modifier
+            .bringIntoViewRequester(bringIntoViewRequester)
+            .onFocusChanged { focusState ->
+                if (focusState.isFocused) {
+                    if (!isFocused) {
+                        isFocused = true
+                        justGainedFocus = true
+                        textFieldValue = textFieldValue.copy(
+                            selection = TextRange(0, textFieldValue.text.length)
+                        )
+                    }
+                    coroutineScope.launch {
+                        // 키보드(소프트 IME)가 슬라이드업 되는 애니메이션 동안 및 완료 후 가려지지 않도록 화면 안으로 스크롤 요청
+                        delay(100)
+                        bringIntoViewRequester.bringIntoView()
+                        delay(250)
+                        bringIntoViewRequester.bringIntoView()
+                    }
+                } else {
+                    isFocused = false
+                    justGainedFocus = false
                 }
-            } else {
-                isFocused = false
-                justGainedFocus = false
-            }
-        },
+            },
         enabled = enabled,
         readOnly = readOnly,
         textStyle = textStyle,
@@ -127,6 +144,7 @@ fun AutoSelectOutlinedTextField(
 /**
  * 처음 선택(포커스 획득) 시 텍스트 전체가 선택되고,
  * 이미 선택된 상태에서 다시 탭하면 터치한 특정 위치로 커서가 이동하여 수정 가능한 BasicTextField
+ * 키보드(소프트 IME)가 활성화될 때 입력창이 가려지지 않도록 자동으로 뷰포트 내로 스크롤(BringIntoView) 지원
  */
 @Composable
 fun AutoSelectBasicTextField(
@@ -153,6 +171,9 @@ fun AutoSelectBasicTextField(
     }
     var isFocused by remember { mutableStateOf(false) }
     var justGainedFocus by remember { mutableStateOf(false) }
+
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(value) {
         if (value != textFieldValue.text) {
@@ -183,20 +204,29 @@ fun AutoSelectBasicTextField(
                 }
             }
         },
-        modifier = modifier.onFocusChanged { focusState ->
-            if (focusState.isFocused) {
-                if (!isFocused) {
-                    isFocused = true
-                    justGainedFocus = true
-                    textFieldValue = textFieldValue.copy(
-                        selection = TextRange(0, textFieldValue.text.length)
-                    )
+        modifier = modifier
+            .bringIntoViewRequester(bringIntoViewRequester)
+            .onFocusChanged { focusState ->
+                if (focusState.isFocused) {
+                    if (!isFocused) {
+                        isFocused = true
+                        justGainedFocus = true
+                        textFieldValue = textFieldValue.copy(
+                            selection = TextRange(0, textFieldValue.text.length)
+                        )
+                    }
+                    coroutineScope.launch {
+                        // 키보드(소프트 IME)가 슬라이드업 되는 애니메이션 동안 및 완료 후 가려지지 않도록 화면 안으로 스크롤 요청
+                        delay(100)
+                        bringIntoViewRequester.bringIntoView()
+                        delay(250)
+                        bringIntoViewRequester.bringIntoView()
+                    }
+                } else {
+                    isFocused = false
+                    justGainedFocus = false
                 }
-            } else {
-                isFocused = false
-                justGainedFocus = false
-            }
-        },
+            },
         enabled = enabled,
         readOnly = readOnly,
         textStyle = textStyle,

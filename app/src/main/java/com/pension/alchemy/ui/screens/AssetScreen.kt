@@ -27,6 +27,7 @@ import com.pension.alchemy.theme.*
 import com.pension.alchemy.ui.components.AutoSelectOutlinedTextField
 import com.pension.alchemy.util.CurrencyFormatter
 import com.pension.alchemy.util.LoanCalculator
+import androidx.compose.ui.window.DialogProperties
 
 @Composable
 fun AssetScreen(
@@ -442,10 +443,20 @@ private fun AssetEditDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        ),
+        modifier = Modifier
+            .fillMaxWidth(0.95f)
+            .imePadding(),
         title = { Text(if (asset == null) (if (type.isLiability) "부채(대출) 추가" else "자산 추가") else (if (type.isLiability) "부채(대출) 수정" else "자산 수정")) },
         text = {
             Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.85f)
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 AutoSelectOutlinedTextField(
@@ -624,9 +635,21 @@ private fun IncomeEditDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        ),
+        modifier = Modifier
+            .fillMaxWidth(0.95f)
+            .imePadding(),
         title = { Text(if (income == null) "정기 소득 추가" else "소득 수정") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 AutoSelectOutlinedTextField(
                     value = name,
                     onValueChange = { name = it },

@@ -12,6 +12,7 @@ const ManualController = {
         this.setupSearch();
         this.setupScrollSpy();
         this.setupPresetSelector();
+        this.setupKeyboardAvoidance();
     },
 
     getSystemTheme() {
@@ -160,6 +161,20 @@ const ManualController = {
                 el.style.color = simState.summary.healthScore.gradeColorHex;
             } else if (key === 'replacementRate') {
                 el.textContent = CurrencyFormatter.formatPercent(simState.summary.incomeReplacementRate);
+            }
+        });
+    },
+
+    setupKeyboardAvoidance() {
+        // 모바일/소프트 키보드 활성화 시 입력란이 가려지지 않도록 화면 중앙 스크롤
+        document.addEventListener('focusin', (e) => {
+            const target = e.target;
+            if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {
+                setTimeout(() => {
+                    try {
+                        target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+                    } catch (err) {}
+                }, 250);
             }
         });
     },

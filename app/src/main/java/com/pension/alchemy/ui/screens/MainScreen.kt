@@ -153,6 +153,7 @@ fun MainScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
+                    .imePadding()
             ) {
                 when (currentTab) {
                     ScreenTab.DASHBOARD -> DashboardScreen(

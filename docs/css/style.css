@@ -2111,3 +2111,35 @@ a:hover {
     background: #047857 !important;
 }
 
+/* ==========================================================================
+   키보드 활성화 시 입력란 가림 방지 (Keyboard Visibility & Auto-Scroll Padding)
+   ========================================================================== */
+.phone-screen-content,
+.sim-modal-card,
+.modal-body,
+.manual-content-column {
+    scroll-padding-top: 60px;
+    scroll-padding-bottom: 120px;
+    scroll-behavior: smooth;
+}
+
+input.calc-input:focus,
+input[type="text"]:focus,
+input[type="number"]:focus,
+select.calc-input:focus {
+    scroll-margin-top: 60px;
+    scroll-margin-bottom: 120px;
+}
+
+@media (max-height: 650px) {
+    /* 가상 키보드가 열려 뷰포트 높이가 줄어들었을 때 */
+    .sim-modal-overlay {
+        align-items: center;
+        padding-top: 10px;
+        padding-bottom: 10px;
+    }
+    .sim-modal-card {
+        max-height: 94%;
+    }
+}
+

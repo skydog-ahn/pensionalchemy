@@ -24,6 +24,7 @@ import com.pension.alchemy.domain.engine.PensionPlanCalculator
 import com.pension.alchemy.theme.*
 import com.pension.alchemy.ui.components.AutoSelectOutlinedTextField
 import com.pension.alchemy.util.CurrencyFormatter
+import androidx.compose.ui.window.DialogProperties
 
 @Composable
 fun PensionScreen(
@@ -437,10 +438,19 @@ private fun PensionEditDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        ),
+        modifier = Modifier
+            .fillMaxWidth(0.95f)
+            .imePadding(),
         title = { Text(if (pension == null) "연금 플랜 추가" else "연금 플랜 수정") },
         text = {
             LazyColumn(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.85f),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 // 1) 연금 명칭
