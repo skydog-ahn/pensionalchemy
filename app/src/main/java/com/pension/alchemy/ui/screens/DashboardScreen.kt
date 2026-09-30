@@ -105,6 +105,11 @@ fun DashboardScreen(
             }
         }
 
+        // 1-1. 실시간 초당 자산 수익 다이내믹 티커 카드
+        RealTimeAssetGrowthTickerCard(
+            metrics = summary.realTimeYield
+        )
+
         // 2. 은퇴 준비 건강도 점수 배너 (0 ~ 100점)
         Card(
             modifier = Modifier.fillMaxWidth(),

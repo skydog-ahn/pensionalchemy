@@ -1,0 +1,419 @@
+package com.pension.alchemy.ui.components
+
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.*
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.pension.alchemy.data.model.RealTimeYieldMetrics
+import com.pension.alchemy.theme.*
+import com.pension.alchemy.util.CurrencyFormatter
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import java.time.LocalTime
+import java.util.Locale
+import kotlin.math.roundToLong
+
+/**
+ * 실시간 초당 자산 순증가(소득+자산수익 - 소비-이자-납입) 다이내믹 티커 카드
+ * 정기 수입과 개별 자산 수익률, 소비 지출, 사적연금 납입을 모두 종합하여
+ * 내 순자산이 실시간으로 불어나는 속도를 체감할 수 있습니다.
+ */
+@Composable
+fun RealTimeAssetGrowthTickerCard(
+    metrics: RealTimeYieldMetrics,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    // 오늘 0시 기준 경과 초 (매 1초마다 갱신)
+    var currentSecondOfDay by remember {
+        mutableLongStateOf(LocalTime.now().toSecondOfDay().toLong())
+    }
+
+    LaunchedEffect(Unit) {
+        while (isActive) {
+            delay(1000L)
+            currentSecondOfDay = LocalTime.now().toSecondOfDay().toLong()
+        }
+    }
+
+    // 오늘 자정부터 현재 시각까지 누적된 순자산 순증가
+    val todayAccumulatedGain = (currentSecondOfDay * metrics.wonPerSecond).roundToLong()
+
+    // 8시간(수면 시간) 동안 순자산 변화량
+    val sleepGain8Hours = (metrics.wonPerHour * 8.0).roundToLong()
+
+    // 펄스 애니메이션 (LIVE 인디케이터)
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse_transition")
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse_alpha"
+    )
+
+    val isPositive = metrics.wonPerSecond >= 0.0
+    val trendColor = if (isPositive) EmeraldPrimary else RoseDanger
+    val trendIcon = if (isPositive) Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Filled.TrendingDown
+
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .clickable { expanded = !expanded },
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(18.dp)
+        ) {
+            // 1. 헤더: 실시간 상태 라벨 & LIVE 인디케이터
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .alpha(pulseAlpha)
+                            .background(color = trendColor, shape = CircleShape)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "오늘의 실시간 순자산 증감",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                // LIVE 배지
+                Surface(
+                    color = trendColor.copy(alpha = 0.12f),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "● LIVE",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = trendColor
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // 2. 메인 중심: 계속 변화하는 실시간 누적 증감액 (초대형 폰트로 강조!)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "0시 기준 현재까지 불어난 자산",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = trendIcon,
+                            contentDescription = null,
+                            tint = trendColor,
+                            modifier = Modifier.size(30.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (todayAccumulatedGain >= 0L) {
+                                "+${CurrencyFormatter.formatKoreanWon(todayAccumulatedGain)}"
+                            } else {
+                                CurrencyFormatter.formatKoreanWon(todayAccumulatedGain)
+                            },
+                            style = MaterialTheme.typography.headlineLarge.copy(
+                                fontWeight = FontWeight.Black,
+                                fontSize = 32.sp
+                            ),
+                            color = trendColor
+                        )
+                    }
+                }
+
+                // 우측 접기/펼치기 아이콘
+                Icon(
+                    imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = if (expanded) "접기" else "상세보기",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // 3. 하단 서브: 초당 속도 표현 (칩/배너 형태)
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 9.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "⚡ 자산 증식 속도",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Text(
+                        text = if (isPositive) {
+                            "초당 +${String.format(Locale.KOREA, "%,.1f", metrics.wonPerSecond)}원"
+                        } else {
+                            "초당 ${String.format(Locale.KOREA, "%,.1f", metrics.wonPerSecond)}원"
+                        },
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = trendColor
+                    )
+                }
+            }
+
+            // 4. 확장 상세 뷰 (클릭 시 전개)
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                    // A) 단위별 환산 (1시간, 1일, 1달)
+                    Text(
+                        text = "⏱️ 주기별 실질 순증가 환산",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        val prefix = if (metrics.wonPerSecond >= 0) "+" else ""
+                        YieldPeriodChip("시간당", "$prefix${CurrencyFormatter.formatKoreanWon(metrics.wonPerHour.roundToLong(), isShort = true)}", Modifier.weight(1f))
+                        YieldPeriodChip("하루(일당)", "$prefix${CurrencyFormatter.formatKoreanWon(metrics.wonPerDay, isShort = true)}", Modifier.weight(1f))
+                        YieldPeriodChip("한달(월)", "$prefix${CurrencyFormatter.formatKoreanWon(metrics.wonPerMonth, isShort = true)}", Modifier.weight(1f))
+                    }
+
+                    // B) 종합 재정 흐름 브레이크다운 (유입 vs 유출)
+                    Text(
+                        text = "📊 연간 가계 재정 흐름 상세",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        // [유입 부문]
+                        Text(
+                            text = "🟢 유입 (정기소득 & 자산수익)",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = EmeraldPrimary
+                        )
+                        if (metrics.annualRegularIncome > 0L) {
+                            ContributionRow("정기 근로/사업소득", metrics.annualRegularIncome, EmeraldPrimary)
+                        }
+                        ContributionRow("금융자산 운용수익", metrics.annualFinancialGain, EmeraldPrimary)
+                        ContributionRow("부동산 가치상승 (수익률 반영)", metrics.annualRealEstateGain, AmberWarning)
+                        ContributionRow("연금 적립금 복리운용", metrics.annualPensionGain, CyanInfo)
+
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                        // [유출 부문]
+                        Text(
+                            text = "🔴 유출 (소비 & 지출)",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = RoseDanger
+                        )
+                        ContributionRow("현재 연간 생활소비 지출", -metrics.annualLivingExpenses, RoseDanger)
+                        if (metrics.annualDebtInterestCost > 0L) {
+                            ContributionRow("대출 부채 이자비용", -metrics.annualDebtInterestCost, RoseDanger)
+                        }
+                        if (metrics.annualPensionContributionDeducted > 0L) {
+                            ContributionRow("사적연금 직접 납입 지출", -metrics.annualPensionContributionDeducted, Tier3PersonalColor)
+                        }
+
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                        // [순증가 합계]
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "연간 순자산 순증가 합계",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            val netPrefix = if (metrics.annualNetWealthGrowth >= 0L) "+" else ""
+                            Text(
+                                text = "$netPrefix${CurrencyFormatter.formatKoreanWon(metrics.annualNetWealthGrowth)}/연",
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 13.sp,
+                                color = trendColor
+                            )
+                        }
+                    }
+
+                    // C) 수면 중 자본소득 인사이트 배너
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        color = CyanInfo.copy(alpha = 0.1f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(text = "🛌", fontSize = 22.sp)
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = "잠든 시간(8시간) 동안의 순자산 변화",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                val sleepPrefix = if (sleepGain8Hours >= 0L) "+" else ""
+                                Text(
+                                    text = "소득과 자산수익에서 지출을 제하고 하루 8시간 수면 동안 약 $sleepPrefix${CurrencyFormatter.formatKoreanWon(sleepGain8Hours)}의 순자산이 변동합니다.",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun YieldPeriodChip(
+    title: String,
+    amountStr: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(10.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    ) {
+        Column(
+            modifier = Modifier.padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(text = title, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = amountStr,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                softWrap = false
+            )
+        }
+    }
+}
+
+@Composable
+private fun ContributionRow(
+    label: String,
+    amount: Long,
+    color: Color
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .background(color = color, shape = CircleShape)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = label,
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        val prefix = if (amount > 0L) "+" else ""
+        Text(
+            text = "$prefix${CurrencyFormatter.formatKoreanWon(amount, isShort = true)}/연",
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = if (amount >= 0L) MaterialTheme.colorScheme.onSurface else RoseDanger
+        )
+    }
+}

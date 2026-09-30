@@ -406,4 +406,120 @@ class PensionAlchemyEngineTest {
         val r65 = results.first { it.age == 65 }
         assertEquals(2_500_000L, r65.monthlyExpenses)
     }
+
+    @Test
+    fun testRealEstateZeroGrowthRatePreservation() {
+        val currentAge = 40
+        val birthYear = java.time.LocalDate.now().year - currentAge
+        val profile = UserProfile(
+            birthYear = birthYear,
+            retirementAge = 60,
+            targetEndAge = 70,
+            currentMonthlyExpenses = 0L,
+            monthlyExpenses = 0L,
+            inflationRate = 0.0
+        )
+        // 부동산 5억원, 기대상승률 0.0%
+        val realEstate = Asset(
+            name = "보유 아파트",
+            type = AssetType.REAL_ESTATE,
+            currentValue = 500_000_000L,
+            expectedGrowthRate = 0.0
+        )
+        val summary = SimulationEngine.runComprehensiveSimulation(profile, emptyList(), listOf(realEstate), emptyList())
+        val results = summary.yearlyResults
+
+        // 40세부터 60세까지 부동산 가치가 정확히 5억원으로 유지되어야 함 (글로벌 2% 기본값 미적용 검증)
+        val r40 = results.first { it.age == 40 }
+        val r50 = results.first { it.age == 50 }
+        val r60 = results.first { it.age == 60 }
+        assertEquals(500_000_000L, r40.realEstateAssets)
+        assertEquals(500_000_000L, r50.realEstateAssets)
+        assertEquals(500_000_000L, r60.realEstateAssets)
+    }
+
+    @Test
+    fun testPensionDeductionToggleEffectOnCashflow() {
+        val currentAge = 40
+        val birthYear = java.time.LocalDate.now().year - currentAge
+        val profile = UserProfile(
+            birthYear = birthYear,
+            retirementAge = 60,
+            targetEndAge = 70,
+            currentMonthlyExpenses = 2_000_000L,
+            monthlyExpenses = 2_000_000L,
+            inflationRate = 0.0
+        )
+        val salaryIncome = Income(
+            name = "근로소득",
+            type = IncomeType.SALARY,
+            monthlyAmount = 5_000_000L,
+            endAge = 60
+        )
+        // 1) 급여에서 직접 납입 (isDeductedFromIncome = true): 월 지출에 100만원 연금 납입 반영
+        val pensionDeducted = Pension(
+            name = "개인연금",
+            type = PensionType.PERSONAL,
+            startAge = 60,
+            endAge = 70,
+            monthlyContribution = 1_000_000L,
+            contributionEndAge = 60,
+            isDeductedFromIncome = true
+        )
+        val summary1 = SimulationEngine.runComprehensiveSimulation(profile, listOf(pensionDeducted), emptyList(), listOf(salaryIncome))
+        val r40_1 = summary1.yearlyResults.first { it.age == 40 }
+        assertEquals(1_000_000L, r40_1.monthlyPensionContribution)
+        // 500만(소득) - 200만(소비) - 100만(연금) = 200만 잉여 -> 1년 2400만원 금융자산 축적
+        assertEquals(24_000_000L, r40_1.financialAssets)
+
+        // 2) 회사 지원 / 급여 외 납입 (isDeductedFromIncome = false): 가계 현금흐름에서 미차감
+        val pensionUndeducted = pensionDeducted.copy(isDeductedFromIncome = false)
+        val summary2 = SimulationEngine.runComprehensiveSimulation(profile, listOf(pensionUndeducted), emptyList(), listOf(salaryIncome))
+        val r40_2 = summary2.yearlyResults.first { it.age == 40 }
+        assertEquals(0L, r40_2.monthlyPensionContribution) // 가계 지출 관점에서는 0원 차감
+        // 500만(소득) - 200만(소비) = 300만 잉여 -> 1년 3600만원 금융자산 축적
+        assertEquals(36_000_000L, r40_2.financialAssets)
+    }
+
+    @Test
+    fun testRealTimeYieldMetricsCalculation() {
+        val currentAge = 40
+        val birthYear = java.time.LocalDate.now().year - currentAge
+        val profile = UserProfile(
+            birthYear = birthYear,
+            retirementAge = 60,
+            targetEndAge = 70,
+            currentMonthlyExpenses = 3_000_000L,
+            inflationRate = 0.0
+        )
+        val salaryIncome = Income(
+            name = "급여",
+            type = IncomeType.SALARY,
+            monthlyAmount = 6_000_000L,
+            endAge = 60
+        )
+        val financialAsset = Asset(
+            name = "주식",
+            type = AssetType.STOCK,
+            currentValue = 100_000_000L,
+            expectedGrowthRate = 12.0 // 연 1200만원 수익
+        )
+        val summary = SimulationEngine.runComprehensiveSimulation(profile, emptyList(), listOf(financialAsset), listOf(salaryIncome))
+        val metrics = summary.realTimeYield
+
+        assertNotNull(metrics)
+        // 연간 소득: 600만 * 12 = 7200만
+        assertEquals(72_000_000L, metrics.annualRegularIncome)
+        // 연간 금융자산 수익: 1억 * 12% = 1200만
+        assertEquals(12_000_000L, metrics.annualFinancialGain)
+        // 연간 생활비 지출: 300만 * 12 = 3600만
+        assertEquals(36_000_000L, metrics.annualLivingExpenses)
+        // 연간 총 유입: 7200 + 1200 = 8400만
+        assertEquals(84_000_000L, metrics.annualTotalInflow)
+        // 연간 순 증식액: 8400 - 3600 = 4800만
+        assertEquals(48_000_000L, metrics.annualNetWealthGrowth)
+        // 초당 증식 속도: 48,000,000 / (365.25 * 86400) = 48,000,000 / 31,557,600 ≈ 1.521 원/초
+        assertTrue("초당 속도는 양수여야 함", metrics.wonPerSecond > 1.5 && metrics.wonPerSecond < 1.6)
+        assertTrue(metrics.annualNetWealthGrowth > 0L)
+    }
 }

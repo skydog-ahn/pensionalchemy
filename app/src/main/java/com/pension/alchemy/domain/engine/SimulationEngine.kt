@@ -48,9 +48,22 @@ object SimulationEngine {
 
         val policy = profile.policySettings
 
-        // 초기 자산 분류
-        var liquidFinancialAssets = assets.filter { !it.isLiability && it.type != AssetType.REAL_ESTATE }.sumOf { it.currentValue }
-        var realEstateAssets = assets.filter { !it.isLiability && it.type == AssetType.REAL_ESTATE }.sumOf { it.currentValue }
+        // 초기 자산 분류 및 개별 자산 기대수익률 가중평균 산출
+        val financialAssetsList = assets.filter { !it.isLiability && it.type != AssetType.REAL_ESTATE }
+        var liquidFinancialAssets = financialAssetsList.sumOf { it.currentValue }
+        val customFinancialYield = if (liquidFinancialAssets > 0L) {
+            financialAssetsList.sumOf { it.currentValue * (it.expectedGrowthRate / 100.0) } / liquidFinancialAssets.toDouble()
+        } else {
+            policy.financialAssetReturnRate / 100.0
+        }
+
+        val realEstateAssetsList = assets.filter { !it.isLiability && it.type == AssetType.REAL_ESTATE }
+        var realEstateAssets = realEstateAssetsList.sumOf { it.currentValue }
+        val customRealEstateYield = if (realEstateAssets > 0L) {
+            realEstateAssetsList.sumOf { it.currentValue * (it.expectedGrowthRate / 100.0) } / realEstateAssets.toDouble()
+        } else {
+            policy.realEstateGrowthRate / 100.0
+        }
 
         // 개별 부채 상환 추적 맵 (assetId -> currentBalance)
         val debtAssets = assets.filter { it.isLiability }
@@ -123,6 +136,8 @@ object SimulationEngine {
             var grossMonthlyHousing = 0L
             var grossMonthlyOther = 0L
             var totalPensionAssets = 0L
+            var annualPensionContributionsTotal = 0L
+            var annualPensionContributionsDeducted = 0L
 
             for (p in pensions) {
                 val effectiveStartAge = if (p.type == PensionType.NATIONAL) {
@@ -138,9 +153,13 @@ object SimulationEngine {
                 // A) 적립기 (수령 개시 전 및 납입기)
                 if (isFundedPension) {
                     if (age <= p.contributionEndAge && p.monthlyContribution > 0L) {
-                        val annualContribution = p.monthlyContribution * 12.0
+                        val annualContrib = p.monthlyContribution * 12.0
+                        annualPensionContributionsTotal += p.monthlyContribution * 12L
+                        if (p.isDeductedFromIncome) {
+                            annualPensionContributionsDeducted += p.monthlyContribution * 12L
+                        }
                         val rate = p.expectedGrowthRate / 100.0
-                        val updatedBal = (currentBal + annualContribution) * (1.0 + rate)
+                        val updatedBal = (currentBal + annualContrib) * (1.0 + rate)
                         pensionBalances[p.id] = updatedBal
                     } else if (age < effectiveStartAge && currentBal > 0.0) {
                         // 납입 완료 후 수령 전까지 운용수익 복리 증식
@@ -304,12 +323,12 @@ object SimulationEngine {
             debtBalance = debtBalances.values.sum()
             val annualDebtService = annualDebtPrincipal + annualDebtInterest
 
-            // 5. 자산 성장 및 현금흐름 밸런싱 (설정된 기본 수익률 적용)
-            // 총 지출 = 생활비/의료비 + 부채 원리금 상환액
-            val annualTotalExpenses = annualExpenses + annualDebtService
+            // 5. 자산 성장 및 현금흐름 밸런싱 (개별 자산 가중 기대수익률 적용)
+            // 총 지출 = 생활비/의료비 + 부채 원리금 상환액 + 가계 수입에서 직접 납입하는 사적연금 납입액
+            val annualTotalExpenses = annualExpenses + annualDebtService + annualPensionContributionsDeducted
             val annualCashFlow = annualIncome - annualTotalExpenses
-            val financialYield = if (liquidFinancialAssets > 0L) policy.financialAssetReturnRate / 100.0 else 0.0
-            val realEstateYield = policy.realEstateGrowthRate / 100.0
+            val financialYield = if (liquidFinancialAssets > 0L) customFinancialYield else 0.0
+            val realEstateYield = customRealEstateYield
 
             if (annualCashFlow >= 0L) {
                 // 흑자: 잉여금이 금융자산에 축적 (만약 마이너스 통장/결손이 있었다면 우선 메꿈)
@@ -402,7 +421,9 @@ object SimulationEngine {
                     monthlyHousingPension = netMonthlyHousing,
                     monthlyOtherPension = netMonthlyOther,
                     monthlyExpenses = monthlyExpenses,
-                    monthlyNetCashFlow = totalMonthlyIncome - monthlyExpenses,
+                    monthlyPensionContribution = annualPensionContributionsDeducted / 12L,
+                    monthlyDebtService = annualDebtService / 12L,
+                    monthlyNetCashFlow = annualCashFlow / 12L,
                     isHealthInsuranceDisqualified = isHealthInsuranceDisqualified,
                     isPrivatePensionLimitExceeded = isPrivatePensionLimitExceeded
                 )
@@ -455,6 +476,51 @@ object SimulationEngine {
         val initialGrossAssets = initialFinancialAssets + initialRealEstateAssets + initialPensionAssets
         val initialNetWorth = initialGrossAssets - initialTotalDebt
 
+        // 실시간 초당 자산 수익 및 가계 순현금흐름 지표 (현재 기준 나이)
+        // 1. 유입 (Inflow)
+        val initialAnnualRegularIncome = incomes.filter { currentAge <= it.endAge }.sumOf { it.monthlyAmount * 12L }
+        val annualFinancialGain = financialAssetsList.sumOf { (it.currentValue * (it.expectedGrowthRate / 100.0)).roundToLong() }
+        val annualRealEstateGain = realEstateAssetsList.sumOf { (it.currentValue * (it.expectedGrowthRate / 100.0)).roundToLong() }
+        val annualPensionGain = pensions
+            .filter { it.type != PensionType.NATIONAL && it.type != PensionType.HOUSING }
+            .sumOf { (it.currentBalance * (it.expectedGrowthRate / 100.0)).roundToLong() }
+        val annualTotalInflow = initialAnnualRegularIncome + annualFinancialGain + annualRealEstateGain + annualPensionGain
+
+        // 2. 유출 (Outflow)
+        val annualLivingExpenses = profile.currentMonthlyExpenses * 12L
+        val annualDebtInterestCost = debtAssets.sumOf { (it.currentValue * (it.expectedGrowthRate / 100.0)).roundToLong() }
+        val annualPensionContributionDeducted = pensions
+            .filter { it.type != PensionType.NATIONAL && it.type != PensionType.HOUSING && currentAge <= it.contributionEndAge && it.isDeductedFromIncome }
+            .sumOf { it.monthlyContribution * 12L }
+        val annualTotalOutflow = annualLivingExpenses + annualDebtInterestCost + annualPensionContributionDeducted
+
+        // 3. 종합 실질 순자산 순증가액 (Net Wealth Growth)
+        val annualNetWealthGrowth = annualTotalInflow - annualTotalOutflow
+        val annualNetCapitalGain = annualFinancialGain + annualRealEstateGain + annualPensionGain - annualDebtInterestCost
+
+        val wonPerSecond = annualNetWealthGrowth / (365.25 * 86400.0)
+        val wonPerHour = wonPerSecond * 3600.0
+        val wonPerDay = (annualNetWealthGrowth / 365.25).roundToLong()
+        val wonPerMonth = (annualNetWealthGrowth / 12.0).roundToLong()
+
+        val realTimeYield = RealTimeYieldMetrics(
+            annualRegularIncome = initialAnnualRegularIncome,
+            annualFinancialGain = annualFinancialGain,
+            annualRealEstateGain = annualRealEstateGain,
+            annualPensionGain = annualPensionGain,
+            annualTotalInflow = annualTotalInflow,
+            annualLivingExpenses = annualLivingExpenses,
+            annualDebtInterestCost = annualDebtInterestCost,
+            annualPensionContributionDeducted = annualPensionContributionDeducted,
+            annualTotalOutflow = annualTotalOutflow,
+            annualNetWealthGrowth = annualNetWealthGrowth,
+            annualNetCapitalGain = annualNetCapitalGain,
+            wonPerSecond = wonPerSecond,
+            wonPerHour = wonPerHour,
+            wonPerDay = wonPerDay,
+            wonPerMonth = wonPerMonth
+        )
+
         val firstYear = yearlyResults.firstOrNull()
         return SimulationSummary(
             currentAge = currentAge,
@@ -477,6 +543,7 @@ object SimulationEngine {
             incomeReplacementRate = incomeReplacementRate,
             crevasseInfo = crevasseInfo,
             healthScore = healthScore,
+            realTimeYield = realTimeYield,
             yearlyResults = yearlyResults
         )
     }

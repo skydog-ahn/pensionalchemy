@@ -402,6 +402,11 @@ private fun PensionEditDialog(
     var monthlyPayoutStr by remember { mutableStateOf(pension?.expectedMonthlyAmount?.toString() ?: "0") }
     var balanceStr by remember { mutableStateOf(pension?.currentBalance?.toString() ?: "0") }
     var monthlyContributionStr by remember { mutableStateOf(pension?.monthlyContribution?.toString() ?: "0") }
+    var isDeductedFromIncome by remember {
+        mutableStateOf(
+            pension?.isDeductedFromIncome ?: (type != PensionType.RETIREMENT && type != PensionType.NATIONAL)
+        )
+    }
     var contributionEndAgeStr by remember { mutableStateOf(pension?.contributionEndAge?.toString() ?: (pension?.startAge?.toString() ?: "60")) }
     var growthRateStr by remember { mutableStateOf(pension?.expectedGrowthRate?.toString() ?: "4.5") }
 
@@ -584,6 +589,42 @@ private fun PensionEditDialog(
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 modifier = Modifier.weight(1f)
                             )
+                        }
+                    }
+
+                    if (isFundedType && monthlyContribution > 0L) {
+                        item {
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                                        Text(
+                                            text = "월 수입(급여)에서 직접 납입",
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = if (isDeductedFromIncome) "내 월급/수입에서 지출로 차감됩니다" else "회사 부담금(퇴직금) 또는 사전 원천징수 (가계 지출 미차감)",
+                                            fontSize = 11.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    Switch(
+                                        checked = isDeductedFromIncome,
+                                        onCheckedChange = { isDeductedFromIncome = it }
+                                    )
+                                }
+                            }
                         }
                     }
 
@@ -1048,7 +1089,8 @@ private fun PensionEditDialog(
                         monthlyContribution = finalContribution,
                         contributionEndAge = finalContributionEndAge,
                         expectedGrowthRate = finalGrowthRate,
-                        isTaxDeductionEligible = isTaxDeduction
+                        isTaxDeductionEligible = isTaxDeduction,
+                        isDeductedFromIncome = isDeductedFromIncome
                     ) ?: Pension(
                         name = name.ifBlank { type.displayName },
                         type = type,
@@ -1059,7 +1101,8 @@ private fun PensionEditDialog(
                         monthlyContribution = finalContribution,
                         contributionEndAge = finalContributionEndAge,
                         expectedGrowthRate = finalGrowthRate,
-                        isTaxDeductionEligible = isTaxDeduction
+                        isTaxDeductionEligible = isTaxDeduction,
+                        isDeductedFromIncome = isDeductedFromIncome
                     )
                     onSave(updated)
                 }

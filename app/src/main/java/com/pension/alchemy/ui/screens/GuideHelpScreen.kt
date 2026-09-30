@@ -45,7 +45,7 @@ fun GuideHelpScreen(
 ) {
     val context = LocalContext.current
     var selectedCategoryIndex by remember { mutableIntStateOf(0) }
-    val categories = listOf("앱 사용 도움말", "연금술사 재무비법", "정부 공식 포털", "추천 전문 채널")
+    val categories = listOf("앱 사용 도움말", "연금술사 재무비법", "공식 & 산식 (부록)", "정부 공식 포털", "추천 전문 채널")
 
     Scaffold(
         topBar = {
@@ -177,10 +177,10 @@ fun GuideHelpScreen(
 
                         item {
                             FeatureHelpCard(
-                                title = "1. 대시보드 (종합 진단 & 생애 자산 궤적)",
+                                title = "1. 대시보드 (종합 진단 & 실시간 자산 증식 티커)",
                                 icon = Icons.Default.Dashboard,
                                 accentColor = EmeraldPrimary,
-                                description = "내 순자산, 65세 예상 월연금, 소득대체율과 100점 만점 은퇴 건강 점수를 확인합니다. 나이 슬라이더(20~100세)를 움직여 각 연령대의 자산과 월 현금흐름을 시각적으로 탐색할 수 있습니다.",
+                                description = "내 순자산, 65세 예상 월연금, 소득대체율과 100점 만점 은퇴 건강 점수를 확인합니다. 특히 [실시간 자산 증식 티커]를 통해 오늘 자정부터 불어난 순자산 금액(+14,352원)과 초당 증식 속도(+34.2원/초)를 라이브로 체감할 수 있습니다.",
                                 shortcutLabel = "대시보드 바로가기",
                                 onShortcut = { onNavigateToTab(ScreenTab.DASHBOARD) }
                             )
@@ -188,10 +188,10 @@ fun GuideHelpScreen(
 
                         item {
                             FeatureHelpCard(
-                                title = "2. 자산 및 정기 소득 관리",
+                                title = "2. 자산 및 정기 소득 관리 (개별 수익률 가중합산)",
                                 icon = Icons.Default.AccountBalanceWallet,
                                 accentColor = CyanInfo,
-                                description = "예금, 적금, 주식, 채권, 부동산, 대출(부채) 등 보유 자산과 근로/사업/임대소득을 등록합니다. 각 자산의 기대수익률과 부채 이자율이 100세 시뮬레이션에 정밀하게 반영됩니다.",
+                                description = "예금, 적금, 주식, 채권, 부동산, 대출(부채) 등 보유 자산과 근로/사업소득을 등록합니다. 각 자산별 개별 기대수익률이 가중합산되며, 특히 부동산 기대수익률을 0%로 설정하면 자산 가치가 임의 상승 없이 온전히 보존됩니다.",
                                 shortcutLabel = "자산관리 바로가기",
                                 onShortcut = { onNavigateToTab(ScreenTab.ASSETS) }
                             )
@@ -199,10 +199,10 @@ fun GuideHelpScreen(
 
                         item {
                             FeatureHelpCard(
-                                title = "3. 3층 연금 플랜 (국민·퇴직·개인·주택연금)",
+                                title = "3. 3층 연금 플랜 (급여 직접 납입 여부 스위치)",
                                 icon = Icons.AutoMirrored.Filled.TrendingUp,
                                 accentColor = IndigoAccent,
-                                description = "출생연도에 따른 국민연금 법정 개시 연령을 자동 판정하고, 조기(-5년)/연기(+5년) 슬라이더로 감액(-30%) 및 증액(+36%) 효과를 실시간으로 확인하고 조정합니다.",
+                                description = "국민·퇴직·개인·주택연금을 통합 설계합니다. 사적연금 납입액이 급여에서 직접 차감되는지(개인 저축) 혹은 회사 부담금(DC/퇴직금)인지 스위치로 설정하여 실제 가계 현금흐름에 정확히 연동합니다.",
                                 shortcutLabel = "연금플랜 바로가기",
                                 onShortcut = { onNavigateToTab(ScreenTab.PENSIONS) }
                             )
@@ -317,6 +317,194 @@ fun GuideHelpScreen(
                     2 -> {
                         item {
                             Text(
+                                text = "📐 연금술사 전 분야 계산 공식 & 산식 (부록)",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = "앱에서 시뮬레이션 및 재무 진단에 사용하는 실제 금융 공학 및 세법 산출 공식입니다.",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+
+                        item {
+                            FormulaHelpCard(
+                                badge = "공식 1",
+                                title = "1층 국민연금 수령액 & 조기/연기 산식",
+                                formula = """
+                                    // 1. 법정수급연령(1969년생 이후 65세) 기준 물가상승 복리 반영
+                                    수령액(t) = 기본예상액 × (1 + 물가상승률)^(t - 현재연도)
+
+                                    // 2. 조기수령 감액 (-0.5%/월, 1년당 -6%, 최대 5년 -30%)
+                                    조기수령액 = 수령액 × [1 - (조기수령월수 × 0.005)]
+
+                                    // 3. 연기수령 증액 (+0.6%/월, 1년당 +7.2%, 최대 5년 +36%)
+                                    연기수령액 = 수령액 × [1 + (연기수령월수 × 0.006)]
+                                """.trimIndent(),
+                                description = "국민연금은 법정 개시 연령부터 수령할 수 있으며, 조기 수령 시 최대 30% 감액, 연기 수령 시 최대 36% 증액됩니다. 매년 설정된 물가상승률(CPI)만큼 수령액이 복리로 증액 반영됩니다.",
+                                details = listOf(
+                                    "조기수령 손익분기 연령: 약 76~77세 (77세 이전 사망 시 조기 유리, 이후 장수 시 정상 수령 유리)",
+                                    "연기수령 손익분기 연령: 약 81~82세 (82세 이상 장수 시 연기수령 총수령액이 압도적으로 우세)",
+                                    "건강보험 피부양자 탈락 기준: 공적연금 소득이 연 2,000만원(월 167만원) 초과 시 지역가입자 전환 경고"
+                                ),
+                                accentColor = EmeraldPrimary
+                            )
+                        }
+
+                        item {
+                            FormulaHelpCard(
+                                badge = "공식 2",
+                                title = "3층 연금 세제 및 절세 감면 산식",
+                                formula = """
+                                    // 1. 2층 퇴직연금 (10년 이상 분할 수령 시 퇴직소득세 감면)
+                                    수령 1~10년차: 세액 = 퇴직소득세 × 70% (30% 감면)
+                                    수령 11년차 이후: 세액 = 퇴직소득세 × 60% (40% 감면)
+
+                                    // 2. 3층 개인연금저축/IRP 저율 연금소득세 (1,500만원 이하)
+                                    55~69세: 5.5% | 70~79세: 4.4% | 80세 이상: 3.3%
+                                    * 사적연금 연 1,500만원 초과 시: 16.5% 분리과세 또는 종합과세 선택
+
+                                    // 3. 비과세 개인연금보험 & 주택연금: 소득세 0% (비과세 100%)
+                                """.trimIndent(),
+                                description = "퇴직소득을 IRP로 이전하여 10년 이상 분할 수령하면 퇴직소득세가 30~40% 절감되며, 연금저축/IRP는 연 1,500만원 한도 내에서 3.3~5.5%의 저율 분리과세가 적용됩니다.",
+                                details = listOf(
+                                    "2024년 세법 개정: 사적연금 분리과세 한도 1,200만원 -> 1,500만원으로 확대 반영",
+                                    "일반계좌의 15.4% 배당소득세가 부과되지 않고 인출 시점까지 과세이연되어 복리 효과 극대화"
+                                ),
+                                accentColor = CyanInfo
+                            )
+                        }
+
+                        item {
+                            FormulaHelpCard(
+                                badge = "공식 3",
+                                title = "대출 원리금 4대 상환 방식 산식",
+                                formula = """
+                                    // 1. 원리금균등분할상환 (PMT 공식)
+                                    월상환액 = P × [r(1 + r)^n] / [(1 + r)^n - 1]
+                                    월이자 = 잔여원금 × r | 월원금 = 월상환액 - 월이자
+
+                                    // 2. 원금균등분할상환
+                                    월원금 = P / n | 월이자 = 잔여원금 × r | 월상환액 = 월원금 + 월이자
+
+                                    // 3. 만기일시상환 & 거치(이자만)
+                                    월이자 = P × r (만기 시점에 원금 P 전액 일시 상환)
+                                    * P: 대출원금, r: 월이자율(연이율/12), n: 총상환개월수
+                                """.trimIndent(),
+                                description = "등록된 대출의 상환 방식에 따라 매월 납부해야 하는 원리금과 이자비용을 정확히 산출하여 은퇴 전후 가계 현금흐름에서 차감합니다.",
+                                details = listOf(
+                                    "원리금균등: 매월 나가는 현금흐름이 일정하여 가계 예산 관리에 용이",
+                                    "원금균등: 초기 상환 부담이 크나 총 이자비용이 가장 적음",
+                                    "만기일시/거치: 만기 시 원금 상환 준비가 없으면 재무 건전성 급격 악화 위험"
+                                ),
+                                accentColor = AmberWarning
+                            )
+                        }
+
+                        item {
+                            FormulaHelpCard(
+                                badge = "공식 4",
+                                title = "생애 현금흐름 밸런싱 & 자산 증감 공식",
+                                formula = """
+                                    // 1. 가계 월 순현금흐름 (Net Cash Flow)
+                                    순현금흐름 = 세후총소득 - [생활비 + 직접납입연금 + 대출상환액]
+
+                                    // 2. 잉여금 발생 시 (Net Cash Flow > 0)
+                                    금융자산(t+1) = 금융자산(t) × (1 + 수익률) + 연간잉여금
+
+                                    // 3. 적자 발생 시 자산 인출 우선순위 (Net Cash Flow < 0)
+                                    1순위 인출: 금융자산(예적금/주식/채권) 인출 충당
+                                    2순위 인출: 금융자산 고갈 시 부동산 자산 처분 충당
+                                    3순위 누적: 전 자산 고갈 시 누적 순적자(마이너스)로 표시
+                                """.trimIndent(),
+                                description = "소득에서 소비, 직접 납입 연금, 부채 상환을 제하고 남은 잉여금은 금융자산에 자동 재투자되어 복리로 증식되며, 적자 발생 시 유동성 자산부터 단계적으로 인출되어 자산 고갈 시점을 정밀하게 예측합니다.",
+                                details = listOf(
+                                    "연금 정기 납입액 중 '급여에서 직접 납입' 항목만 가계 지출에서 차감",
+                                    "회사 지원 퇴직연금(DC) 등은 가계 현금흐름 차감 없이 연금 자산에만 충당"
+                                ),
+                                accentColor = IndigoAccent
+                            )
+                        }
+
+                        item {
+                            FormulaHelpCard(
+                                badge = "공식 5",
+                                title = "자산 가중수익률 & 실시간 초당 속도 산식",
+                                formula = """
+                                    // 1. 개별 자산 기대수익률 가중평균
+                                    가중수익률 = Σ(개별자산평가액 × 개별기대수익률) / 총자산평가액
+                                    * 부동산 수익률 0% 설정 시 가치 변동 없이 완벽 보존
+
+                                    // 2. 실시간 초당 순자산 증식 속도 (wps, Won Per Second)
+                                    연간순자산증가액 = 연간총유입(소득+자산수익) - 연간총유출(소비+이자+납입)
+                                    초당증식속도 = 연간순자산증가액 / (365.25 × 86,400초)
+
+                                    // 3. 오늘 자정 이후 실시간 누적 순자산 증감액
+                                    오늘누적액 = 초당증식속도 × 오늘자정이후경과초수(t)
+                                """.trimIndent(),
+                                description = "대시보드 상단에서 실시간으로 1초마다 올라가는 순자산 금액을 산출하는 핵심 공식입니다. 내 자산과 소득이 일하는 속도를 시각적으로 체감할 수 있습니다.",
+                                details = listOf(
+                                    "초당 속도가 양수면 자산이 불어나는 축적 상태, 음수면 소비가 초과하는 고갈 상태 표시",
+                                    "8시간 수면 동안 불어나는 순자산 = 초당속도 × 28,800초 (취침 중 축적되는 자산 확인)"
+                                ),
+                                accentColor = EmeraldPrimary
+                            )
+                        }
+
+                        item {
+                            FormulaHelpCard(
+                                badge = "공식 6",
+                                title = "6대 전문 재무 계산기 핵심 공식",
+                                formula = """
+                                    // 1. 적립 복리 미래가치 (월복리)
+                                    FV = PMT × [ (1 + r/12)^(12×n) - 1 ] / (r/12) + PV × (1 + r)^n
+
+                                    // 2. 4% 룰 기반 은퇴 목표 필요자산
+                                    목표순자산 = 연간부족생활비 / 0.04 = (은퇴월필요액 - 월연금) × 12 × 25
+
+                                    // 3. 자산 고갈 기간 (NPER 역산)
+                                    인출이자율이 인출액보다 적을 때 로그 역산으로 고갈 개월 수 산출
+                                    n = ln( W / (W - PV × r) ) / ln(1 + r) (W: 월인출액)
+
+                                    // 4. 연금저축/IRP 900만원 세액공제 환급액
+                                    환급액 = 연간납입액(최대 900만) × 공제율(총급여 5500만 이하 16.5%, 초과 13.2%)
+                                """.trimIndent(),
+                                description = "적립식 복리 증식, 4% 안전 인출 룰, 자산 고갈 타이머, 148.5만원 연말정산 세액공제 환급금 재투자 복리 효과를 수학적으로 계산합니다.",
+                                details = listOf(
+                                    "연말정산 환급금(최대 148.5만)을 다시 연금에 재투자할 때의 복리 스노우볼 보너스 산출",
+                                    "월인출액이 운용수익률보다 낮을 경우 원금이 영구 보존되는 '영구 수급' 안내"
+                                ),
+                                accentColor = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+
+                        item {
+                            FormulaHelpCard(
+                                badge = "공식 7",
+                                title = "소득 크레바스(소득 공백기) 브릿지 자금 산식",
+                                formula = """
+                                    // 소득 공백기 구간: 은퇴 나이 ~ 국민연금 수령 개시 나이
+                                    공백기간(년) = max(0, 국민연금수급나이 - 은퇴나이)
+
+                                    // 필요 브릿지 총자금
+                                    필요브릿지자금 = Σ_{t=은퇴}^{수급전} [ 월은퇴생활비(t) × 12 - 사적연금수령액(t) ]
+                                """.trimIndent(),
+                                description = "정년 은퇴(예: 60세) 후 국민연금 개시(63~65세) 전까지 월급이 끊기는 공백기를 사적연금(55세 개시 가능) 및 금융자산으로 방어할 수 있도록 필요 자금을 역산합니다.",
+                                details = listOf(
+                                    "개인연금저축/IRP는 55세부터 연금 인출이 가능하여 최적의 브릿지 자금으로 기능",
+                                    "소득 크레바스 기간에 자산이 마이너스로 떨어지지 않도록 유동성 자산 선확보 권장"
+                                ),
+                                accentColor = RoseDanger
+                            )
+                        }
+                    }
+
+                    3 -> {
+                        item {
+                            Text(
                                 text = "🏛️ 대한민국 정부 & 공적기관 공식 포털",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
@@ -386,7 +574,7 @@ fun GuideHelpScreen(
                         }
                     }
 
-                    3 -> {
+                    4 -> {
                         item {
                             Text(
                                 text = "📺 공인 금융 & 연금 전문 유튜브 채널",
@@ -763,6 +951,101 @@ private fun YoutubeChannelCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 lineHeight = 18.sp
             )
+        }
+    }
+}
+
+@Composable
+private fun FormulaHelpCard(
+    badge: String,
+    title: String,
+    formula: String,
+    description: String,
+    details: List<String> = emptyList(),
+    accentColor: Color = MaterialTheme.colorScheme.primary,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    color = accentColor.copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(6.dp)
+                ) {
+                    Text(
+                        text = badge,
+                        color = accentColor,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                    )
+                }
+            }
+
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = formula,
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    lineHeight = 16.sp,
+                    modifier = Modifier.padding(10.dp)
+                )
+            }
+
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 18.sp
+            )
+
+            if (details.isNotEmpty()) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    details.forEach { detail ->
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                text = "• ",
+                                color = accentColor,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            )
+                            Text(
+                                text = detail,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                lineHeight = 16.sp
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

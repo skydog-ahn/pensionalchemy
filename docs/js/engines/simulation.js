@@ -40,14 +40,18 @@ const SimulationEngine = {
         // 자산/부채 판별 헬퍼 (isLiability 프로퍼티 또는 type === 'DEBT')
         const isDebt = (a) => Boolean(a.isLiability || a.type === 'DEBT');
 
-        // 초기 자산 분류
-        let liquidFinancialAssets = assets
-            .filter(a => !isDebt(a) && a.type !== 'REAL_ESTATE')
-            .reduce((sum, a) => sum + (Number(a.currentValue) || 0), 0);
+        // 초기 자산 분류 및 개별 자산 가중 기대수익률 산출
+        const financialAssetsList = assets.filter(a => !isDebt(a) && a.type !== 'REAL_ESTATE');
+        let liquidFinancialAssets = financialAssetsList.reduce((sum, a) => sum + (Number(a.currentValue) || 0), 0);
+        const customFinancialYield = (liquidFinancialAssets > 0)
+            ? financialAssetsList.reduce((sum, a) => sum + (Number(a.currentValue) || 0) * ((Number(a.expectedGrowthRate) || 0) / 100.0), 0) / liquidFinancialAssets
+            : ((policy.financialAssetReturnRate || 4.0) / 100.0);
 
-        let realEstateAssets = assets
-            .filter(a => !isDebt(a) && a.type === 'REAL_ESTATE')
-            .reduce((sum, a) => sum + (Number(a.currentValue) || 0), 0);
+        const realEstateAssetsList = assets.filter(a => !isDebt(a) && a.type === 'REAL_ESTATE');
+        let realEstateAssets = realEstateAssetsList.reduce((sum, a) => sum + (Number(a.currentValue) || 0), 0);
+        const customRealEstateYield = (realEstateAssets > 0)
+            ? realEstateAssetsList.reduce((sum, a) => sum + (Number(a.currentValue) || 0) * ((Number(a.expectedGrowthRate) || 0) / 100.0), 0) / realEstateAssets
+            : ((policy.realEstateGrowthRate || 2.0) / 100.0);
 
         // 개별 부채 상환 추적 맵
         const debtAssets = assets.filter(a => isDebt(a));
@@ -121,6 +125,8 @@ const SimulationEngine = {
             let grossMonthlyHousing = 0;
             let grossMonthlyOther = 0;
             let totalPensionAssets = 0;
+            let annualPensionContributionsTotal = 0;
+            let annualPensionContributionsDeducted = 0;
 
             for (const p of pensions) {
                 const effectiveStartAge = (p.type === 'NATIONAL')
@@ -134,6 +140,10 @@ const SimulationEngine = {
                 if (isFunded) {
                     if (age <= p.contributionEndAge && (p.monthlyContribution || 0) > 0) {
                         const annualContribution = p.monthlyContribution * 12;
+                        annualPensionContributionsTotal += annualContribution;
+                        if (p.isDeductedFromIncome !== false) {
+                            annualPensionContributionsDeducted += annualContribution;
+                        }
                         const rate = (p.expectedGrowthRate || 0) / 100.0;
                         currentBal = (currentBal + annualContribution) * (1.0 + rate);
                         pensionBalances[p.id] = currentBal;
@@ -290,11 +300,11 @@ const SimulationEngine = {
             debtBalance = Object.values(debtBalances).reduce((a, b) => a + b, 0);
             const annualDebtService = annualDebtPrincipal + annualDebtInterest;
 
-            // 5. 현금흐름 밸런싱
-            const annualTotalExpenses = annualExpenses + annualDebtService;
+            // 5. 현금흐름 밸런싱 (개별 자산 가중 기대수익률 적용)
+            const annualTotalExpenses = annualExpenses + annualDebtService + annualPensionContributionsDeducted;
             const annualCashFlow = annualIncome - annualTotalExpenses;
-            const financialYield = (liquidFinancialAssets > 0) ? (policy.financialAssetReturnRate / 100.0) : 0.0;
-            const realEstateYield = policy.realEstateGrowthRate / 100.0;
+            const financialYield = (liquidFinancialAssets > 0) ? customFinancialYield : 0.0;
+            const realEstateYield = customRealEstateYield;
 
             if (annualCashFlow >= 0) {
                 const base = (liquidFinancialAssets > 0)
@@ -375,7 +385,9 @@ const SimulationEngine = {
                 monthlyHousingPension: netMonthlyHousing,
                 monthlyOtherPension: netMonthlyOther,
                 monthlyExpenses,
-                monthlyNetCashFlow: totalMonthlyIncome - monthlyExpenses,
+                monthlyPensionContribution: Math.round(annualPensionContributionsDeducted / 12),
+                monthlyDebtService: Math.round(annualDebtService / 12),
+                monthlyNetCashFlow: Math.round(annualCashFlow / 12),
                 isHealthInsuranceDisqualified,
                 isPrivatePensionLimitExceeded
             });
@@ -428,6 +440,53 @@ const SimulationEngine = {
         const initialTotalAssets = initialFinancialAssets + initialRealEstate + initialPensionAssets;
         const initialNetWorth = initialTotalAssets - initialTotalDebt;
 
+        // 실시간 초당 자산 수익 및 가계 순현금흐름 지표
+        const initialAnnualRegularIncome = incomes
+            .filter(i => currentAge <= i.endAge)
+            .reduce((sum, i) => sum + (Number(i.monthlyAmount) || 0) * 12, 0);
+        const annualFinancialGain = financialAssetsList
+            .reduce((sum, a) => sum + Math.round((Number(a.currentValue) || 0) * ((Number(a.expectedGrowthRate) || 0) / 100.0)), 0);
+        const annualRealEstateGain = realEstateAssetsList
+            .reduce((sum, a) => sum + Math.round((Number(a.currentValue) || 0) * ((Number(a.expectedGrowthRate) || 0) / 100.0)), 0);
+        const annualPensionGain = pensions
+            .filter(p => p.type !== 'NATIONAL' && p.type !== 'HOUSING')
+            .reduce((sum, p) => sum + Math.round((Number(p.currentBalance) || 0) * ((Number(p.expectedGrowthRate) || 0) / 100.0)), 0);
+        const annualTotalInflow = initialAnnualRegularIncome + annualFinancialGain + annualRealEstateGain + annualPensionGain;
+
+        const annualLivingExpenses = Number(profile.currentMonthlyExpenses || 3000000) * 12;
+        const annualDebtInterestCost = debtAssets
+            .reduce((sum, d) => sum + Math.round((Number(d.currentValue) || 0) * ((Number(d.expectedGrowthRate) || 3.8) / 100.0)), 0);
+        const annualPensionContributionDeducted = pensions
+            .filter(p => p.type !== 'NATIONAL' && p.type !== 'HOUSING' && currentAge <= (p.contributionEndAge || 60) && p.isDeductedFromIncome !== false)
+            .reduce((sum, p) => sum + (Number(p.monthlyContribution) || 0) * 12, 0);
+        const annualTotalOutflow = annualLivingExpenses + annualDebtInterestCost + annualPensionContributionDeducted;
+
+        const annualNetWealthGrowth = annualTotalInflow - annualTotalOutflow;
+        const annualNetCapitalGain = annualFinancialGain + annualRealEstateGain + annualPensionGain - annualDebtInterestCost;
+
+        const wonPerSecond = annualNetWealthGrowth / (365.25 * 86400.0);
+        const wonPerHour = wonPerSecond * 3600.0;
+        const wonPerDay = Math.round(annualNetWealthGrowth / 365.25);
+        const wonPerMonth = Math.round(annualNetWealthGrowth / 12.0);
+
+        const realTimeYield = {
+            annualRegularIncome: initialAnnualRegularIncome,
+            annualFinancialGain,
+            annualRealEstateGain,
+            annualPensionGain,
+            annualTotalInflow,
+            annualLivingExpenses,
+            annualDebtInterestCost,
+            annualPensionContributionDeducted,
+            annualTotalOutflow,
+            annualNetWealthGrowth,
+            annualNetCapitalGain,
+            wonPerSecond,
+            wonPerHour,
+            wonPerDay,
+            wonPerMonth
+        };
+
         return {
             currentAge,
             retirementAge,
@@ -444,6 +503,7 @@ const SimulationEngine = {
             postRetirementMonthlyPension: yearlyResults.find(r => r.age === 65)?.monthlyPensionIncome || postRetirementPension,
             peakAssetValue: (peakAsset === -Infinity) ? initialNetWorth : peakAsset,
             peakAssetAge: peakAge,
+            realTimeYield,
             yearlyResults,
             crevasseInfo,
             healthScore
