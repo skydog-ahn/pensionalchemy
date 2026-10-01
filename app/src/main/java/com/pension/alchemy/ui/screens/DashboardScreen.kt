@@ -27,6 +27,11 @@ import com.pension.alchemy.domain.engine.RealTimeGrowthCalculator
 import com.pension.alchemy.theme.*
 import com.pension.alchemy.ui.components.*
 import com.pension.alchemy.util.CurrencyFormatter
+import com.pension.alchemy.util.SimulationSpreadsheetExporter
+import androidx.compose.ui.platform.LocalContext
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.net.Uri
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import java.time.LocalDateTime
@@ -59,9 +64,16 @@ fun DashboardScreen(
         }
     }
 
-    // 기준일 기반 실시간 자산 및 순자산 초당 증가 연산
-    val realTimeGrowth = remember(assets, pensions, incomes, currentDateTime) {
-        RealTimeGrowthCalculator.calculateTotalRealTimeGrowth(assets, pensions, incomes, currentDateTime)
+    // 기준일 기반 실시간 자산 및 순자산 초당 증가 연산 (소득·소비 종합 순증가 속도 연동)
+    val realTimeGrowth = remember(assets, pensions, incomes, profile.currentMonthlyExpenses, summary.currentAge, currentDateTime) {
+        RealTimeGrowthCalculator.calculateTotalRealTimeGrowth(
+            assets = assets,
+            pensions = pensions,
+            incomes = incomes,
+            monthlyExpenses = profile.currentMonthlyExpenses,
+            currentAge = summary.currentAge,
+            currentDateTime = currentDateTime
+        )
     }
 
     // 실시간 순자산 및 총자산
@@ -75,6 +87,15 @@ fun DashboardScreen(
         realTimeGrowth.realTimeTotalGrossAssets
     } else {
         summary.currentTotalAssets
+    }
+
+    val context = LocalContext.current
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("text/csv")
+    ) { uri: Uri? ->
+        uri?.let {
+            SimulationSpreadsheetExporter.writeCsvToUri(context, it, summary)
+        }
     }
 
     Column(
@@ -316,6 +337,33 @@ fun DashboardScreen(
             results = summary.yearlyResults,
             selectedAge = selectedAge
         )
+
+        // 5-1. 생애 시뮬레이션 자료 다운로드 버튼 (저장 위치 직접 지정)
+        OutlinedButton(
+            onClick = {
+                exportLauncher.launch(SimulationSpreadsheetExporter.getDefaultFileName())
+            },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(10.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = EmeraldPrimary
+            ),
+            border = androidx.compose.foundation.BorderStroke(1.dp, EmeraldPrimary.copy(alpha = 0.5f))
+        ) {
+            Icon(
+                imageVector = Icons.Default.Download,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = EmeraldPrimary
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = "생애 시뮬레이션 자료 다운로드 (CSV)",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = EmeraldPrimary
+            )
+        }
 
         // 6. 인터랙티브 나이 인스펙터 슬라이더 & 세부 분해 카드
         Card(

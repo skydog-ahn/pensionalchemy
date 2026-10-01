@@ -48,9 +48,11 @@ fun RealTimeAssetGrowthTickerCard(
     var expanded by remember { mutableStateOf(false) }
 
     // 0: 기준일 누적, 1: 오늘 0시 기준
-    var selectedMode by remember(baseDateAccumulatedGain) {
-        mutableIntStateOf(if (baseDateAccumulatedGain != null && baseDateAccumulatedGain != 0L) 0 else 1)
-    }
+    // baseDateAccumulatedGain은 1초마다 실시간으로 갱신되므로, remember(baseDateAccumulatedGain)으로 key를 주면
+    // 1초마다 상태가 초기화되어 '오늘0시'를 선택해도 1초 뒤 '기준일'로 리셋되는 버그가 발생합니다.
+    // 따라서 사용자의 명시적 모드 선택 상태는 별도로 보존합니다.
+    var userSelectedMode by remember { mutableStateOf<Int?>(null) }
+    val selectedMode = userSelectedMode ?: (if (baseDateAccumulatedGain != null && baseDateAccumulatedGain != 0L) 0 else 1)
 
     // 오늘 0시 기준 경과 초 (매 1초마다 갱신)
     var currentSecondOfDay by remember {
@@ -127,7 +129,7 @@ fun RealTimeAssetGrowthTickerCard(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "실시간 자산 순증가",
+                        text = "실시간 순자산 증감",
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
@@ -153,7 +155,7 @@ fun RealTimeAssetGrowthTickerCard(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(8.dp))
                                         .background(if (selectedMode == 0) MaterialTheme.colorScheme.surface else Color.Transparent)
-                                        .clickable { selectedMode = 0 }
+                                        .clickable { userSelectedMode = 0 }
                                         .padding(horizontal = 8.dp, vertical = 2.dp)
                                 )
                                 Text(
@@ -164,7 +166,7 @@ fun RealTimeAssetGrowthTickerCard(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(8.dp))
                                         .background(if (selectedMode == 1) MaterialTheme.colorScheme.surface else Color.Transparent)
-                                        .clickable { selectedMode = 1 }
+                                        .clickable { userSelectedMode = 1 }
                                         .padding(horizontal = 8.dp, vertical = 2.dp)
                                 )
                             }
@@ -200,8 +202,13 @@ fun RealTimeAssetGrowthTickerCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
+                    val gainText = if (selectedMode == 0) {
+                        if (displayGain >= 0) "입력 기준일 대비 누적 순자산 증가" else "입력 기준일 대비 누적 순자산 감소"
+                    } else {
+                        if (displayGain >= 0) "0시 기준 현재까지 불어난 순자산" else "0시 기준 현재까지 줄어든 순자산"
+                    }
                     Text(
-                        text = if (selectedMode == 0) "입력 기준일 대비 누적 증가 자산" else "0시 기준 현재까지 불어난 자산",
+                        text = gainText,
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
                     )
@@ -254,7 +261,7 @@ fun RealTimeAssetGrowthTickerCard(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "⚡ 자산 증식 속도",
+                            text = if (isPositive) "⚡ 순자산 증가 속도" else "⚡ 순자산 감소 속도",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -289,7 +296,7 @@ fun RealTimeAssetGrowthTickerCard(
 
                     // A) 단위별 환산 (1시간, 1일, 1달)
                     Text(
-                        text = "⏱️ 주기별 실질 순증가 환산",
+                        text = if (isPositive) "⏱️ 주기별 실질 순증가 환산" else "⏱️ 주기별 실질 순감소 환산",
                         style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onSurface
                     )

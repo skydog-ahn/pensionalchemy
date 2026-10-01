@@ -183,11 +183,17 @@ object RealTimeGrowthCalculator {
         val basePensionAssets: Long,
         val realTimePensionAssets: Long,
         val pensionGain: Long,
-        val pensionWonPerSecond: Double
+        val pensionWonPerSecond: Double,
+
+        // 정기 소득 및 생활소비 세부
+        val incomeAccumulatedGain: Long = 0L,
+        val incomeWonPerSecond: Double = 0.0,
+        val livingExpenseAccumulated: Long = 0L,
+        val livingExpenseWonPerSecond: Double = 0.0
     )
 
     /**
-     * 전체 자산, 연금, 부채의 기준일 기준 실시간 합산 총합 금액 산출
+     * 기존 호출 호환용 오버로드 (소비지출 미반영 단순 자산 집계)
      */
     fun calculateTotalRealTimeGrowth(
         assets: List<Asset>,
@@ -195,8 +201,32 @@ object RealTimeGrowthCalculator {
         incomes: List<Income> = emptyList(),
         currentDateTime: LocalDateTime = LocalDateTime.now()
     ): TotalRealTimeGrowthSummary {
+        return calculateTotalRealTimeGrowth(
+            assets = assets,
+            pensions = pensions,
+            incomes = incomes,
+            monthlyExpenses = 0L,
+            currentAge = 0,
+            currentDateTime = currentDateTime
+        )
+    }
+
+    /**
+     * 전체 자산, 연금, 소득, 소비, 부채의 개별 기준일 기준 실시간 종합 순자산 초당 증가 산출
+     */
+    fun calculateTotalRealTimeGrowth(
+        assets: List<Asset>,
+        pensions: List<Pension>,
+        incomes: List<Income> = emptyList(),
+        monthlyExpenses: Long = 0L,
+        currentAge: Int = 0,
+        currentDateTime: LocalDateTime = LocalDateTime.now()
+    ): TotalRealTimeGrowthSummary {
         val assetDetails = assets.map { calculateAssetGrowth(it, currentDateTime) }
-        val pensionDetails = pensions.map { calculatePensionGrowth(it, currentDateTime) }
+        val fundedPensions = pensions.filter { it.type != PensionType.NATIONAL && it.type != PensionType.HOUSING }
+        val pensionDetails = fundedPensions.map { calculatePensionGrowth(it, currentDateTime) }
+        val activeIncomes = if (currentAge > 0) incomes.filter { currentAge <= it.endAge } else incomes
+        val incomeDetails = activeIncomes.map { calculateIncomeGrowth(it, currentDateTime) }
 
         val nonLiabilityDetails = assetDetails.filter { !it.isLiability }
         val debtDetails = assetDetails.filter { it.isLiability }
@@ -211,22 +241,64 @@ object RealTimeGrowthCalculator {
         val pensionAccumulatedGain = pensionDetails.sumOf { it.accumulatedGrowth }
         val pensionWonPerSecond = pensionDetails.sumOf { it.wonPerSecond }
 
-        // 3. 총자산 = 일반 자산 + 연금 적립금
-        val baseTotalGrossAssets = baseAssetsValue + basePensionValue
-        val totalGrossAssetGain = assetsAccumulatedGain + pensionAccumulatedGain
-        val realTimeTotalGrossAssets = baseTotalGrossAssets + totalGrossAssetGain
-        val grossAssetWonPerSecond = assetsWonPerSecond + pensionWonPerSecond
+        // 3. 정기 소득 유입 (월급/사업소득)
+        val incomeAccumulatedGain = incomeDetails.sumOf { it.accumulatedIncome }
+        val incomeWonPerSecond = incomeDetails.sumOf { it.wonPerSecond }
 
-        // 4. 총부채
+        // 4. 총부채 및 이자비용
         val baseTotalDebt = debtDetails.sumOf { it.baseValue }
         val debtInterestWonPerSecond = debtDetails.sumOf { it.wonPerSecond }
+        val debtAccumulatedInterest = debtDetails.sumOf { (it.elapsedSeconds * it.wonPerSecond).roundToLong() }
         val realTimeTotalDebt = baseTotalDebt
 
-        // 5. 순자산 (Net Worth)
+        // 5. 생활비 소비 지출 (월간 생활비 기준일 경과 반영)
+        val livingExpenseWonPerSecond = if (monthlyExpenses > 0L) (monthlyExpenses * 12.0) / SECONDS_PER_YEAR else 0.0
+        val expenseBaseDate = if (monthlyExpenses > 0L) {
+            activeIncomes.map { parseDateSafely(it.effectiveBaseDate) }.minOrNull()
+                ?: nonLiabilityDetails.map { parseDateSafely(it.baseDate) }.minOrNull()
+                ?: LocalDate.now()
+        } else {
+            LocalDate.now()
+        }
+        val expenseElapsedSeconds = ChronoUnit.SECONDS.between(expenseBaseDate.atStartOfDay(), currentDateTime).coerceAtLeast(0L)
+        val livingExpenseAccumulated = if (monthlyExpenses > 0L) (expenseElapsedSeconds * livingExpenseWonPerSecond).roundToLong() else 0L
+
+        // 6. 사적연금 급여 차감 직접 납입 지출
+        val deductedPensions = if (currentAge > 0) {
+            fundedPensions.filter { currentAge <= it.contributionEndAge && it.isDeductedFromIncome }
+        } else {
+            fundedPensions.filter { it.isDeductedFromIncome }
+        }
+        val pensionContribWonPerSecond = deductedPensions.sumOf { (it.monthlyContribution * 12.0) / SECONDS_PER_YEAR }
+        val pensionContribAccumulated = deductedPensions.sumOf {
+            (calculateElapsedSeconds(it.effectiveBaseDate, currentDateTime) * ((it.monthlyContribution * 12.0) / SECONDS_PER_YEAR)).roundToLong()
+        }
+
+        // 7. 가계 순 잉여 현금흐름 (소득 - 생활비 - 연금납입)
+        val isComprehensiveHousehold = monthlyExpenses > 0L || currentAge > 0
+        val netCashFlowWonPerSecond = if (isComprehensiveHousehold) {
+            incomeWonPerSecond - livingExpenseWonPerSecond - pensionContribWonPerSecond
+        } else {
+            0.0
+        }
+        val netCashFlowAccumulated = if (isComprehensiveHousehold) {
+            incomeAccumulatedGain - livingExpenseAccumulated - pensionContribAccumulated
+        } else {
+            0L
+        }
+
+        // 8. 총자산 = 일반 자산 + 연금 적립금 + 가계 실시간 잉여저축 (회계적 항등식: 자산 = 부채 + 순자산)
+        val baseTotalGrossAssets = baseAssetsValue + basePensionValue
+        val totalGrossAssetGain = assetsAccumulatedGain + pensionAccumulatedGain + netCashFlowAccumulated
+        val realTimeTotalGrossAssets = (baseTotalGrossAssets + totalGrossAssetGain).coerceAtLeast(0L)
+        val grossAssetWonPerSecond = assetsWonPerSecond + pensionWonPerSecond + netCashFlowWonPerSecond
+
+        // 9. 순자산 (Net Worth = 총자산 - 총부채, 부채 0원 시 총자산과 100% 일치)
+        val totalNetGain = totalGrossAssetGain - debtAccumulatedInterest
+        val netWonPerSecond = grossAssetWonPerSecond - debtInterestWonPerSecond
+
         val baseNetWorth = (baseTotalGrossAssets - baseTotalDebt).coerceAtLeast(0L)
         val realTimeNetWorth = (realTimeTotalGrossAssets - realTimeTotalDebt).coerceAtLeast(0L)
-        val totalNetGain = (realTimeNetWorth - baseNetWorth)
-        val netWonPerSecond = (grossAssetWonPerSecond - debtInterestWonPerSecond)
 
         return TotalRealTimeGrowthSummary(
             baseTotalGrossAssets = baseTotalGrossAssets,
@@ -243,7 +315,11 @@ object RealTimeGrowthCalculator {
             basePensionAssets = basePensionValue,
             realTimePensionAssets = basePensionValue + pensionAccumulatedGain,
             pensionGain = pensionAccumulatedGain,
-            pensionWonPerSecond = pensionWonPerSecond
+            pensionWonPerSecond = pensionWonPerSecond,
+            incomeAccumulatedGain = incomeAccumulatedGain,
+            incomeWonPerSecond = incomeWonPerSecond,
+            livingExpenseAccumulated = livingExpenseAccumulated,
+            livingExpenseWonPerSecond = livingExpenseWonPerSecond
         )
     }
 }

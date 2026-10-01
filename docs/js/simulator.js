@@ -14,6 +14,8 @@ const AppSimulator = {
         settingsTab: 0, // 0: 기본 프로필, 1: 세법·정책 변수
         guideCategory: 0, // 0: 앱 사용 도움말, 1: 재무비법, 2: 정부 포털, 3: 유튜브 채널
         onboardingStep: 0, // 0~3 단계
+        tickerMode: 0, // 0: 기준일, 1: 오늘0시
+        tickerExpanded: false,
 
         // 데이터 모델
         profile: Presets.preset40s().profile,
@@ -69,6 +71,13 @@ const AppSimulator = {
                 this.openOnboardingGuide();
             }
         }, 300);
+
+        // 실시간 순자산 증감 티커 초 단위 업데이트
+        setInterval(() => {
+            if (this.state.currentTab === 'DASHBOARD') {
+                this.updateTickerOnly();
+            }
+        }, 1000);
     },
 
     runSimulation() {
@@ -251,6 +260,9 @@ const AppSimulator = {
                     </div>
                 </div>
 
+                <!-- 1-1. 실시간 순자산 증감 티커 카드 -->
+                ${this.renderRealTimeTicker(s)}
+
                 <!-- 2. 은퇴 준비 건강도 점수 배너 -->
                 <div class="app-card score-banner-card">
                     <div class="score-badge" style="background-color: ${hs.gradeColorHex}22; border: 2px solid ${hs.gradeColorHex};">
@@ -327,6 +339,13 @@ const AppSimulator = {
                         <span class="legend-item"><span class="legend-dot" style="background:#F43F5E;"></span>부채</span>
                         <span class="legend-item"><span class="legend-line-dashed"></span>은퇴(${s.retirementAge}세)</span>
                     </div>
+                </div>
+
+                <!-- 5-1. 생애 자산 궤적 차트 아래 자료 다운로드 버튼 -->
+                <div style="margin-top: -6px; margin-bottom: 10px;">
+                    <button class="action-btn" style="width: 100%; padding: 8px 12px; font-size: 11.5px; font-weight: 700; color: #10B981; border: 1px solid rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.08); border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;" onclick="AppSimulator.downloadSimulationCSV()">
+                        📥 생애 시뮬레이션 자료 다운로드 (CSV)
+                    </button>
                 </div>
 
                 <!-- 6. 나이별 정밀 인스펙터 슬라이더 & 분해 카드 -->
@@ -501,6 +520,110 @@ const AppSimulator = {
         }
     },
 
+    // ──────────────────────────────────────────────
+    // 생애 순자산 시뮬레이션 전체 데이터 CSV 생성 및 다운로드 (Google Sheets / Excel 완벽 호환)
+    // ──────────────────────────────────────────────
+    generateSimulationCsv() {
+        if (!this.state.summary) this.runSimulation();
+        const s = this.state.summary;
+        if (!s) return '';
+
+        let csv = '\uFEFF'; // UTF-8 BOM (Excel 및 Google Sheets 한글 깨짐 원천 방지)
+        const now = new Date().toLocaleString('ko-KR');
+
+        // 상단 메타데이터 요약 리포트 섹션
+        csv += '"# 연금연금술(PensionAlchemy) 생애 순자산 시뮬레이션 데이터 리포트"\n';
+        csv += `"리포트 생성 일시","${now}"\n`;
+        csv += `"현재 나이","${s.currentAge}세","은퇴 예정 나이","${s.retirementAge}세","국민연금 개시 나이","${s.nationalPensionStartAge}세","목표 수명 나이","${s.endAge}세"\n`;
+        csv += `"현재 순자산","${s.currentNetWorth}","현재 총자산","${s.currentTotalAssets}","현재 총부채","${s.currentTotalDebt}"\n`;
+        csv += `"현재 금융자산","${s.currentFinancialAssets}","현재 부동산자산","${s.currentRealEstateAssets}","현재 연금자산","${s.currentPensionAssets}"\n`;
+
+        const safeText = s.isSafeRetirement ? "안전 은퇴 (100세까지 자산 유지)" : `자산 조기 고갈 (${s.depletionAge}세)`;
+        csv += `"은퇴 진단 결과","${safeText}","자산 고갈 나이",${s.depletionAge > 0 ? `"${s.depletionAge}세"` : '"고갈 없음"'},"최고 자산 달성",${s.peakAssetAge > 0 ? `"${s.peakAssetAge}세 (${s.peakAssetValue}원)"` : '"-"'}\n`;
+
+        const civ = s.crevasseInfo || {};
+        const crevasseText = civ.hasCrevasse ? `소득 크레바스 ${civ.durationYears}년 (${civ.startAge}세~${civ.endAge}세), 월 부족액 ${civ.monthlyShortfall}원, 필요 브릿지 자금 ${civ.totalRequiredBridgeFund}원` : "소득 크레바스 없음";
+        csv += `"소득 크레바스 분석","${crevasseText}"\n`;
+        csv += `"은퇴 소득대체율","${s.incomeReplacementRate ? s.incomeReplacementRate.toFixed(1) : 0}%","은퇴 건강도 점수","${s.healthScore ? s.healthScore.score : 0}점"\n\n`;
+
+        // 27개 핵심 컬럼 헤더
+        const headers = [
+            "나이(세)", "연도(년)", "생애단계", "소득크레바스",
+            "순자산(원)", "총자산(원)", "총부채(원)", "금융자산(원)", "부동산자산(원)", "연금적립자산(원)",
+            "월총소득(원)", "월근로사업소득(원)", "월실수령총연금(원)", "월세전총연금(원)", "월연금소득세(원)",
+            "월국민연금(원)", "월퇴직연금(원)", "월개인연금(원)", "월개인연금보험(원)", "월주택연금(원)", "월기타연금(원)",
+            "월생활비지출(원)", "월사적연금납입(원)", "월부채상환원리금(원)", "월순현금흐름(원)",
+            "건보료피부양자탈락경고", "사적연금1500만초과경고"
+        ];
+        csv += headers.map(h => `"${h}"`).join(',') + '\n';
+
+        // 연도별 데이터 행
+        s.yearlyResults.forEach(r => {
+            const row = [
+                r.age,
+                r.year,
+                `"${r.stage}"`,
+                `"${r.isCrevasse ? '크레바스 발생' : '정상'}"`,
+                r.netAssetValue,
+                r.totalGrossAssets,
+                r.totalDebt,
+                r.financialAssets,
+                r.realEstateAssets,
+                r.pensionAssets,
+                r.monthlyTotalIncome,
+                r.monthlyWorkIncome,
+                r.monthlyPensionIncome,
+                r.grossMonthlyPensionIncome || r.monthlyPensionIncome,
+                r.monthlyPensionTax || 0,
+                r.monthlyNationalPension,
+                r.monthlyRetirementPension,
+                r.monthlyPersonalPension,
+                r.monthlyAnnuityInsurancePension || 0,
+                r.monthlyHousingPension,
+                r.monthlyOtherPension,
+                r.monthlyExpenses,
+                r.monthlyPensionContribution || 0,
+                r.monthlyDebtService || 0,
+                r.monthlyNetCashFlow,
+                `"${r.isHealthInsuranceDisqualified ? '위험(피부양자 탈락)' : '정상'}"`,
+                `"${r.isPrivatePensionLimitExceeded ? '주의(1500만 초과)' : '정상'}"`
+            ];
+            csv += row.join(',') + '\n';
+        });
+
+        return csv;
+    },
+
+    downloadSimulationCSV() {
+        const csvContent = this.generateSimulationCsv();
+        if (!csvContent) return;
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        const nowStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `연금연금술_생애순자산시뮬레이션_${nowStr}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    },
+
+    copySimulationCsvToClipboard() {
+        const csvContent = this.generateSimulationCsv();
+        if (!csvContent) return;
+
+        // 스프레드시트 직접 붙여넣기 편의를 위해 탭 구분자(TSV)로 변환 복사
+        const tsv = csvContent.replace(/"/g, '').split('\n').map(line => line.split(',').join('\t')).join('\n');
+        navigator.clipboard.writeText(tsv).then(() => {
+            alert('구글 스프레드시트 또는 엑셀에 바로 붙여넣기(Ctrl+V)할 수 있도록 표 데이터가 클립보드에 복사되었습니다!');
+        }).catch(err => {
+            console.error('클립보드 복사 실패:', err);
+            this.downloadSimulationCSV();
+        });
+    },
+
     getDistributionInfoText() {
         const curEok = this.state.summary.currentNetWorth / 100000000.0;
         const topPct = LogNormalDistribution.topPercent(
@@ -512,6 +635,113 @@ const AppSimulator = {
             <span>내 순자산: <strong>${CurrencyFormatter.formatKoreanWon(this.state.summary.currentNetWorth)}</strong></span>
             <span>대한민국 상위 <strong>${topPct.toFixed(1)}%</strong></span>
         `;
+    },
+
+    renderRealTimeTicker(s) {
+        const y = s.realTimeYield || {};
+        const wps = y.wonPerSecond || 0;
+        const now = new Date();
+        const secondsToday = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+        const baseDays = 15;
+        const baseGain = Math.round((baseDays * 86400 + secondsToday) * wps);
+        const todayGain = Math.round(secondsToday * wps);
+        const mode = this.state.tickerMode || 0;
+        const displayGain = mode === 0 ? baseGain : todayGain;
+        const isPos = wps >= 0;
+        const trendColor = isPos ? '#10B981' : '#F43F5E';
+        const gainPrefix = displayGain > 0 ? '+' : '';
+        const expanded = this.state.tickerExpanded || false;
+
+        return `
+        <div class="app-card" style="margin-bottom: 12px; cursor: pointer; border: 1px solid var(--border-color); background: var(--bg-card); border-radius: 16px; padding: 14px;" onclick="AppSimulator.toggleTickerExpand(event)">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${trendColor}; box-shadow: 0 0 6px ${trendColor};"></span>
+                    <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">실시간 순자산 증감</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <div style="display: flex; background: var(--bg-hover, rgba(255,255,255,0.06)); padding: 2px; border-radius: 8px;" onclick="event.stopPropagation()">
+                        <span onclick="AppSimulator.setTickerMode(0)" style="font-size: 11px; font-weight: ${mode === 0 ? '700' : '400'}; color: ${mode === 0 ? 'var(--primary)' : 'var(--text-muted)'}; background: ${mode === 0 ? 'var(--bg-card)' : 'transparent'}; padding: 2px 8px; border-radius: 6px; cursor: pointer;">기준일</span>
+                        <span onclick="AppSimulator.setTickerMode(1)" style="font-size: 11px; font-weight: ${mode === 1 ? '700' : '400'}; color: ${mode === 1 ? 'var(--primary)' : 'var(--text-muted)'}; background: ${mode === 1 ? 'var(--bg-card)' : 'transparent'}; padding: 2px 8px; border-radius: 6px; cursor: pointer;">오늘0시</span>
+                    </div>
+                    <span style="font-size: 10px; font-weight: 800; color: ${trendColor}; background: ${trendColor}1a; padding: 2px 6px; border-radius: 6px;">● LIVE</span>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                <div>
+                    <div style="font-size: 11px; color: var(--text-muted);" id="sim-ticker-subtitle">
+                        ${mode === 0 
+                            ? (displayGain >= 0 ? '입력 기준일 대비 누적 순자산 증가' : '입력 기준일 대비 누적 순자산 감소')
+                            : (displayGain >= 0 ? '0시 기준 현재까지 불어난 순자산' : '0시 기준 현재까지 줄어든 순자산')}
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px;">
+                        <span style="color: ${trendColor}; font-size: 18px;">${isPos ? '↗' : '↘'}</span>
+                        <span id="sim-ticker-display-gain" style="font-size: 20px; font-weight: 900; color: ${trendColor}; font-family: monospace;">
+                            ${gainPrefix}${CurrencyFormatter.formatKoreanWon(displayGain)}
+                        </span>
+                    </div>
+                </div>
+                <span style="color: var(--text-muted); font-size: 14px;">${expanded ? '▲' : '▼'}</span>
+            </div>
+
+            <div style="margin-top: 10px; background: var(--bg-hover, rgba(255,255,255,0.04)); padding: 6px 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 11px; color: var(--text-muted);">${isPos ? '⚡ 순자산 증가 속도' : '⚡ 순자산 감소 속도'}</span>
+                <span style="font-size: 11px; font-weight: 700; color: ${trendColor}; font-family: monospace;">
+                    초당 ${isPos ? '+' : ''}${wps.toFixed(1)}원
+                </span>
+            </div>
+
+            ${expanded ? `
+            <div style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border-color); font-size: 11px;" onclick="event.stopPropagation()">
+                <div style="color: var(--text-muted); font-weight: 700; margin-bottom: 6px;">${isPos ? '⏱️ 주기별 실질 순증가 환산' : '⏱️ 주기별 실질 순감소 환산'}</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 10px;">
+                    <div style="background: var(--bg-hover, rgba(255,255,255,0.03)); padding: 6px; border-radius: 6px; text-align: center;">
+                        <div style="color: var(--text-muted); font-size: 10px;">시간당</div>
+                        <div style="font-weight: 700; color: ${trendColor}; font-size: 11px;">${isPos ? '+' : ''}${CurrencyFormatter.formatKoreanWon(Math.round(y.wonPerHour || 0), true)}</div>
+                    </div>
+                    <div style="background: var(--bg-hover, rgba(255,255,255,0.03)); padding: 6px; border-radius: 6px; text-align: center;">
+                        <div style="color: var(--text-muted); font-size: 10px;">하루(일당)</div>
+                        <div style="font-weight: 700; color: ${trendColor}; font-size: 11px;">${isPos ? '+' : ''}${CurrencyFormatter.formatKoreanWon(Math.round(y.wonPerDay || 0), true)}</div>
+                    </div>
+                    <div style="background: var(--bg-hover, rgba(255,255,255,0.03)); padding: 6px; border-radius: 6px; text-align: center;">
+                        <div style="color: var(--text-muted); font-size: 10px;">한달(월)</div>
+                        <div style="font-weight: 700; color: ${trendColor}; font-size: 11px;">${isPos ? '+' : ''}${CurrencyFormatter.formatKoreanWon(Math.round(y.wonPerMonth || 0), true)}</div>
+                    </div>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 6px 0; border-top: 1px solid var(--border-color);">
+                    <span style="font-weight: 700;">${isPos ? '연간 순자산 순증가 합계' : '연간 순자산 순감소 합계'}</span>
+                    <span style="font-weight: 800; color: ${trendColor};">${isPos ? '+' : ''}${CurrencyFormatter.formatKoreanWon(Math.round(y.annualNetWealthGrowth || 0))}/연</span>
+                </div>
+            </div>
+            ` : ''}
+        </div>
+        `;
+    },
+
+    updateTickerOnly() {
+        const el = document.getElementById('sim-ticker-display-gain');
+        if (!el || !this.state.summary) return;
+        const y = this.state.summary.realTimeYield || {};
+        const wps = y.wonPerSecond || 0;
+        const now = new Date();
+        const secondsToday = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+        const baseGain = Math.round((15 * 86400 + secondsToday) * wps);
+        const todayGain = Math.round(secondsToday * wps);
+        const mode = this.state.tickerMode || 0;
+        const displayGain = mode === 0 ? baseGain : todayGain;
+        const gainPrefix = displayGain > 0 ? '+' : '';
+        el.textContent = `${gainPrefix}${CurrencyFormatter.formatKoreanWon(displayGain)}`;
+    },
+
+    setTickerMode(mode) {
+        this.state.tickerMode = mode;
+        this.renderAll();
+    },
+
+    toggleTickerExpand(event) {
+        this.state.tickerExpanded = !this.state.tickerExpanded;
+        this.renderAll();
     },
 
     // ──────────────────────────────────────────────

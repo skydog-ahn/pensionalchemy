@@ -153,6 +153,36 @@ class RealTimeGrowthCalculatorTest {
     }
 
     @Test
+    fun testComprehensiveTotalRealTimeGrowthWithIncomeAndExpenses() {
+        val assets = listOf(
+            Asset(id = "1", name = "예금", type = AssetType.DEPOSIT, currentValue = 100_000_000L, expectedGrowthRate = 3.0, baseDate = "2026-09-01")
+        )
+        val incomes = listOf(
+            Income(id = "i1", name = "급여", monthlyAmount = 3_000_000L, endAge = 60, baseDate = "2026-09-01")
+        )
+        val monthlyExpenses = 2_000_000L // 잉여 = 월 100만원 저축
+        val currentDateTime = LocalDateTime.of(2026, 9, 1, 0, 0, 0).plusDays(10)
+
+        val summary = RealTimeGrowthCalculator.calculateTotalRealTimeGrowth(
+            assets = assets,
+            pensions = emptyList(),
+            incomes = incomes,
+            monthlyExpenses = monthlyExpenses,
+            currentAge = 40,
+            currentDateTime = currentDateTime
+        )
+
+        // 자산 수익: 1억 * 3% / 365.25 / 86400 = 약 0.095원/초
+        // 소득 유입: 300만 * 12 / 365.25 / 86400 = 약 1.141원/초
+        // 생활비 유출: 200만 * 12 / 365.25 / 86400 = 약 0.760원/초
+        // 종합 순증가 속도 = 약 0.095 + 1.141 - 0.760 = 약 0.476원/초
+        assertTrue(summary.netWonPerSecond > 0.45 && summary.netWonPerSecond < 0.50)
+        assertTrue(summary.totalNetGain > 0L)
+        assertTrue(summary.incomeAccumulatedGain > 0L)
+        assertTrue(summary.livingExpenseAccumulated > 0L)
+    }
+
+    @Test
     fun testCurrencyFormatterSplitManAndWon() {
         // 5억 2000만 3456원 -> manPart: "5억 2,000만", wonPart: "3,456원"
         val split1 = CurrencyFormatter.splitManAndWon(520_003_456L, alwaysIncludeWon = false)

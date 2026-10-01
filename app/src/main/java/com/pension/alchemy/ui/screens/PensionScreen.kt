@@ -346,6 +346,29 @@ private fun PensionItemCard(
         RealTimeGrowthCalculator.calculatePensionGrowth(pension, currentDateTime)
     }
 
+    val displayMonthlyAmount = remember(pension) {
+        if (pension.expectedMonthlyAmount > 0L) {
+            pension.expectedMonthlyAmount
+        } else if (pension.type == PensionType.PERSONAL || pension.type == PensionType.RETIREMENT || pension.type == PensionType.ANNUITY_INSURANCE) {
+            val acc = PensionPlanCalculator.calculateAccumulatedAtStartAge(
+                currentAge = 40,
+                startAge = pension.startAge,
+                currentBalance = pension.currentBalance,
+                monthlyContribution = pension.monthlyContribution,
+                contributionEndAge = pension.contributionEndAge,
+                annualGrowthRate = pension.expectedGrowthRate
+            )
+            val period = (pension.endAge - pension.startAge).coerceAtLeast(1)
+            PensionPlanCalculator.calculateMonthlyPayoutFromPeriod(
+                accumulatedFund = acc,
+                periodYears = period,
+                annualGrowthRate = pension.expectedGrowthRate
+            )
+        } else {
+            0L
+        }
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -462,7 +485,7 @@ private fun PensionItemCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "월 예상 ${CurrencyFormatter.formatKoreanWon(pension.expectedMonthlyAmount)}/월",
+                    text = "월 예상 ${CurrencyFormatter.formatKoreanWon(displayMonthlyAmount)}/월",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = EmeraldPrimary,
@@ -553,6 +576,26 @@ private fun PensionEditDialog(
             )
         } else {
             0L
+        }
+    }
+
+    // ⭐ 다이얼로그 활성화 시 또는 설정/적립금 변경 시 월 예상 수령액 미리 자동 계산
+    var hasManuallyEditedPayout by remember { mutableStateOf(pension?.expectedMonthlyAmount != null && pension.expectedMonthlyAmount > 0L) }
+
+    LaunchedEffect(isFundedType, accumulatedFund, startAge, endAge, growthRate, linkageMode) {
+        if (isFundedType) {
+            val period = (endAge - startAge).coerceAtLeast(1)
+            val payout = PensionPlanCalculator.calculateMonthlyPayoutFromPeriod(
+                accumulatedFund = accumulatedFund,
+                periodYears = period,
+                annualGrowthRate = growthRate
+            )
+            // 아직 수동 편집하지 않았거나 수령액이 0원인 경우, 또는 수급기간 모드(linkageMode == 0)에서 자동 최신화
+            if (!hasManuallyEditedPayout || monthlyPayoutStr == "0" || monthlyPayoutStr.isBlank()) {
+                if (payout > 0L) {
+                    monthlyPayoutStr = payout.toString()
+                }
+            }
         }
     }
 
@@ -787,37 +830,33 @@ private fun PensionEditDialog(
                         )
                     }
 
-                    // ⭐ 수급 개시 시점 총 예상 적립금 하이라이트 카드
+                    // ⭐ 수급 개시 시점 총 예상 적립금 하이라이트 카드 (금액 2줄 꺾임 방지: 상하 세로 적층 단독 줄 배치)
                     item {
                         Surface(
                             color = EmeraldPrimary.copy(alpha = 0.12f),
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "🎯 ${startAge}세 개시 시점 예상 적립금",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = EmeraldPrimary
-                                    )
-                                    Text(
-                                        text = CurrencyFormatter.formatKoreanWon(accumulatedFund),
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = EmeraldPrimary
-                                    )
-                                }
+                            Column(modifier = Modifier.padding(14.dp)) {
+                                Text(
+                                    text = "🎯 ${startAge}세 개시 시점 예상 적립금",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = EmeraldPrimary
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = CurrencyFormatter.formatKoreanWon(accumulatedFund),
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = EmeraldPrimary,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
                                 val yearsToStart = (startAge - currentAge).coerceAtLeast(0)
                                 val payYears = ((contributionEndAge.coerceAtMost(startAge) - currentAge).coerceAtLeast(0))
                                 val principal = currentBalance + (monthlyContribution * 12L * payYears)
                                 val interest = (accumulatedFund - principal).coerceAtLeast(0L)
-                                Spacer(modifier = Modifier.height(4.dp))
+                                Spacer(modifier = Modifier.height(6.dp))
                                 Text(
                                     text = "원금 ${CurrencyFormatter.formatKoreanWon(principal, isShort = true)} + 복리수익 ${CurrencyFormatter.formatKoreanWon(interest, isShort = true)} (${yearsToStart}년 후 운용)",
                                     fontSize = 11.sp,
@@ -1040,7 +1079,10 @@ private fun PensionEditDialog(
                                     )
                                     AutoSelectOutlinedTextField(
                                         value = monthlyPayoutStr,
-                                        onValueChange = { monthlyPayoutStr = it.filter { c -> c.isDigit() } },
+                                        onValueChange = {
+                                            monthlyPayoutStr = it.filter { c -> c.isDigit() }
+                                            hasManuallyEditedPayout = true
+                                        },
                                         label = { Text("월 예상 수령액 (자동계산)") },
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                         modifier = Modifier.weight(1f)

@@ -185,7 +185,7 @@ fun GuideHelpScreen(
                                             shape = RoundedCornerShape(6.dp)
                                         ) {
                                             Text(
-                                                text = "v1.3.1 릴리즈",
+                                                text = "v1.3.2 릴리즈",
                                                 fontSize = 11.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = EmeraldPrimary,
@@ -202,10 +202,10 @@ fun GuideHelpScreen(
                                     }
                                     Spacer(modifier = Modifier.height(6.dp))
                                     Text(
-                                        text = "• 자산·연금·소득 항목별 입력 기준일(baseDate) 연동 초당 실시간 가산 엔진 탑재\n" +
-                                            "• 100억/1000억 단위까지 원 단위까지 단일 폰트·색상 통일 타이포그래피 적용\n" +
-                                            "• '연금플랜' ➔ 직관적인 '연금관리'로 탭 및 시스템 명칭 일괄 개편\n" +
-                                            "• 연금관리 항목 상하 순서 이동(▲/▼) 및 금액 겹침 없는 쾌적한 멀티티어 카드 레이아웃",
+                                        text = "• 실시간 순자산 증감 티커: 양수(+)·음수(-) 상태별 불어남/줄어듦 및 증감 속도 라이브 동적 전환\n" +
+                                            "• 생애 자산 시뮬레이션 궤적 데이터 스프레드시트(CSV) 다운로드 기능 탑재\n" +
+                                            "• 연금관리 수령액/수령기간 진입 시 사전 자동 연산 & 예상 적립금 시인성 강화\n" +
+                                            "• 자산·연금·소득 항목별 입력 기준일(baseDate) 연동 초당 실시간 가산 엔진",
                                         fontSize = 11.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         lineHeight = 16.sp
@@ -217,10 +217,10 @@ fun GuideHelpScreen(
 
                         item {
                             FeatureHelpCard(
-                                title = "1. 대시보드 (종합 진단 & 실시간 자산 순증가)",
+                                title = "1. 대시보드 (종합 진단 & 실시간 순자산 증감)",
                                 icon = Icons.Default.Dashboard,
                                 accentColor = EmeraldPrimary,
-                                description = "내 순자산, 65세 예상 월연금, 소득대체율과 100점 만점 은퇴 건강 점수를 확인합니다. 특히 [실시간 자산 순증가 티커]를 통해 [기준일 이후] 혹은 [오늘 0시]부터 불어난 순자산 금액을 원 단위까지 단일 폰트·색상으로 깔끔하게 확인하며, 1초 단위 초당 증식 속도를 라이브로 체감할 수 있습니다.",
+                                description = "내 순자산, 65세 예상 월연금, 소득대체율과 100점 만점 은퇴 건강 점수를 확인합니다. 특히 [실시간 순자산 증감 티커]를 통해 [기준일 이후] 혹은 [오늘 0시]부터 변동된 순자산 금액을 원 단위까지 깔끔하게 확인하며, 1초 단위 초당 증감 속도를 라이브로 체감할 수 있습니다.",
                                 shortcutLabel = "대시보드 바로가기",
                                 onShortcut = { onNavigateToTab(ScreenTab.DASHBOARD) }
                             )
