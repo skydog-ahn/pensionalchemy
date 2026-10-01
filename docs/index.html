@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
-    <title>연금술사 (PensionAlchemy) v1.3.0 - 상세 사용설명서 & 인터랙티브 시뮬레이터</title>
-    <meta name="description" content="대한민국 100세 생애 은퇴·연금 시뮬레이터 '연금술사' 공식 종합 매뉴얼 및 인터랙티브 앱 시뮬레이터. 실시간 초당 자산 증식 티커, 개별 자산 기대수익률 가중합산, 연금 급여 직접 납입 여부 스위치, 3층 연금 피라미드, 소득 크레바스 방어, 4% 룰, 6대 재무 계산기, 순자산 백분위 분석.">
+    <title>연금술사 (PensionAlchemy) v1.3.1 - 상세 사용설명서 & 인터랙티브 시뮬레이터</title>
+    <meta name="description" content="대한민국 100세 생애 은퇴·연금 시뮬레이터 '연금술사' 공식 종합 매뉴얼 및 인터랙티브 앱 시뮬레이터. 기준일 연동 실시간 초당 자산 순증가 티커, 개별 자산 기대수익률 가중합산, 연금 급여 직접 납입 여부 스위치, 3층 연금 피라미드, 소득 크레바스 방어, 4% 룰, 6대 재무 계산기, 순자산 백분위 분석.">
     
     <!-- 파비콘 및 앱 아이콘 -->
     <link rel="icon" type="image/png" href="assets/images/appicon.png">
@@ -19,7 +19,7 @@
     </script>
     
     <!-- CSS 스타일시트 -->
-    <link rel="stylesheet" href="css/style.css?v=1.3.0">
+    <link rel="stylesheet" href="css/style.css?v=1.3.1">
 </head>
 <body>
 
@@ -30,7 +30,7 @@
             <div>
                 <div class="brand-title">
                     연금술사 (PensionAlchemy)
-                    <span class="version-tag">v 1.3.0</span>
+                    <span class="version-tag">v 1.3.1</span>
                 </div>
                 <div class="brand-subtitle">대한민국 100세 생애 은퇴·연금 시뮬레이터 공식 사용설명서</div>
             </div>
@@ -90,6 +90,21 @@
                     <p class="section-desc">
                         대한민국 금융 시장과 최신 개정 세법, 공적연금 제도를 완벽히 반영하여 <strong>100세 시대의 생애 자산 궤적과 은퇴 현금흐름을 시뮬레이션</strong>하는 종합 은퇴 설계 플랫폼입니다.
                     </p>
+
+                    <!-- v1.3.1 신규 업데이트 하이라이트 -->
+                    <div class="alert-box alert-emerald" style="margin-bottom: 24px; border: 1px solid var(--primary); background: rgba(16, 185, 129, 0.08);">
+                        <span class="alert-icon">🚀</span>
+                        <div>
+                            <div class="alert-title" style="color: var(--primary); font-size: 15px; font-weight: 700;">v1.3.1 신규 업데이트 릴리즈 (Release Highlights)</div>
+                            <div class="alert-desc" style="font-size: 13px; line-height: 1.6; margin-top: 6px;">
+                                • <strong>입력 기준일(baseDate) 연동 초당 실시간 가산 엔진:</strong> 자산, 사적연금, 정기소득 각 항목에 '입력 기준일'을 부여하여 기준일부터 현재 시각까지 경과된 시간에 따른 실시간 복리/가산액을 초당 틱 단위로 계산.<br>
+                                • <strong>원 단위까지 통일된 고품격 타이포그래피:</strong> 100억/1000억 단위 대형 자산에서도 폰트 크기나 색상 갈림 없이 원 단위까지 통일된 컬러와 서체로 미려하게 표현.<br>
+                                • <strong>'연금플랜' ➔ '연금관리' 직관적 명칭 개편:</strong> 앱 상단바, 하단 탭, 가이드 및 백업/복원 전반의 메뉴 명칭을 '연금관리'로 일괄 통일.<br>
+                                • <strong>연금 항목 상하 순서 이동(▲/▼) 지원:</strong> 자산관리와 동일하게 연금관리에서도 원하는 순서대로 자유롭게 이동 및 영구 저장.<br>
+                                • <strong>금액 겹침 방지 멀티티어 카드 레이아웃:</strong> 적립금과 월 수령액을 각 층으로 완벽 분리하여 대형 금액 표기 시에도 글자 겹침이나 잘림 현상 제로화.
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- 카드 1-1: 개발 배경 & 평균의 기만 극복 -->
                     <div class="manual-card">
@@ -346,11 +361,11 @@
 
 
                 <!-- ──────────────────────────────────────────────
-                     SECTION 4: 3층 연금 플랜 화면 매뉴얼
+                     SECTION 4: 3층 연금 관리 화면 매뉴얼
                      ────────────────────────────────────────────── -->
                 <section class="manual-section" id="menu-pensions">
                     <span class="section-badge">Part 2. Screen & Feature Guide</span>
-                    <h2 class="section-title">🛡️ 메뉴 3: 3층 연금 플랜 (국민·퇴직·개인·주택연금)</h2>
+                    <h2 class="section-title">🛡️ 메뉴 3: 3층 연금 관리 (국민·퇴직·개인·주택연금)</h2>
                     <p class="section-desc">
                         출생연도에 따른 국민연금 법정 개시 연령을 자동 판정하고, 조기(-5년)/연기(+5년) 슬라이더를 통해 감액 및 증액 효과를 실시간으로 확인하며, 퇴직연금·개인연금·주택연금의 황금비율을 최적화합니다.
                     </p>
@@ -359,7 +374,7 @@
                         <div class="card-row-between">
                             <h3>🎯 국민연금 조기/연기 슬라이더 & 세법 적용 체계</h3>
                             <button class="jump-to-sim-btn" onclick="ManualController.syncSimulatorTab('PENSIONS')">
-                                📱 시뮬레이터에서 연금플랜 보기
+                                📱 시뮬레이터에서 연금관리 보기
                             </button>
                         </div>
 
@@ -829,7 +844,7 @@
                         <div class="app-bar-info">
                             <div class="app-bar-row">
                                 <span class="app-bar-title" id="phone-header-title">연금술사</span>
-                                <span class="app-bar-version">v 1.3.0</span>
+                                <span class="app-bar-version">v 1.3.1</span>
                             </div>
                             <span class="app-bar-subtitle" id="phone-header-subtitle">대시보드 종합 진단</span>
                         </div>
@@ -855,7 +870,7 @@
                         </button>
                         <button class="app-nav-item" data-tab="PENSIONS" onclick="AppSimulator.switchTab('PENSIONS')">
                             <span class="nav-icon">📈</span>
-                            <span>연금플랜</span>
+                            <span>연금관리</span>
                         </button>
                         <button class="app-nav-item" data-tab="CALCULATOR" onclick="AppSimulator.switchTab('CALCULATOR')">
                             <span class="nav-icon">🧮</span>
@@ -912,17 +927,17 @@
         </div>
     </div>
 
-    <!-- JS 스크립트 모듈 로드 (캐시 방지 v1.3.0) -->
-    <script src="js/models.js?v=1.3.0"></script>
-    <script src="js/currency.js?v=1.3.0"></script>
-    <script src="js/engines/distribution.js?v=1.3.0"></script>
-    <script src="js/engines/loan.js?v=1.3.0"></script>
-    <script src="js/engines/tax.js?v=1.3.0"></script>
-    <script src="js/engines/health.js?v=1.3.0"></script>
-    <script src="js/engines/calculators.js?v=1.3.0"></script>
-    <script src="js/engines/simulation.js?v=1.3.0"></script>
-    <script src="js/simulator.js?v=1.3.0"></script>
-    <script src="js/manual.js?v=1.3.0"></script>
+    <!-- JS 스크립트 모듈 로드 (캐시 방지 v1.3.1) -->
+    <script src="js/models.js?v=1.3.1"></script>
+    <script src="js/currency.js?v=1.3.1"></script>
+    <script src="js/engines/distribution.js?v=1.3.1"></script>
+    <script src="js/engines/loan.js?v=1.3.1"></script>
+    <script src="js/engines/tax.js?v=1.3.1"></script>
+    <script src="js/engines/health.js?v=1.3.1"></script>
+    <script src="js/engines/calculators.js?v=1.3.1"></script>
+    <script src="js/engines/simulation.js?v=1.3.1"></script>
+    <script src="js/simulator.js?v=1.3.1"></script>
+    <script src="js/manual.js?v=1.3.1"></script>
 
     <!-- 초기화 실행 -->
     <script>

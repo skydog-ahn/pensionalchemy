@@ -76,7 +76,7 @@ fun SettingsScreen(
                 result.onSuccess { backup ->
                     backupSuccessMessage = "백업 파일이 안전하게 저장되었습니다.\n\n" +
                         "• 백업 일시: ${backup.backupDate}\n" +
-                        "• 연금 플랜: ${backup.pensions.size}건\n" +
+                        "• 연금 관리: ${backup.pensions.size}건\n" +
                         "• 자산/부채: ${backup.assets.size}건\n" +
                         "• 정기 소득: ${backup.incomes.size}건\n" +
                         "• 계산기 및 세법 설정값 포함 완료"
@@ -696,7 +696,7 @@ fun SettingsScreen(
                                                 backupSuccessMessage = "기기 Download 폴더에 백업 파일이 저장되었습니다.\n\n" +
                                                     "• 저장 파일: $path\n" +
                                                     "• 백업 일시: ${backup.backupDate}\n" +
-                                                    "• 연금 플랜: ${backup.pensions.size}건\n" +
+                                                    "• 연금 관리: ${backup.pensions.size}건\n" +
                                                     "• 자산/부채: ${backup.assets.size}건\n" +
                                                     "• 정기 소득: ${backup.incomes.size}건\n" +
                                                     "• 계산기 및 세법 설정값 포함 완료"
@@ -1154,7 +1154,7 @@ fun SettingsScreen(
                     ) {
                         Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text("• 백업 일시: ${preview.backupDate}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                            Text("• 연금 플랜: ${preview.pensions.size}건", fontSize = 12.sp)
+                            Text("• 연금 관리: ${preview.pensions.size}건", fontSize = 12.sp)
                             Text("• 자산/부채: ${preview.assets.size}건", fontSize = 12.sp)
                             Text("• 정기 소득: ${preview.incomes.size}건", fontSize = 12.sp)
                             Text("• 프로필: ${preview.userProfile.birthYear}년생 (은퇴 ${preview.userProfile.retirementAge}세 / 현재월 ${preview.userProfile.currentMonthlyExpenses / 10000}만 / 은퇴월 ${preview.userProfile.monthlyExpenses / 10000}만원)", fontSize = 12.sp)

@@ -158,6 +158,11 @@ class PensionAlchemyRepository(private val context: Context) {
         saveIncomesInternal(orderedList)
     }
 
+    suspend fun reorderPensions(orderedList: List<Pension>) = withContext(Dispatchers.IO) {
+        _pensions.value = orderedList
+        savePensionsInternal(orderedList)
+    }
+
     // --- User Profile ---
     suspend fun updateProfile(profile: UserProfile) = withContext(Dispatchers.IO) {
         _userProfile.value = profile

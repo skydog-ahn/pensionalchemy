@@ -65,7 +65,8 @@ data class RealTimeYieldMetrics(
     val wonPerSecond: Double = 0.0,          // 초당 실질 순자산 순증가 속도 (원/초)
     val wonPerHour: Double = 0.0,            // 시간당 순증가 (원/시간)
     val wonPerDay: Long = 0L,                // 일당 순증가 (원/일)
-    val wonPerMonth: Long = 0L               // 월당 순증가 (원/월)
+    val wonPerMonth: Long = 0L,              // 월당 순증가 (원/월)
+    val assetWonPerSecond: Double = 0.0      // 순수 자산 운용수익 초당 증가율 (원/초, 소득/지출 제외 순수 자산 증가)
 )
 
 /**

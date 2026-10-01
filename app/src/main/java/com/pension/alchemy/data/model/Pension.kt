@@ -27,5 +27,10 @@ data class Pension(
     val contributionEndAge: Int = 60,     // 납입 종료 나이
     val claimOffsetYears: Int = 0,        // 국민연금 조기/연기 수령 (-5년 ~ +5년)
     val isTaxDeductionEligible: Boolean = true, // 세액공제 대상 여부 (연금저축, IRP)
-    val isDeductedFromIncome: Boolean = true // 정기 납입 시 월 수입(가계)에서 직접 차감 여부 (퇴직연금 회사부담금 등은 false)
-)
+    val isDeductedFromIncome: Boolean = true, // 정기 납입 시 월 수입(가계)에서 직접 차감 여부 (퇴직연금 회사부담금 등은 false)
+    // 연금 입력/기준 일자 (YYYY-MM-DD)
+    val baseDate: String = ""
+) {
+    val effectiveBaseDate: String
+        get() = if (baseDate.isNotBlank()) baseDate else java.time.LocalDate.now().toString()
+}

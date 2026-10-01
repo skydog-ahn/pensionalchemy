@@ -502,6 +502,8 @@ object SimulationEngine {
         val wonPerHour = wonPerSecond * 3600.0
         val wonPerDay = (annualNetWealthGrowth / 365.25).roundToLong()
         val wonPerMonth = (annualNetWealthGrowth / 12.0).roundToLong()
+        val totalAnnualAssetGain = annualFinancialGain + annualRealEstateGain + annualPensionGain
+        val assetWonPerSecond = totalAnnualAssetGain / (365.25 * 86400.0)
 
         val realTimeYield = RealTimeYieldMetrics(
             annualRegularIncome = initialAnnualRegularIncome,
@@ -518,7 +520,8 @@ object SimulationEngine {
             wonPerSecond = wonPerSecond,
             wonPerHour = wonPerHour,
             wonPerDay = wonPerDay,
-            wonPerMonth = wonPerMonth
+            wonPerMonth = wonPerMonth,
+            assetWonPerSecond = assetWonPerSecond
         )
 
         val firstYear = yearlyResults.firstOrNull()

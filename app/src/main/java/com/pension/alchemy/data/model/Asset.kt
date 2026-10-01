@@ -38,7 +38,12 @@ data class Asset(
     val currency: String = "KRW",
     // 부채(대출) 상환 관련 필드
     val repaymentMethod: RepaymentMethod = RepaymentMethod.EQUAL_PRINCIPAL_AND_INTEREST,
-    val maturityYears: Int = 10 // 잔여 상환 기간 (년)
+    val maturityYears: Int = 10, // 잔여 상환 기간 (년)
+    // 자산 입력/기준 일자 (YYYY-MM-DD)
+    val baseDate: String = ""
 ) {
     val isLiability: Boolean get() = type.isLiability
+
+    val effectiveBaseDate: String
+        get() = if (baseDate.isNotBlank()) baseDate else java.time.LocalDate.now().toString()
 }

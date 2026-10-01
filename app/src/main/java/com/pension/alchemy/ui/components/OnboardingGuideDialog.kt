@@ -79,17 +79,17 @@ fun OnboardingGuideDialog(
             ),
             OnboardingStep(
                 stepNumber = 3,
-                title = "💰 자산·부채 및 3층 연금 플랜 등록",
+                title = "💰 자산·부채 및 3층 연금 관리 등록",
                 subtitle = "국민·퇴직·개인·주택연금과 보유 자산/대출 정밀 등록",
                 icon = Icons.Default.AccountBalanceWallet,
                 accentColor = CyanInfo,
                 description = "보유 중인 자산(예적금, 부동산, 주식/ETF)과 부채(대출 원리금 상환), 그리고 든든한 연금을 등록하세요.",
                 actionTips = listOf(
                     "[자산관리]: 자산별 기대수익률, 대출 상환방식(원리금균등 등)과 만기 연수 입력",
-                    "[연금플랜]: 국민연금 출생연도별 법정수령나이 자동 판정 및 조기/연기(-30%~+36%) 슬라이더 제공",
+                    "[연금관리]: 국민연금 출생연도별 법정수령나이 자동 판정 및 조기/연기(-30%~+36%) 슬라이더 제공",
                     "퇴직연금(DB/DC/IRP), 세액공제 개인연금저축, 주택연금 종신 수령액 정밀 반영"
                 ),
-                highlightBadge = "[자산관리] & [연금플랜] 탭에서 입력"
+                highlightBadge = "[자산관리] & [연금관리] 탭에서 입력"
             ),
             OnboardingStep(
                 stepNumber = 4,

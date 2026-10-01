@@ -23,11 +23,19 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pension.alchemy.data.model.*
+import com.pension.alchemy.domain.engine.RealTimeGrowthCalculator
 import com.pension.alchemy.theme.*
 import com.pension.alchemy.ui.components.AutoSelectOutlinedTextField
+import com.pension.alchemy.ui.components.BaseDateInputField
+import com.pension.alchemy.ui.components.CompactRealTimeCurrencyText
 import com.pension.alchemy.util.CurrencyFormatter
 import com.pension.alchemy.util.LoanCalculator
 import androidx.compose.ui.window.DialogProperties
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.util.Locale
 
 @Composable
 fun AssetScreen(
@@ -48,7 +56,26 @@ fun AssetScreen(
     var showIncomeDialog by remember { mutableStateOf(false) }
     var editingIncome by remember { mutableStateOf<Income?>(null) }
 
-    val totalAssets = assets.filter { !it.isLiability }.sumOf { it.currentValue }
+    // 1초 단위 타이머
+    var currentDateTime by remember { mutableStateOf(LocalDateTime.now()) }
+
+    LaunchedEffect(Unit) {
+        while (isActive) {
+            delay(1000L)
+            currentDateTime = LocalDateTime.now()
+        }
+    }
+
+    val realTimeGrowth = remember(assets, incomes, currentDateTime) {
+        RealTimeGrowthCalculator.calculateTotalRealTimeGrowth(
+            assets = assets,
+            pensions = emptyList(),
+            incomes = incomes,
+            currentDateTime = currentDateTime
+        )
+    }
+
+    val totalAssets = if (assets.any { !it.isLiability }) realTimeGrowth.realTimeTotalGrossAssets else 0L
     val totalDebt = assets.filter { it.isLiability }.sumOf { it.currentValue }
     val netWorth = (totalAssets - totalDebt).coerceAtLeast(0L)
     val totalMonthlyIncome = incomes.sumOf { it.monthlyAmount }
@@ -126,17 +153,79 @@ fun AssetScreen(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant
                 )
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceAround
-                ) {
-                    if (selectedTab == 0) {
-                        SummaryCol("순자산", CurrencyFormatter.formatKoreanWon(netWorth, isShort = true), EmeraldPrimary)
-                        SummaryCol("총자산", CurrencyFormatter.formatKoreanWon(totalAssets, isShort = true), MaterialTheme.colorScheme.onSurface)
-                        SummaryCol("총부채", CurrencyFormatter.formatKoreanWon(totalDebt, isShort = true), RoseDanger)
-                    } else {
+                if (selectedTab == 0) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        // 1) 순자산 (주요 지표 - 상단 단독 배치로 긴 금액도 넉넉하게 표시)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "순자산 (Net Worth)",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = CurrencyFormatter.formatKoreanWon(netWorth),
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = EmeraldPrimary,
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                        }
+
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = 10.dp),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+                        )
+
+                        // 2) 총자산 & 총부채 (서브 지표 2열)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(text = "총자산", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = CurrencyFormatter.formatKoreanWon(totalAssets),
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            }
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text(text = "총부채", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = CurrencyFormatter.formatKoreanWon(totalDebt, isShort = false),
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (totalDebt > 0) RoseDanger else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceAround,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         SummaryCol("총 월 소득", CurrencyFormatter.formatKoreanWon(totalMonthlyIncome, isShort = true) + "/월", EmeraldPrimary)
                         SummaryCol("연간 환산", CurrencyFormatter.formatKoreanWon(totalMonthlyIncome * 12L, isShort = true), CyanInfo)
                     }
@@ -155,6 +244,7 @@ fun AssetScreen(
                         itemsIndexed(assets, key = { _, asset -> asset.id }) { index, asset ->
                             AssetItemRow(
                                 asset = asset,
+                                currentDateTime = currentDateTime,
                                 canMoveUp = index > 0,
                                 canMoveDown = index < assets.lastIndex,
                                 onMoveUp = { moveAsset(index, index - 1) },
@@ -166,7 +256,7 @@ fun AssetScreen(
                                 onDelete = { onDeleteAsset(asset.id) }
                             )
                         }
-                        item { Spacer(modifier = Modifier.height(72.dp)) }
+                        item { Spacer(modifier = Modifier.height(96.dp)) }
                     }
                 }
             } else {
@@ -191,7 +281,7 @@ fun AssetScreen(
                                 onDelete = { onDeleteIncome(income.id) }
                             )
                         }
-                        item { Spacer(modifier = Modifier.height(72.dp)) }
+                        item { Spacer(modifier = Modifier.height(96.dp)) }
                     }
                 }
             }
@@ -235,6 +325,7 @@ private fun SummaryCol(label: String, value: String, color: Color) {
 @Composable
 private fun AssetItemRow(
     asset: Asset,
+    currentDateTime: LocalDateTime = LocalDateTime.now(),
     canMoveUp: Boolean,
     canMoveDown: Boolean,
     onMoveUp: () -> Unit,
@@ -242,28 +333,37 @@ private fun AssetItemRow(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val growth = remember(asset, currentDateTime) {
+        RealTimeGrowthCalculator.calculateAssetGrowth(asset, currentDateTime)
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onEdit() },
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         )
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            // 1. 상단 행: 자산 명칭 + 분류 뱃지 vs 위/아래 이동 및 삭제 버튼
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.weight(1f, fill = false)
+                ) {
                     Text(
                         text = asset.name,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        softWrap = false
                     )
                     Surface(
                         color = if (asset.isLiability) RoseDanger.copy(alpha = 0.15f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
@@ -277,6 +377,55 @@ private fun AssetItemRow(
                         )
                     }
                 }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    IconButton(onClick = onMoveUp, enabled = canMoveUp, modifier = Modifier.size(26.dp)) {
+                        Icon(imageVector = Icons.Default.KeyboardArrowUp, contentDescription = "위로 이동", tint = if (canMoveUp) MaterialTheme.colorScheme.onSurfaceVariant else Color.Gray.copy(alpha = 0.25f), modifier = Modifier.size(18.dp))
+                    }
+                    IconButton(onClick = onMoveDown, enabled = canMoveDown, modifier = Modifier.size(26.dp)) {
+                        Icon(imageVector = Icons.Default.KeyboardArrowDown, contentDescription = "아래로 이동", tint = if (canMoveDown) MaterialTheme.colorScheme.onSurfaceVariant else Color.Gray.copy(alpha = 0.25f), modifier = Modifier.size(18.dp))
+                    }
+                    IconButton(onClick = onDelete, modifier = Modifier.size(26.dp)) {
+                        Icon(imageVector = Icons.Default.Delete, contentDescription = "삭제", tint = Color.Gray.copy(alpha = 0.6f), modifier = Modifier.size(17.dp))
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 2. 메인 금액 행: 전체 가로폭 활용하여 긴 금액도 줄바꿈 없이 표시
+            val displayVal = if (!asset.isLiability && growth.accumulatedGrowth != 0L) growth.realTimeValue else asset.currentValue
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom
+            ) {
+                Text(
+                    text = if (asset.isLiability) "대출 원금 (잔여 ${asset.maturityYears}년)" else "현재 평가액",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = CurrencyFormatter.formatKoreanWon(displayVal),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = if (asset.isLiability) RoseDanger else MaterialTheme.colorScheme.onSurface,
+                    softWrap = false,
+                    maxLines = 1
+                )
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // 3. 서브 메타 정보 행: 기준일 / 수익률 / 실시간 가산액
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 if (asset.isLiability) {
                     val monthlyPay = LoanCalculator.calculateMonthlyPayment(
                         principal = asset.currentValue,
@@ -285,45 +434,30 @@ private fun AssetItemRow(
                         repaymentMethod = asset.repaymentMethod
                     )
                     Text(
-                        text = "금리 ${asset.expectedGrowthRate}% · ${asset.repaymentMethod.displayName}(${asset.maturityYears}년)",
-                        fontSize = 12.sp,
+                        text = "기준: ${asset.effectiveBaseDate} · 금리 ${asset.expectedGrowthRate}%",
+                        fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "월 상환: 약 ${CurrencyFormatter.formatKoreanWon(monthlyPay)}/월",
+                        text = "월 상환 약 ${CurrencyFormatter.formatKoreanWon(monthlyPay)}/월",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = RoseDanger.copy(alpha = 0.9f)
                     )
                 } else {
                     Text(
-                        text = "연간 기대수익률: ${asset.expectedGrowthRate}%",
-                        fontSize = 12.sp,
+                        text = "기준: ${asset.effectiveBaseDate} · 연 ${asset.expectedGrowthRate}%",
+                        fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                }
-            }
-
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = CurrencyFormatter.formatKoreanWon(asset.currentValue),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = if (asset.isLiability) RoseDanger else MaterialTheme.colorScheme.onSurface,
-                    softWrap = false,
-                    maxLines = 1
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onMoveUp, enabled = canMoveUp, modifier = Modifier.size(28.dp)) {
-                        Icon(imageVector = Icons.Default.KeyboardArrowUp, contentDescription = "위로 이동", tint = if (canMoveUp) MaterialTheme.colorScheme.onSurfaceVariant else Color.Gray.copy(alpha = 0.25f), modifier = Modifier.size(20.dp))
-                    }
-                    IconButton(onClick = onMoveDown, enabled = canMoveDown, modifier = Modifier.size(28.dp)) {
-                        Icon(imageVector = Icons.Default.KeyboardArrowDown, contentDescription = "아래로 이동", tint = if (canMoveDown) MaterialTheme.colorScheme.onSurfaceVariant else Color.Gray.copy(alpha = 0.25f), modifier = Modifier.size(20.dp))
-                    }
-                    IconButton(onClick = onDelete, modifier = Modifier.size(28.dp)) {
-                        Icon(imageVector = Icons.Default.Delete, contentDescription = "삭제", tint = Color.Gray.copy(alpha = 0.6f), modifier = Modifier.size(18.dp))
+                    if (growth.accumulatedGrowth != 0L) {
+                        val growthPrefix = if (growth.accumulatedGrowth >= 0) "+" else ""
+                        Text(
+                            text = "가산 $growthPrefix${CurrencyFormatter.formatKoreanWon(growth.accumulatedGrowth)}",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = EmeraldPrimary
+                        )
                     }
                 }
             }
@@ -345,24 +479,29 @@ private fun IncomeItemRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onEdit() },
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         )
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            // 1. 헤더: 소득 명칭 + 분류 뱃지 vs 위/아래 이동 및 삭제 버튼
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.weight(1f, fill = false)
+                ) {
                     Text(
                         text = income.name,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        softWrap = false
                     )
                     Surface(
                         color = CyanInfo.copy(alpha = 0.15f),
@@ -376,35 +515,64 @@ private fun IncomeItemRow(
                         )
                     }
                 }
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "종료 나이: ${income.endAge}세 (상승률 ${income.expectedGrowthRate}%)",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    IconButton(onClick = onMoveUp, enabled = canMoveUp, modifier = Modifier.size(26.dp)) {
+                        Icon(imageVector = Icons.Default.KeyboardArrowUp, contentDescription = "위로 이동", tint = if (canMoveUp) MaterialTheme.colorScheme.onSurfaceVariant else Color.Gray.copy(alpha = 0.25f), modifier = Modifier.size(18.dp))
+                    }
+                    IconButton(onClick = onMoveDown, enabled = canMoveDown, modifier = Modifier.size(26.dp)) {
+                        Icon(imageVector = Icons.Default.KeyboardArrowDown, contentDescription = "아래로 이동", tint = if (canMoveDown) MaterialTheme.colorScheme.onSurfaceVariant else Color.Gray.copy(alpha = 0.25f), modifier = Modifier.size(18.dp))
+                    }
+                    IconButton(onClick = onDelete, modifier = Modifier.size(26.dp)) {
+                        Icon(imageVector = Icons.Default.Delete, contentDescription = "삭제", tint = Color.Gray.copy(alpha = 0.6f), modifier = Modifier.size(17.dp))
+                    }
+                }
             }
 
-            Column(horizontalAlignment = Alignment.End) {
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 2. 메인 금액
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom
+            ) {
                 Text(
-                    text = CurrencyFormatter.formatKoreanWon(income.monthlyAmount) + "/월",
-                    style = MaterialTheme.typography.titleMedium,
+                    text = "월 정기 유입",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "+${CurrencyFormatter.formatKoreanWon(income.monthlyAmount)}/월",
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = EmeraldPrimary,
                     softWrap = false,
                     maxLines = 1
                 )
-                Spacer(modifier = Modifier.height(2.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onMoveUp, enabled = canMoveUp, modifier = Modifier.size(28.dp)) {
-                        Icon(imageVector = Icons.Default.KeyboardArrowUp, contentDescription = "위로 이동", tint = if (canMoveUp) MaterialTheme.colorScheme.onSurfaceVariant else Color.Gray.copy(alpha = 0.25f), modifier = Modifier.size(20.dp))
-                    }
-                    IconButton(onClick = onMoveDown, enabled = canMoveDown, modifier = Modifier.size(28.dp)) {
-                        Icon(imageVector = Icons.Default.KeyboardArrowDown, contentDescription = "아래로 이동", tint = if (canMoveDown) MaterialTheme.colorScheme.onSurfaceVariant else Color.Gray.copy(alpha = 0.25f), modifier = Modifier.size(20.dp))
-                    }
-                    IconButton(onClick = onDelete, modifier = Modifier.size(28.dp)) {
-                        Icon(imageVector = Icons.Default.Delete, contentDescription = "삭제", tint = Color.Gray.copy(alpha = 0.6f), modifier = Modifier.size(18.dp))
-                    }
-                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // 3. 서브 메타 정보
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "기준: ${income.effectiveBaseDate} · 종료: ${income.endAge}세",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "연 상승률 ${income.expectedGrowthRate}%",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
@@ -440,6 +608,9 @@ private fun AssetEditDialog(
     var rateStr by remember { mutableStateOf(asset?.expectedGrowthRate?.toString() ?: "3.0") }
     var repaymentMethod by remember { mutableStateOf(asset?.repaymentMethod ?: RepaymentMethod.EQUAL_PRINCIPAL_AND_INTEREST) }
     var maturityYearsStr by remember { mutableStateOf(asset?.maturityYears?.toString() ?: "10") }
+    var baseDate by remember {
+        mutableStateOf(asset?.baseDate?.ifBlank { LocalDate.now().toString() } ?: LocalDate.now().toString())
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -512,6 +683,12 @@ private fun AssetEditDialog(
                     label = { Text(if (type.isLiability) "대출 금리 (%)" else "연간 기대수익률 (%)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth()
+                )
+
+                BaseDateInputField(
+                    baseDate = baseDate,
+                    onDateChange = { baseDate = it },
+                    label = if (type.isLiability) "대출 기준일 (실행일자)" else "자산 기준일 (평가/입력일자)"
                 )
 
                 // 부채(대출)일 경우 상환 방식 및 기간 설정 추가
@@ -600,14 +777,16 @@ private fun AssetEditDialog(
                         currentValue = value,
                         expectedGrowthRate = rate,
                         repaymentMethod = repaymentMethod,
-                        maturityYears = years
+                        maturityYears = years,
+                        baseDate = baseDate.trim()
                     ) ?: Asset(
                         name = name.ifBlank { if (type.isLiability) "대출" else "자산" },
                         type = type,
                         currentValue = value,
                         expectedGrowthRate = rate,
                         repaymentMethod = repaymentMethod,
-                        maturityYears = years
+                        maturityYears = years,
+                        baseDate = baseDate.trim()
                     )
                     onSave(updated)
                 }
@@ -632,6 +811,9 @@ private fun IncomeEditDialog(
     var amountStr by remember { mutableStateOf(income?.monthlyAmount?.toString() ?: "0") }
     var endAgeStr by remember { mutableStateOf(income?.endAge?.toString() ?: "60") }
     var rateStr by remember { mutableStateOf(income?.expectedGrowthRate?.toString() ?: "2.0") }
+    var baseDate by remember {
+        mutableStateOf(income?.baseDate?.ifBlank { LocalDate.now().toString() } ?: LocalDate.now().toString())
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -680,6 +862,12 @@ private fun IncomeEditDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                BaseDateInputField(
+                    baseDate = baseDate,
+                    onDateChange = { baseDate = it },
+                    label = "소득 기준일 (입력일자)"
+                )
             }
         },
         confirmButton = {
@@ -693,13 +881,15 @@ private fun IncomeEditDialog(
                         type = type,
                         monthlyAmount = amount,
                         endAge = endAge,
-                        expectedGrowthRate = rate
+                        expectedGrowthRate = rate,
+                        baseDate = baseDate.trim()
                     ) ?: Income(
                         name = name.ifBlank { "소득" },
                         type = type,
                         monthlyAmount = amount,
                         endAge = endAge,
-                        expectedGrowthRate = rate
+                        expectedGrowthRate = rate,
+                        baseDate = baseDate.trim()
                     )
                     onSave(updated)
                 }

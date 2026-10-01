@@ -181,7 +181,7 @@ const AppSimulator = {
         const titles = {
             DASHBOARD: { title: '연금술사', sub: '대시보드 종합 진단' },
             ASSETS: { title: '자산관리', sub: '보유 자산 및 정기 소득' },
-            PENSIONS: { title: '연금플랜', sub: '3층 연금 피라미드' },
+            PENSIONS: { title: '연금관리', sub: '3층 연금 안전망' },
             CALCULATOR: { title: '재무 계산기', sub: '6대 전문 금융 공식' },
             SETTINGS: { title: '환경 설정', sub: '생애주기 및 정책 변수' },
             GUIDE: { title: '연금술사 가이드', sub: '재무비법 & 공식포털' }
@@ -708,7 +708,7 @@ const AppSimulator = {
 
                 <!-- 3. 연금 리스트 헤더 -->
                 <div class="item-list-header">
-                    <span>나의 연금 플랜 목록 (${pensions.length})</span>
+                    <span>나의 연금 목록 (${pensions.length})</span>
                     <button class="mini-add-btn" onclick="AppSimulator.openPensionModal()">+ 연금 추가</button>
                 </div>
 
@@ -1291,7 +1291,7 @@ const AppSimulator = {
                             <div class="guide-card-title">💡 연금술사 핵심 기능 안내</div>
                             <div class="guide-tip-item"><strong>1. 대시보드:</strong> 순자산, 65세 월연금, 건강 점수 및 나이별 인스펙터 슬라이더</div>
                             <div class="guide-tip-item"><strong>2. 자산관리:</strong> 예금, 적금, 주식, 부동산 및 부채 4대 상환방식 관리</div>
-                            <div class="guide-tip-item"><strong>3. 연금플랜:</strong> 3층 연금 피라미드 및 국민연금 조기(-30%)/연기(+36%) 슬라이더</div>
+                            <div class="guide-tip-item"><strong>3. 연금관리:</strong> 3층 연금 안전망 및 국민연금 조기(-30%)/연기(+36%) 슬라이더</div>
                             <div class="guide-tip-item"><strong>4. 6대 계산기:</strong> 미래가치, 인출, 고갈 타이머, 목표자산, 손익분기, 절세 연금술</div>
                             <div class="guide-tip-item"><strong>5. 환경설정:</strong> 5대 생애주기 프리셋 및 세법/정책 변수 커스텀</div>
                         </div>
@@ -2439,8 +2439,8 @@ const AppSimulator = {
                 ]
             },
             {
-                badge: "[자산관리] & [연금플랜] 탭에서 입력",
-                title: "💰 자산·부채 및 3층 연금 플랜 등록",
+                badge: "[자산관리] & [연금관리] 탭에서 입력",
+                title: "💰 자산·부채 및 3층 연금 관리 등록",
                 subtitle: "국민·퇴직·개인·주택연금과 보유 자산/대출 정밀 등록",
                 icon: "💰",
                 color: isLight ? "#0E7490" : "#06B6D4",
@@ -2448,7 +2448,7 @@ const AppSimulator = {
                 desc: "보유 중인 자산(예적금, 부동산, 주식/ETF)과 부채(대출 원리금 상환), 그리고 든든한 연금을 등록하세요.",
                 tips: [
                     "[자산관리]: 자산별 기대수익률, 대출 상환방식(원리금균등 등)과 만기 연수 입력",
-                    "[연금플랜]: 국민연금 출생연도별 법정수령나이 자동 판정 및 조기/연기(-30%~+36%) 슬라이더 제공",
+                    "[연금관리]: 국민연금 출생연도별 법정수령나이 자동 판정 및 조기/연기(-30%~+36%) 슬라이더 제공",
                     "퇴직연금(DB/DC/IRP), 세액공제 개인연금저축, 주택연금 종신 수령액 정밀 반영"
                 ]
             },

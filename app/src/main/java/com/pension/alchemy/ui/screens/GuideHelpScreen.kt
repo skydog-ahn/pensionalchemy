@@ -172,15 +172,55 @@ fun GuideHelpScreen(
                                     }
                                 }
                             }
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(14.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, EmeraldPrimary.copy(alpha = 0.35f))
+                            ) {
+                                Column(modifier = Modifier.padding(14.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Surface(
+                                            color = EmeraldPrimary.copy(alpha = 0.2f),
+                                            shape = RoundedCornerShape(6.dp)
+                                        ) {
+                                            Text(
+                                                text = "v1.3.1 릴리즈",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = EmeraldPrimary,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "새로워진 주요 기능",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 13.sp,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(
+                                        text = "• 자산·연금·소득 항목별 입력 기준일(baseDate) 연동 초당 실시간 가산 엔진 탑재\n" +
+                                            "• 100억/1000억 단위까지 원 단위까지 단일 폰트·색상 통일 타이포그래피 적용\n" +
+                                            "• '연금플랜' ➔ 직관적인 '연금관리'로 탭 및 시스템 명칭 일괄 개편\n" +
+                                            "• 연금관리 항목 상하 순서 이동(▲/▼) 및 금액 겹침 없는 쾌적한 멀티티어 카드 레이아웃",
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        lineHeight = 16.sp
+                                    )
+                                }
+                            }
                             Spacer(modifier = Modifier.height(8.dp))
                         }
 
                         item {
                             FeatureHelpCard(
-                                title = "1. 대시보드 (종합 진단 & 실시간 자산 증식 티커)",
+                                title = "1. 대시보드 (종합 진단 & 실시간 자산 순증가)",
                                 icon = Icons.Default.Dashboard,
                                 accentColor = EmeraldPrimary,
-                                description = "내 순자산, 65세 예상 월연금, 소득대체율과 100점 만점 은퇴 건강 점수를 확인합니다. 특히 [실시간 자산 증식 티커]를 통해 오늘 자정부터 불어난 순자산 금액(+14,352원)과 초당 증식 속도(+34.2원/초)를 라이브로 체감할 수 있습니다.",
+                                description = "내 순자산, 65세 예상 월연금, 소득대체율과 100점 만점 은퇴 건강 점수를 확인합니다. 특히 [실시간 자산 순증가 티커]를 통해 [기준일 이후] 혹은 [오늘 0시]부터 불어난 순자산 금액을 원 단위까지 단일 폰트·색상으로 깔끔하게 확인하며, 1초 단위 초당 증식 속도를 라이브로 체감할 수 있습니다.",
                                 shortcutLabel = "대시보드 바로가기",
                                 onShortcut = { onNavigateToTab(ScreenTab.DASHBOARD) }
                             )
@@ -188,10 +228,10 @@ fun GuideHelpScreen(
 
                         item {
                             FeatureHelpCard(
-                                title = "2. 자산 및 정기 소득 관리 (개별 수익률 가중합산)",
+                                title = "2. 자산 및 정기 소득 관리 (기준일 연동 & 순서 이동)",
                                 icon = Icons.Default.AccountBalanceWallet,
                                 accentColor = CyanInfo,
-                                description = "예금, 적금, 주식, 채권, 부동산, 대출(부채) 등 보유 자산과 근로/사업소득을 등록합니다. 각 자산별 개별 기대수익률이 가중합산되며, 특히 부동산 기대수익률을 0%로 설정하면 자산 가치가 임의 상승 없이 온전히 보존됩니다.",
+                                description = "예금, 적금, 주식, 채권, 부동산, 대출(부채) 등 보유 자산과 근로/사업소득을 등록합니다. 각 자산별 개별 기대수익률 가중합산 및 '입력 기준일(baseDate)' 연동 실시간 평가액이 반영됩니다. 항목 간 순서 이동(▲/▼)과 3층 분리 카드 배치로 금액 겹침 없는 쾌적한 화면을 제공합니다.",
                                 shortcutLabel = "자산관리 바로가기",
                                 onShortcut = { onNavigateToTab(ScreenTab.ASSETS) }
                             )
@@ -199,11 +239,11 @@ fun GuideHelpScreen(
 
                         item {
                             FeatureHelpCard(
-                                title = "3. 3층 연금 플랜 (급여 직접 납입 여부 스위치)",
+                                title = "3. 3층 연금 관리 (순서 이동 & 수령액 분리 레이아웃)",
                                 icon = Icons.AutoMirrored.Filled.TrendingUp,
                                 accentColor = IndigoAccent,
-                                description = "국민·퇴직·개인·주택연금을 통합 설계합니다. 사적연금 납입액이 급여에서 직접 차감되는지(개인 저축) 혹은 회사 부담금(DC/퇴직금)인지 스위치로 설정하여 실제 가계 현금흐름에 정확히 연동합니다.",
-                                shortcutLabel = "연금플랜 바로가기",
+                                description = "국민·퇴직·개인·주택연금을 통합 설계합니다. 연금 항목의 상하 순서 이동(▲/▼)을 지원하며, 적립금과 월 예상 수령액을 분리 배치하여 시인성을 극대화했습니다. 사적연금 급여 직접 납입 여부 스위치와 입력 기준일 연동 실시간 평가액을 제공합니다.",
+                                shortcutLabel = "연금관리 바로가기",
                                 onShortcut = { onNavigateToTab(ScreenTab.PENSIONS) }
                             )
                         }

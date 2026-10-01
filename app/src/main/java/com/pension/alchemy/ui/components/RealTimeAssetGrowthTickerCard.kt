@@ -42,9 +42,15 @@ import kotlin.math.roundToLong
 @Composable
 fun RealTimeAssetGrowthTickerCard(
     metrics: RealTimeYieldMetrics,
+    baseDateAccumulatedGain: Long? = null,
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
+
+    // 0: 기준일 누적, 1: 오늘 0시 기준
+    var selectedMode by remember(baseDateAccumulatedGain) {
+        mutableIntStateOf(if (baseDateAccumulatedGain != null && baseDateAccumulatedGain != 0L) 0 else 1)
+    }
 
     // 오늘 0시 기준 경과 초 (매 1초마다 갱신)
     var currentSecondOfDay by remember {
@@ -60,6 +66,13 @@ fun RealTimeAssetGrowthTickerCard(
 
     // 오늘 자정부터 현재 시각까지 누적된 순자산 순증가
     val todayAccumulatedGain = (currentSecondOfDay * metrics.wonPerSecond).roundToLong()
+
+    // 표시할 누적 금액
+    val displayGain = if (selectedMode == 0 && baseDateAccumulatedGain != null) {
+        baseDateAccumulatedGain
+    } else {
+        todayAccumulatedGain
+    }
 
     // 8시간(수면 시간) 동안 순자산 변화량
     val sleepGain8Hours = (metrics.wonPerHour * 8.0).roundToLong()
@@ -102,43 +115,85 @@ fun RealTimeAssetGrowthTickerCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f, fill = false).padding(end = 6.dp)
+                ) {
                     Box(
                         modifier = Modifier
-                            .size(10.dp)
+                            .size(9.dp)
                             .alpha(pulseAlpha)
                             .background(color = trendColor, shape = CircleShape)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "오늘의 실시간 순자산 증감",
+                        text = "실시간 자산 순증가",
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
 
-                // LIVE 배지
-                Surface(
-                    color = trendColor.copy(alpha = 0.12f),
-                    shape = RoundedCornerShape(12.dp)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    if (baseDateAccumulatedGain != null) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Row(modifier = Modifier.padding(2.dp)) {
+                                Text(
+                                    text = "기준일",
+                                    fontSize = 11.sp,
+                                    fontWeight = if (selectedMode == 0) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (selectedMode == 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(if (selectedMode == 0) MaterialTheme.colorScheme.surface else Color.Transparent)
+                                        .clickable { selectedMode = 0 }
+                                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                                )
+                                Text(
+                                    text = "오늘0시",
+                                    fontSize = 11.sp,
+                                    fontWeight = if (selectedMode == 1) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (selectedMode == 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(if (selectedMode == 1) MaterialTheme.colorScheme.surface else Color.Transparent)
+                                        .clickable { selectedMode = 1 }
+                                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    // LIVE 배지
+                    Surface(
+                        color = trendColor.copy(alpha = 0.12f),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text(
-                            text = "● LIVE",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = trendColor
-                        )
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "● LIVE",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = trendColor
+                            )
+                        }
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 2. 메인 중심: 계속 변화하는 실시간 누적 증감액 (초대형 폰트로 강조!)
+            // 2. 메인 중심: 계속 변화하는 실시간 누적 증감액 (동일 색상, 동일 폰트로 원 단위까지 표현)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -146,7 +201,7 @@ fun RealTimeAssetGrowthTickerCard(
             ) {
                 Column {
                     Text(
-                        text = "0시 기준 현재까지 불어난 자산",
+                        text = if (selectedMode == 0) "입력 기준일 대비 누적 증가 자산" else "0시 기준 현재까지 불어난 자산",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
                     )
@@ -156,20 +211,19 @@ fun RealTimeAssetGrowthTickerCard(
                             imageVector = trendIcon,
                             contentDescription = null,
                             tint = trendColor,
-                            modifier = Modifier.size(30.dp)
+                            modifier = Modifier.size(28.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
+                        val gainPrefix = if (displayGain > 0) "+" else ""
                         Text(
-                            text = if (todayAccumulatedGain >= 0L) {
-                                "+${CurrencyFormatter.formatKoreanWon(todayAccumulatedGain)}"
-                            } else {
-                                CurrencyFormatter.formatKoreanWon(todayAccumulatedGain)
-                            },
-                            style = MaterialTheme.typography.headlineLarge.copy(
+                            text = "$gainPrefix${CurrencyFormatter.formatKoreanWon(displayGain)}",
+                            style = MaterialTheme.typography.headlineMedium.copy(
                                 fontWeight = FontWeight.Black,
-                                fontSize = 32.sp
+                                fontSize = 26.sp
                             ),
-                            color = trendColor
+                            color = trendColor,
+                            maxLines = 1,
+                            softWrap = false
                         )
                     }
                 }

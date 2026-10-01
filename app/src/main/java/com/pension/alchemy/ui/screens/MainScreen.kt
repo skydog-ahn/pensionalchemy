@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
 enum class ScreenTab(val title: String, val icon: ImageVector) {
     DASHBOARD("대시보드", Icons.Default.Dashboard),
     ASSETS("자산관리", Icons.Default.AccountBalanceWallet),
-    PENSIONS("연금플랜", Icons.AutoMirrored.Filled.TrendingUp),
+    PENSIONS("연금관리", Icons.AutoMirrored.Filled.TrendingUp),
     CALCULATOR("계산기", Icons.Default.Calculate),
     SETTINGS("설정", Icons.Default.Settings)
 }
@@ -158,7 +158,10 @@ fun MainScreen(
                 when (currentTab) {
                     ScreenTab.DASHBOARD -> DashboardScreen(
                         summary = simulationSummary,
-                        profile = profile
+                        profile = profile,
+                        assets = assets,
+                        pensions = pensions,
+                        incomes = incomes
                     )
                     ScreenTab.ASSETS -> AssetScreen(
                         assets = assets,
@@ -174,6 +177,7 @@ fun MainScreen(
                         pensions = pensions,
                         onSavePension = { scope.launch { repository.savePension(it) } },
                         onDeletePension = { scope.launch { repository.deletePension(it) } },
+                        onReorderPensions = { scope.launch { repository.reorderPensions(it) } },
                         currentAge = profile.currentAge
                     )
                     ScreenTab.CALCULATOR -> CalculatorScreen(

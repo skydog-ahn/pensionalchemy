@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -16,30 +17,62 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pension.alchemy.data.model.Pension
 import com.pension.alchemy.data.model.PensionType
 import com.pension.alchemy.domain.engine.PensionPlanCalculator
+import com.pension.alchemy.domain.engine.RealTimeGrowthCalculator
 import com.pension.alchemy.theme.*
 import com.pension.alchemy.ui.components.AutoSelectOutlinedTextField
+import com.pension.alchemy.ui.components.BaseDateInputField
+import com.pension.alchemy.ui.components.CompactRealTimeCurrencyText
 import com.pension.alchemy.util.CurrencyFormatter
 import androidx.compose.ui.window.DialogProperties
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import java.time.LocalDate
+import java.time.LocalDateTime
 
 @Composable
 fun PensionScreen(
     pensions: List<Pension>,
     onSavePension: (Pension) -> Unit,
     onDeletePension: (String) -> Unit,
+    onReorderPensions: (List<Pension>) -> Unit = {},
     currentAge: Int = 40,
     modifier: Modifier = Modifier
 ) {
     var showDialog by remember { mutableStateOf(false) }
     var editingPension by remember { mutableStateOf<Pension?>(null) }
 
+    // 1초 단위 타이머
+    var currentDateTime by remember { mutableStateOf(LocalDateTime.now()) }
+
+    LaunchedEffect(Unit) {
+        while (isActive) {
+            delay(1000L)
+            currentDateTime = LocalDateTime.now()
+        }
+    }
+
+    val realTimePensionDetails = remember(pensions, currentDateTime) {
+        pensions.map { RealTimeGrowthCalculator.calculatePensionGrowth(it, currentDateTime) }
+    }
+    val totalRealTimeBalances = realTimePensionDetails.sumOf { it.realTimeBalance }
+
     val nationalPension = pensions.firstOrNull { it.type == PensionType.NATIONAL }
     val totalMonthlyPayout = pensions.sumOf { it.expectedMonthlyAmount }
-    val totalAccumulatedBalances = pensions.sumOf { it.currentBalance }
+
+    fun movePension(from: Int, to: Int) {
+        if (from in pensions.indices && to in pensions.indices) {
+            val list = pensions.toMutableList()
+            val item = list.removeAt(from)
+            list.add(to, item)
+            onReorderPensions(list)
+        }
+    }
 
     Scaffold(
         floatingActionButton = {
@@ -94,11 +127,10 @@ fun PensionScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "적립 잔액: ${CurrencyFormatter.formatKoreanWon(totalAccumulatedBalances, isShort = true)}",
+                                text = "적립 잔액: ${CurrencyFormatter.formatKoreanWon(totalRealTimeBalances, isShort = true)}",
                                 fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                softWrap = false,
-                                maxLines = 1
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
                                 text = "예상 합산: ${CurrencyFormatter.formatKoreanWon(totalMonthlyPayout, isShort = true)}/월",
@@ -126,16 +158,21 @@ fun PensionScreen(
             // 3. 연금 리스트 헤더
             item {
                 Text(
-                    text = "나의 연금 플랜 목록 (${pensions.size})",
+                    text = "나의 연금 목록 (${pensions.size})",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
             }
 
             // 4. 연금 아이템들
-            items(pensions, key = { it.id }) { p ->
+            itemsIndexed(pensions, key = { _, p -> p.id }) { index, p ->
                 PensionItemCard(
                     pension = p,
+                    currentDateTime = currentDateTime,
+                    canMoveUp = index > 0,
+                    canMoveDown = index < pensions.lastIndex,
+                    onMoveUp = { movePension(index, index - 1) },
+                    onMoveDown = { movePension(index, index + 1) },
                     onEdit = {
                         editingPension = p
                         showDialog = true
@@ -144,7 +181,7 @@ fun PensionScreen(
                 )
             }
 
-            item { Spacer(modifier = Modifier.height(64.dp)) }
+            item { Spacer(modifier = Modifier.height(96.dp)) }
         }
     }
 
@@ -288,6 +325,11 @@ private fun NationalPensionAdjustmentCard(
 @Composable
 private fun PensionItemCard(
     pension: Pension,
+    currentDateTime: LocalDateTime = LocalDateTime.now(),
+    canMoveUp: Boolean = false,
+    canMoveDown: Boolean = false,
+    onMoveUp: () -> Unit = {},
+    onMoveDown: () -> Unit = {},
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -300,6 +342,10 @@ private fun PensionItemCard(
         PensionType.OTHER -> TierOtherColor
     }
 
+    val growth = remember(pension, currentDateTime) {
+        RealTimeGrowthCalculator.calculatePensionGrowth(pension, currentDateTime)
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -308,15 +354,25 @@ private fun PensionItemCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
+            // 1. 상단 행: 연금 명칭 및 배지 vs 위/아래 이동 및 삭제 버튼
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.Top,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
-                    Text(text = pension.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Column(modifier = Modifier.weight(1f).padding(end = 6.dp)) {
+                    Text(
+                        text = pension.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                     Spacer(modifier = Modifier.height(4.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
                         Surface(
                             color = tierColor.copy(alpha = 0.15f),
                             shape = RoundedCornerShape(4.dp)
@@ -351,37 +407,95 @@ private fun PensionItemCard(
                         }
                     }
                 }
-                IconButton(onClick = onDelete, modifier = Modifier.size(24.dp)) {
-                    Icon(imageVector = Icons.Default.Delete, contentDescription = "삭제", tint = Color.Gray.copy(alpha = 0.6f))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    IconButton(onClick = onMoveUp, enabled = canMoveUp, modifier = Modifier.size(26.dp)) {
+                        Icon(imageVector = Icons.Default.KeyboardArrowUp, contentDescription = "위로 이동", tint = if (canMoveUp) MaterialTheme.colorScheme.onSurfaceVariant else Color.Gray.copy(alpha = 0.25f), modifier = Modifier.size(18.dp))
+                    }
+                    IconButton(onClick = onMoveDown, enabled = canMoveDown, modifier = Modifier.size(26.dp)) {
+                        Icon(imageVector = Icons.Default.KeyboardArrowDown, contentDescription = "아래로 이동", tint = if (canMoveDown) MaterialTheme.colorScheme.onSurfaceVariant else Color.Gray.copy(alpha = 0.25f), modifier = Modifier.size(18.dp))
+                    }
+                    IconButton(onClick = onDelete, modifier = Modifier.size(26.dp)) {
+                        Icon(imageVector = Icons.Default.Delete, contentDescription = "삭제", tint = Color.Gray.copy(alpha = 0.6f), modifier = Modifier.size(17.dp))
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text(text = "수령 기간", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(text = "${pension.startAge}세 ~ ${pension.endAge}세", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                }
-                if (pension.currentBalance > 0L) {
-                    Column {
-                        Text(text = "현재 적립금", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, softWrap = false, maxLines = 1)
-                        Text(text = CurrencyFormatter.formatKoreanWon(pension.currentBalance, isShort = true), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, softWrap = false, maxLines = 1)
-                    }
-                }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(text = "월 예상 수령액", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, softWrap = false, maxLines = 1)
+            // 2. 적립금 있는 경우: 현재 적립금 행 (전체 가로폭 활용하여 긴 금액도 줄바꿈/겹침 없이 단일 폰트·색상으로 표시)
+            if (pension.currentBalance > 0L) {
+                val displayBal = if (growth.accumulatedGrowth != 0L) growth.realTimeBalance else pension.currentBalance
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
-                        text = "${CurrencyFormatter.formatKoreanWon(pension.expectedMonthlyAmount)}/월",
+                        text = "현재 적립금",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = CurrencyFormatter.formatKoreanWon(displayBal, isShort = false),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
-                        color = EmeraldPrimary,
+                        color = MaterialTheme.colorScheme.onSurface,
                         softWrap = false,
                         maxLines = 1
                     )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+
+            // 3. 수령 기간 및 월 예상 수령액 행 (양 끝 정렬로 금액 겹침 방지)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "수령 기간  ${pension.startAge}세 ~ ${pension.endAge}세",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "월 예상 ${CurrencyFormatter.formatKoreanWon(pension.expectedMonthlyAmount)}/월",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = EmeraldPrimary,
+                    softWrap = false,
+                    maxLines = 1
+                )
+            }
+
+            // 4. 하단 메타 정보 행 (기준일, 기대수익률, 실시간 가산액 - 가로 전체폭 활용)
+            if (pension.currentBalance > 0L) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "기준: ${pension.effectiveBaseDate}" + if (pension.expectedGrowthRate > 0) " · 연 ${pension.expectedGrowthRate}%" else "",
+                        fontSize = 10.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                    if (growth.accumulatedGrowth != 0L) {
+                        val growthPrefix = if (growth.accumulatedGrowth >= 0) "+" else ""
+                        Text(
+                            text = "가산 $growthPrefix${CurrencyFormatter.formatKoreanWon(growth.accumulatedGrowth)} (초당 +${String.format(java.util.Locale.KOREA, "%,.2f", growth.wonPerSecond)}원)",
+                            fontSize = 10.sp,
+                            color = EmeraldPrimary,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    }
                 }
             }
         }
@@ -396,6 +510,7 @@ private fun PensionEditDialog(
     onSave: (Pension) -> Unit
 ) {
     var name by remember { mutableStateOf(pension?.name ?: "") }
+    var baseDate by remember { mutableStateOf(pension?.baseDate?.ifBlank { LocalDate.now().toString() } ?: LocalDate.now().toString()) }
     var type by remember { mutableStateOf(pension?.type ?: PensionType.PERSONAL) }
     var startAgeStr by remember { mutableStateOf(pension?.startAge?.toString() ?: "60") }
     var endAgeStr by remember { mutableStateOf(pension?.endAge?.toString() ?: "85") }
@@ -450,7 +565,7 @@ private fun PensionEditDialog(
         modifier = Modifier
             .fillMaxWidth(0.95f)
             .imePadding(),
-        title = { Text(if (pension == null) "연금 플랜 추가" else "연금 플랜 수정") },
+        title = { Text(if (pension == null) "연금 추가" else "연금 수정") },
         text = {
             LazyColumn(
                 modifier = Modifier
@@ -497,6 +612,15 @@ private fun PensionEditDialog(
                             )
                         }
                     }
+                }
+
+                // 기준일 (입력일자)
+                item {
+                    BaseDateInputField(
+                        baseDate = baseDate,
+                        onDateChange = { baseDate = it },
+                        label = "기준일 (입력 일자)"
+                    )
                 }
 
                 // 3) 연금 유형별 특화 안내 및 입력 UI
@@ -1081,6 +1205,7 @@ private fun PensionEditDialog(
 
                     val updated = pension?.copy(
                         name = name.ifBlank { type.displayName },
+                        baseDate = baseDate.trim(),
                         type = type,
                         startAge = finalStartAge,
                         endAge = finalEndAge,
@@ -1093,6 +1218,7 @@ private fun PensionEditDialog(
                         isDeductedFromIncome = isDeductedFromIncome
                     ) ?: Pension(
                         name = name.ifBlank { type.displayName },
+                        baseDate = baseDate.trim(),
                         type = type,
                         startAge = finalStartAge,
                         endAge = finalEndAge,

@@ -18,16 +18,27 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pension.alchemy.data.model.Asset
+import com.pension.alchemy.data.model.Income
+import com.pension.alchemy.data.model.Pension
 import com.pension.alchemy.data.model.SimulationSummary
 import com.pension.alchemy.data.model.UserProfile
+import com.pension.alchemy.domain.engine.RealTimeGrowthCalculator
 import com.pension.alchemy.theme.*
 import com.pension.alchemy.ui.components.*
 import com.pension.alchemy.util.CurrencyFormatter
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import java.time.LocalDateTime
+import java.util.Locale
 
 @Composable
 fun DashboardScreen(
     summary: SimulationSummary,
     profile: UserProfile = UserProfile(),
+    assets: List<Asset> = emptyList(),
+    pensions: List<Pension> = emptyList(),
+    incomes: List<Income> = emptyList(),
     modifier: Modifier = Modifier
 ) {
     var selectedAge by remember(summary.currentAge, summary.retirementAge, summary.endAge) {
@@ -37,6 +48,34 @@ fun DashboardScreen(
     val safeAge = selectedAge.coerceIn(summary.currentAge, summary.endAge)
     val selectedYearResult = summary.yearlyResults.firstOrNull { it.age == safeAge }
         ?: summary.yearlyResults.firstOrNull()
+
+    // 1초 단위 타이머
+    var currentDateTime by remember { mutableStateOf(LocalDateTime.now()) }
+
+    LaunchedEffect(Unit) {
+        while (isActive) {
+            delay(1000L)
+            currentDateTime = LocalDateTime.now()
+        }
+    }
+
+    // 기준일 기반 실시간 자산 및 순자산 초당 증가 연산
+    val realTimeGrowth = remember(assets, pensions, incomes, currentDateTime) {
+        RealTimeGrowthCalculator.calculateTotalRealTimeGrowth(assets, pensions, incomes, currentDateTime)
+    }
+
+    // 실시간 순자산 및 총자산
+    val displayNetWorth = if (assets.isNotEmpty() || pensions.isNotEmpty()) {
+        realTimeGrowth.realTimeNetWorth
+    } else {
+        summary.currentNetWorth
+    }
+
+    val displayTotalAssets = if (assets.isNotEmpty() || pensions.isNotEmpty()) {
+        realTimeGrowth.realTimeTotalGrossAssets
+    } else {
+        summary.currentTotalAssets
+    }
 
     Column(
         modifier = modifier
@@ -73,23 +112,47 @@ fun DashboardScreen(
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = CurrencyFormatter.formatKoreanWon(summary.currentNetWorth),
+                    text = CurrencyFormatter.formatKoreanWon(displayNetWorth),
                     style = MaterialTheme.typography.headlineMedium.copy(
                         fontWeight = FontWeight.ExtraBold,
-                        fontSize = 28.sp
+                        fontSize = 24.sp
                     ),
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                     maxLines = 1,
                     softWrap = false
                 )
+                if (realTimeGrowth.totalNetGain != 0L || realTimeGrowth.netWonPerSecond != 0.0) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(7.dp)
+                                .background(EmeraldPrimary, CircleShape)
+                        )
+                        val prefix = if (realTimeGrowth.totalNetGain >= 0) "+" else ""
+                        Text(
+                            text = "기준일 대비 $prefix${CurrencyFormatter.formatKoreanWon(realTimeGrowth.totalNetGain)} (초당 +${String.format(Locale.KOREA, "%,.2f", realTimeGrowth.netWonPerSecond)}원)",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f),
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.height(12.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "총자산 ${CurrencyFormatter.formatKoreanWon(summary.currentTotalAssets, isShort = true)}",
+                        text = "총자산 ${CurrencyFormatter.formatKoreanWon(displayTotalAssets)}",
                         fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f),
                         maxLines = 1,
                         softWrap = false
@@ -107,7 +170,8 @@ fun DashboardScreen(
 
         // 1-1. 실시간 초당 자산 수익 다이내믹 티커 카드
         RealTimeAssetGrowthTickerCard(
-            metrics = summary.realTimeYield
+            metrics = summary.realTimeYield,
+            baseDateAccumulatedGain = if (realTimeGrowth.totalNetGain != 0L) realTimeGrowth.totalNetGain else null
         )
 
         // 2. 은퇴 준비 건강도 점수 배너 (0 ~ 100점)

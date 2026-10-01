@@ -19,5 +19,10 @@ data class Income(
     val type: IncomeType = IncomeType.SALARY,
     val monthlyAmount: Long = 0L, // 월 소득 (원)
     val endAge: Int = 60,         // 소득 종료 나이 (은퇴 시기)
-    val expectedGrowthRate: Double = 2.0 // 임금/소득 상승률 (%)
-)
+    val expectedGrowthRate: Double = 2.0, // 임금/소득 상승률 (%)
+    // 소득 입력/기준 일자 (YYYY-MM-DD)
+    val baseDate: String = ""
+) {
+    val effectiveBaseDate: String
+        get() = if (baseDate.isNotBlank()) baseDate else java.time.LocalDate.now().toString()
+}
