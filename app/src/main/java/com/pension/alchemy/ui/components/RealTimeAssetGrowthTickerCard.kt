@@ -26,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pension.alchemy.data.model.RealTimeYieldMetrics
+import com.pension.alchemy.domain.engine.RealTimeGrowthCalculator
 import com.pension.alchemy.theme.*
 import com.pension.alchemy.util.CurrencyFormatter
 import kotlinx.coroutines.delay
@@ -43,18 +44,19 @@ import kotlin.math.roundToLong
 fun RealTimeAssetGrowthTickerCard(
     metrics: RealTimeYieldMetrics,
     baseDateAccumulatedGain: Long? = null,
+    globalBaseDateStr: String? = null,
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    // 0: 기준일 누적, 1: 오늘 0시 기준
+    // 0: 기준일 누적, 1: 오늘 기준
     // baseDateAccumulatedGain은 1초마다 실시간으로 갱신되므로, remember(baseDateAccumulatedGain)으로 key를 주면
-    // 1초마다 상태가 초기화되어 '오늘0시'를 선택해도 1초 뒤 '기준일'로 리셋되는 버그가 발생합니다.
+    // 1초마다 상태가 초기화되어 '오늘'을 선택해도 1초 뒤 '기준일'로 리셋되는 버그가 발생합니다.
     // 따라서 사용자의 명시적 모드 선택 상태는 별도로 보존합니다.
     var userSelectedMode by remember { mutableStateOf<Int?>(null) }
     val selectedMode = userSelectedMode ?: (if (baseDateAccumulatedGain != null && baseDateAccumulatedGain != 0L) 0 else 1)
 
-    // 오늘 0시 기준 경과 초 (매 1초마다 갱신)
+    // 오늘 기준 경과 초 (매 1초마다 갱신)
     var currentSecondOfDay by remember {
         mutableLongStateOf(LocalTime.now().toSecondOfDay().toLong())
     }
@@ -159,7 +161,7 @@ fun RealTimeAssetGrowthTickerCard(
                                         .padding(horizontal = 8.dp, vertical = 2.dp)
                                 )
                                 Text(
-                                    text = "오늘0시",
+                                    text = "오늘",
                                     fontSize = 11.sp,
                                     fontWeight = if (selectedMode == 1) FontWeight.Bold else FontWeight.Normal,
                                     color = if (selectedMode == 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -203,9 +205,14 @@ fun RealTimeAssetGrowthTickerCard(
             ) {
                 Column {
                     val gainText = if (selectedMode == 0) {
-                        if (displayGain >= 0) "입력 기준일 대비 누적 순자산 증가" else "입력 기준일 대비 누적 순자산 감소"
+                        val baseDateLabel = if (!globalBaseDateStr.isNullOrBlank()) {
+                            RealTimeGrowthCalculator.formatAsBaseDateLabel(globalBaseDateStr)
+                        } else {
+                            "입력 기준일 대비"
+                        }
+                        if (displayGain >= 0) "$baseDateLabel 누적 순자산 증가" else "$baseDateLabel 누적 순자산 감소"
                     } else {
-                        if (displayGain >= 0) "0시 기준 현재까지 불어난 순자산" else "0시 기준 현재까지 줄어든 순자산"
+                        if (displayGain >= 0) "오늘 누적 순자산 증가" else "오늘 누적 순자산 감소"
                     }
                     Text(
                         text = gainText,

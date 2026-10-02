@@ -46,6 +46,7 @@ fun PensionScreen(
 ) {
     var showDialog by remember { mutableStateOf(false) }
     var editingPension by remember { mutableStateOf<Pension?>(null) }
+    var pensionToDelete by remember { mutableStateOf<Pension?>(null) }
 
     // 1초 단위 타이머
     var currentDateTime by remember { mutableStateOf(LocalDateTime.now()) }
@@ -177,7 +178,7 @@ fun PensionScreen(
                         editingPension = p
                         showDialog = true
                     },
-                    onDelete = { onDeletePension(p.id) }
+                    onDelete = { pensionToDelete = p }
                 )
             }
 
@@ -193,6 +194,42 @@ fun PensionScreen(
             onSave = {
                 onSavePension(it)
                 showDialog = false
+            }
+        )
+    }
+
+    // 연금 삭제 확인 다이얼로그
+    if (pensionToDelete != null) {
+        val target = pensionToDelete!!
+        AlertDialog(
+            onDismissRequest = { pensionToDelete = null },
+            title = {
+                Text(
+                    text = "연금 항목 삭제",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = "'${target.name}' 연금을 삭제하시겠습니까?\n삭제된 데이터는 복구할 수 없습니다.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onDeletePension(target.id)
+                        pensionToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = RoseDanger)
+                ) {
+                    Text("삭제")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pensionToDelete = null }) {
+                    Text("취소")
+                }
             }
         )
     }

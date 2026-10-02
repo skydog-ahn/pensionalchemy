@@ -236,4 +236,257 @@ class RealTimeGrowthCalculatorTest {
         // 0원
         assertEquals("0원", CurrencyFormatter.formatKoreanWon(0L))
     }
+
+    @Test
+    fun testGlobalBaseDateTimeEarlierThanItemBaseDate() {
+        // 전체 공통 기준일이 항목 기준일보다 빠른 경우:
+        // 전체 기준일: 2026-05-01, 자산 등록일: 2026-07-01, 현재 시점: 2026-09-01
+        // 항목 기준일(7월 1일)부터 현재까지 계산된 것이 총자산 타이머로 계산됨
+        val globalBase = "2026-05-01 00:00:00"
+        val asset = Asset(
+            id = "a1",
+            name = "성장주",
+            type = AssetType.STOCK,
+            currentValue = 100_000_000L,
+            expectedGrowthRate = 10.0,
+            baseDate = "2026-07-01"
+        )
+        val currentDateTime = LocalDateTime.of(2026, 9, 1, 0, 0, 0)
+
+        val summary = RealTimeGrowthCalculator.calculateTotalRealTimeGrowth(
+            assets = listOf(asset),
+            pensions = emptyList(),
+            currentDateTime = currentDateTime,
+            globalBaseDateTime = globalBase
+        )
+
+        // 전체 기준일 시점의 기초자산은 원금 1억원
+        assertEquals(100_000_000L, summary.baseTotalGrossAssets)
+
+        // 7월 1일부터 9월 1일까지(62일간)의 초당 증가가 누적 증가액으로 계산
+        val expectedWonPerSec = (100_000_000L * 0.10) / RealTimeGrowthCalculator.SECONDS_PER_YEAR
+        val expectedGain = (62L * 86400L * expectedWonPerSec).toLong()
+        assertTrue("누적 증가액은 약 170만원 가량이어야 함", summary.totalGrossAssetGain in (expectedGain - 50_000L)..(expectedGain + 50_000L))
+        assertEquals(summary.baseTotalGrossAssets + summary.totalGrossAssetGain, summary.realTimeTotalGrossAssets)
+
+        // 개별 자산의 실시간 가치와 총자산 실시간 가치가 정확히 일치
+        val assetDetail = RealTimeGrowthCalculator.calculateAssetGrowth(asset, currentDateTime)
+        assertEquals(assetDetail.realTimeValue, summary.realTimeTotalGrossAssets)
+    }
+
+    @Test
+    fun testGlobalBaseDateTimeLaterThanItemBaseDate() {
+        // 항목 기준일이 전체 공통 기준일보다 빠른 경우:
+        // 자산 등록일: 2026-05-01, 전체 기준일: 2026-07-01, 현재 시점: 2026-09-01
+        // 자산 기준일부터 전체 기준일까지의 계산값이 기초자산에 추가되고, 전체 기준일부터 현재 일시까지 맞춰 계산됨
+        val globalBase = "2026-07-01 00:00:00"
+        val asset = Asset(
+            id = "a1",
+            name = "배당주",
+            type = AssetType.STOCK,
+            currentValue = 100_000_000L,
+            expectedGrowthRate = 10.0,
+            baseDate = "2026-05-01"
+        )
+        val currentDateTime = LocalDateTime.of(2026, 9, 1, 0, 0, 0)
+
+        val summary = RealTimeGrowthCalculator.calculateTotalRealTimeGrowth(
+            assets = listOf(asset),
+            pensions = emptyList(),
+            currentDateTime = currentDateTime,
+            globalBaseDateTime = globalBase
+        )
+
+        val wonPerSec = (100_000_000L * 0.10) / RealTimeGrowthCalculator.SECONDS_PER_YEAR
+        val preGain = (61L * 86400L * wonPerSec).toLong() // 5월 1일 ~ 7월 1일 (61일)
+        val postGain = (62L * 86400L * wonPerSec).toLong() // 7월 1일 ~ 9월 1일 (62일)
+
+        // 전체 기준일(7월 1일) 시점의 기초자산에는 5월~7월 증가분이 추가됨
+        assertTrue("기초자산에 기준일까지의 증가분이 가산되어야 함", summary.baseTotalGrossAssets > 100_000_000L)
+        assertTrue(summary.baseTotalGrossAssets in (100_000_000L + preGain - 50_000L)..(100_000_000L + preGain + 50_000L))
+
+        // 전체 기준일 대비 증가는 7월 1일 ~ 9월 1일(62일)분
+        assertTrue(summary.totalGrossAssetGain in (postGain - 50_000L)..(postGain + 50_000L))
+
+        // 현재 일시까지 맞춘 실시간 총자산 = 개별 자산의 5월~9월 총 실시간 가치와 완벽 일치!
+        val assetDetail = RealTimeGrowthCalculator.calculateAssetGrowth(asset, currentDateTime)
+        assertEquals(assetDetail.realTimeValue, summary.realTimeTotalGrossAssets)
+        assertEquals(summary.baseTotalGrossAssets + summary.totalGrossAssetGain, summary.realTimeTotalGrossAssets)
+    }
+
+    @Test
+    fun testMixedItemBaseDatesWithGlobalBaseDateTime() {
+        // 빠른 항목(자산 A: 2026-03-01)과 늦은 항목(연금 B: 2026-08-01)이 혼합된 경우
+        // 전체 기준일: 2026-06-01, 현재 시점: 2026-10-01
+        val globalBase = "2026-06-01 00:00:00"
+        val asset = Asset(
+            id = "a1",
+            name = "글로벌 ETF",
+            type = AssetType.ETF,
+            currentValue = 200_000_000L,
+            expectedGrowthRate = 6.0,
+            baseDate = "2026-03-01" // 전체 기준일보다 빠름
+        )
+        val pension = Pension(
+            id = "p1",
+            name = "개인연금",
+            type = PensionType.PERSONAL,
+            currentBalance = 50_000_000L,
+            expectedGrowthRate = 5.0,
+            baseDate = "2026-08-01" // 전체 기준일보다 늦음
+        )
+        val currentDateTime = LocalDateTime.of(2026, 10, 1, 0, 0, 0)
+
+        val summary = RealTimeGrowthCalculator.calculateTotalRealTimeGrowth(
+            assets = listOf(asset),
+            pensions = listOf(pension),
+            currentDateTime = currentDateTime,
+            globalBaseDateTime = globalBase
+        )
+
+        // 회계적 항등식 검증: Base + Gain == RealTime
+        assertEquals(summary.baseTotalGrossAssets + summary.totalGrossAssetGain, summary.realTimeTotalGrossAssets)
+
+        // 개별 항목 실시간 가치의 합 == 총자산 실시간 가치
+        val assetDetail = RealTimeGrowthCalculator.calculateAssetGrowth(asset, currentDateTime)
+        val pensionDetail = RealTimeGrowthCalculator.calculatePensionGrowth(pension, currentDateTime)
+        val expectedRealTimeSum = assetDetail.realTimeValue + pensionDetail.realTimeBalance
+        assertEquals(expectedRealTimeSum, summary.realTimeTotalGrossAssets)
+    }
+
+    @Test
+    fun testFormatAsBaseDateLabel() {
+        // yyyy-MM-dd HH:mm 형식의 일시 문자열이 "yyyy.MM.dd 기준"으로만 변환되는지 검증
+        assertEquals("2026.10.02 기준", RealTimeGrowthCalculator.formatAsBaseDateLabel("2026-10-02 22:40"))
+        assertEquals("2026.10.02 기준", RealTimeGrowthCalculator.formatAsBaseDateLabel("2026-10-02 22:40:55"))
+        assertEquals("2026.10.02 기준", RealTimeGrowthCalculator.formatAsBaseDateLabel("2026-10-02"))
+
+        // null 또는 빈 문자열인 경우 fallback
+        assertEquals("기준일 대비", RealTimeGrowthCalculator.formatAsBaseDateLabel(""))
+        assertEquals("기준일 대비", RealTimeGrowthCalculator.formatAsBaseDateLabel(null))
+
+        // formatAsDotDate 단독 검증
+        assertEquals("2026.10.02", RealTimeGrowthCalculator.formatAsDotDate("2026-10-02 22:40"))
+        assertEquals("2026.05.15", RealTimeGrowthCalculator.formatAsDotDate("2026-05-15"))
+        assertEquals("", RealTimeGrowthCalculator.formatAsDotDate(null))
+        assertEquals("", RealTimeGrowthCalculator.formatAsDotDate(""))
+    }
+
+    @Test
+    fun testPensionContributionPreservedInNetWorth() {
+        // 급여 650만원, 생활비 400만원, 사적연금 납입 150만원(급여차감)인 가계
+        // 연금 납입은 소비가 아니라 계좌간 이체(저축)이므로, 순자산 관점에서는 (소득 - 생활비) = 250만원이 온전히 보존되어야 함.
+        val pension = Pension(
+            id = "p1",
+            name = "개인연금",
+            type = PensionType.PERSONAL,
+            currentBalance = 10_000_000L,
+            expectedGrowthRate = 0.0,
+            monthlyContribution = 1_500_000L,
+            contributionEndAge = 60,
+            isDeductedFromIncome = true,
+            baseDate = "2026-01-01"
+        )
+        val income = Income(
+            id = "i1",
+            name = "급여",
+            type = com.pension.alchemy.data.model.IncomeType.SALARY,
+            monthlyAmount = 6_500_000L,
+            endAge = 60,
+            baseDate = "2026-01-01"
+        )
+        val globalBase = "2026-01-01 00:00"
+        val currentDateTime = LocalDateTime.of(2027, 1, 1, 0, 0, 0) // 정확히 1년 경과 (365.25일)
+
+        val summary = RealTimeGrowthCalculator.calculateTotalRealTimeGrowth(
+            assets = emptyList(),
+            pensions = listOf(pension),
+            incomes = listOf(income),
+            monthlyExpenses = 4_000_000L,
+            currentAge = 50,
+            currentDateTime = currentDateTime,
+            globalBaseDateTime = globalBase
+        )
+
+        // 1년간 연금 납입액: 1,500,000 * 12 = 18,000,000원
+        // 연금 적립금 자산 잔고: 기존 1000만원 + 1년간 납입 1800만원 = 2800만원
+        val expectedPensionBal = 28_000_000L
+        assertTrue("연금 잔고는 납입금이 적립되어 2800만원이어야 함", summary.realTimePensionAssets in (expectedPensionBal - 50_000L)..(expectedPensionBal + 50_000L))
+
+        // 회계적 항등식 100% 만족
+        assertEquals(summary.baseTotalGrossAssets + summary.totalGrossAssetGain, summary.realTimeTotalGrossAssets)
+        assertEquals(summary.baseNetWorth + summary.totalNetGain, summary.realTimeNetWorth)
+    }
+
+    @Test
+    fun testCurrentNetWorthIsIdenticalRegardlessOfGlobalBaseDate() {
+        // [사용자 핵심 질문 검증]:
+        // 전체기준일을 2026년 1월 1일로 하였을 때 현재 순자산 값과, 전체기준일을 현재 시간으로 하였을 때 현재 순자산 값은
+        // 1원 단위까지 100% 완벽하게 동일해야 함!
+        val asset1 = Asset(
+            id = "a1",
+            name = "국내주식",
+            type = AssetType.STOCK,
+            currentValue = 340_000_000L,
+            expectedGrowthRate = 10.0,
+            baseDate = "2026-09-01"
+        )
+        val asset2 = Asset(
+            id = "a2",
+            name = "현금성",
+            type = AssetType.OTHER,
+            currentValue = 750_000_000L,
+            expectedGrowthRate = 2.5,
+            baseDate = "2026-01-01"
+        )
+        val pension1 = Pension(
+            id = "p1",
+            name = "퇴직연금",
+            type = PensionType.RETIREMENT,
+            currentBalance = 360_000_000L,
+            expectedGrowthRate = 4.5,
+            baseDate = "2025-09-30"
+        )
+        val income1 = Income(
+            id = "i1",
+            name = "급여",
+            type = com.pension.alchemy.data.model.IncomeType.SALARY,
+            monthlyAmount = 6_500_000L,
+            baseDate = ""
+        )
+
+        val currentDateTime = LocalDateTime.of(2026, 10, 2, 23, 12, 0)
+
+        // Case A: 전체기준일 = 2026-01-01
+        val summaryA = RealTimeGrowthCalculator.calculateTotalRealTimeGrowth(
+            assets = listOf(asset1, asset2),
+            pensions = listOf(pension1),
+            incomes = listOf(income1),
+            monthlyExpenses = 4_000_000L,
+            currentDateTime = currentDateTime,
+            globalBaseDateTime = "2026-01-01 00:00"
+        )
+
+        // Case B: 전체기준일 = 현재 시간 (2026-10-02 23:12:00)
+        val summaryB = RealTimeGrowthCalculator.calculateTotalRealTimeGrowth(
+            assets = listOf(asset1, asset2),
+            pensions = listOf(pension1),
+            incomes = listOf(income1),
+            monthlyExpenses = 4_000_000L,
+            currentDateTime = currentDateTime,
+            globalBaseDateTime = "2026-10-02 23:12"
+        )
+
+        // 검증 1: 두 경우의 현재 순자산(realTimeNetWorth)은 완벽히 동일해야 함!
+        assertEquals("전체기준일이 1월 1일이든 현재시간이든 현재 순자산은 동일해야 함", summaryA.realTimeNetWorth, summaryB.realTimeNetWorth)
+        assertEquals("현재 총자산도 완벽히 동일해야 함", summaryA.realTimeTotalGrossAssets, summaryB.realTimeTotalGrossAssets)
+
+        // 검증 2: 전체기준일이 현재시간일 때 누적 증가액은 0원이어야 함
+        assertEquals(0L, summaryB.totalNetGain)
+        assertEquals(summaryB.realTimeNetWorth, summaryB.baseNetWorth)
+
+        // 검증 3: 전체기준일이 1월 1일일 때 누적 증가액은 양수(성장분)이어야 함
+        assertTrue(summaryA.totalNetGain > 0L)
+        assertEquals(summaryA.baseNetWorth + summaryA.totalNetGain, summaryA.realTimeNetWorth)
+    }
 }

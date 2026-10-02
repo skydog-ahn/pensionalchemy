@@ -14,7 +14,7 @@ const AppSimulator = {
         settingsTab: 0, // 0: 기본 프로필, 1: 세법·정책 변수
         guideCategory: 0, // 0: 앱 사용 도움말, 1: 재무비법, 2: 정부 포털, 3: 유튜브 채널
         onboardingStep: 0, // 0~3 단계
-        tickerMode: 0, // 0: 기준일, 1: 오늘0시
+        tickerMode: 0, // 0: 기준일, 1: 오늘
         tickerExpanded: false,
 
         // 데이터 모델
@@ -662,7 +662,7 @@ const AppSimulator = {
                 <div style="display: flex; align-items: center; gap: 6px;">
                     <div style="display: flex; background: var(--bg-hover, rgba(255,255,255,0.06)); padding: 2px; border-radius: 8px;" onclick="event.stopPropagation()">
                         <span onclick="AppSimulator.setTickerMode(0)" style="font-size: 11px; font-weight: ${mode === 0 ? '700' : '400'}; color: ${mode === 0 ? 'var(--primary)' : 'var(--text-muted)'}; background: ${mode === 0 ? 'var(--bg-card)' : 'transparent'}; padding: 2px 8px; border-radius: 6px; cursor: pointer;">기준일</span>
-                        <span onclick="AppSimulator.setTickerMode(1)" style="font-size: 11px; font-weight: ${mode === 1 ? '700' : '400'}; color: ${mode === 1 ? 'var(--primary)' : 'var(--text-muted)'}; background: ${mode === 1 ? 'var(--bg-card)' : 'transparent'}; padding: 2px 8px; border-radius: 6px; cursor: pointer;">오늘0시</span>
+                        <span onclick="AppSimulator.setTickerMode(1)" style="font-size: 11px; font-weight: ${mode === 1 ? '700' : '400'}; color: ${mode === 1 ? 'var(--primary)' : 'var(--text-muted)'}; background: ${mode === 1 ? 'var(--bg-card)' : 'transparent'}; padding: 2px 8px; border-radius: 6px; cursor: pointer;">오늘</span>
                     </div>
                     <span style="font-size: 10px; font-weight: 800; color: ${trendColor}; background: ${trendColor}1a; padding: 2px 6px; border-radius: 6px;">● LIVE</span>
                 </div>
@@ -673,7 +673,7 @@ const AppSimulator = {
                     <div style="font-size: 11px; color: var(--text-muted);" id="sim-ticker-subtitle">
                         ${mode === 0 
                             ? (displayGain >= 0 ? '입력 기준일 대비 누적 순자산 증가' : '입력 기준일 대비 누적 순자산 감소')
-                            : (displayGain >= 0 ? '0시 기준 현재까지 불어난 순자산' : '0시 기준 현재까지 줄어든 순자산')}
+                            : (displayGain >= 0 ? '오늘 누적 순자산 증가' : '오늘 누적 순자산 감소')}
                     </div>
                     <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px;">
                         <span style="color: ${trendColor}; font-size: 18px;">${isPos ? '↗' : '↘'}</span>
@@ -2176,7 +2176,9 @@ const AppSimulator = {
     },
 
     deleteAsset(id) {
-        if (confirm('해당 자산/부채 항목을 삭제하시겠습니까?')) {
+        const item = this.state.assets.find(a => a.id === id);
+        const nameText = item ? `'${item.name}' ` : '';
+        if (confirm(`${nameText}자산/부채 항목을 삭제하시겠습니까?\n삭제된 데이터는 복구할 수 없습니다.`)) {
             this.state.assets = this.state.assets.filter(a => a.id !== id);
             this.runSimulation();
             this.renderAll();
@@ -2184,7 +2186,9 @@ const AppSimulator = {
     },
 
     deleteIncome(id) {
-        if (confirm('해당 소득 항목을 삭제하시겠습니까?')) {
+        const item = this.state.incomes.find(i => i.id === id);
+        const nameText = item ? `'${item.name}' ` : '';
+        if (confirm(`${nameText}소득 항목을 삭제하시겠습니까?\n삭제된 데이터는 복구할 수 없습니다.`)) {
             this.state.incomes = this.state.incomes.filter(i => i.id !== id);
             this.runSimulation();
             this.renderAll();
@@ -2192,7 +2196,9 @@ const AppSimulator = {
     },
 
     deletePension(id) {
-        if (confirm('해당 연금 항목을 삭제하시겠습니까?')) {
+        const item = this.state.pensions.find(p => p.id === id);
+        const nameText = item ? `'${item.name}' ` : '';
+        if (confirm(`${nameText}연금 항목을 삭제하시겠습니까?\n삭제된 데이터는 복구할 수 없습니다.`)) {
             this.state.pensions = this.state.pensions.filter(p => p.id !== id);
             this.runSimulation();
             this.renderAll();

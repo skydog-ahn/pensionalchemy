@@ -47,6 +47,7 @@ fun AssetScreen(
     onSaveIncome: (Income) -> Unit,
     onDeleteIncome: (String) -> Unit,
     onReorderIncomes: (List<Income>) -> Unit = {},
+    profile: UserProfile = UserProfile(),
     modifier: Modifier = Modifier
 ) {
     var selectedTab by remember { mutableIntStateOf(0) } // 0: 자산, 1: 소득
@@ -55,6 +56,9 @@ fun AssetScreen(
 
     var showIncomeDialog by remember { mutableStateOf(false) }
     var editingIncome by remember { mutableStateOf<Income?>(null) }
+
+    var assetToDelete by remember { mutableStateOf<Asset?>(null) }
+    var incomeToDelete by remember { mutableStateOf<Income?>(null) }
 
     // 1초 단위 타이머
     var currentDateTime by remember { mutableStateOf(LocalDateTime.now()) }
@@ -66,12 +70,13 @@ fun AssetScreen(
         }
     }
 
-    val realTimeGrowth = remember(assets, incomes, currentDateTime) {
+    val realTimeGrowth = remember(assets, incomes, currentDateTime, profile.effectiveGlobalBaseDateTime) {
         RealTimeGrowthCalculator.calculateTotalRealTimeGrowth(
             assets = assets,
             pensions = emptyList(),
             incomes = incomes,
-            currentDateTime = currentDateTime
+            currentDateTime = currentDateTime,
+            globalBaseDateTime = profile.effectiveGlobalBaseDateTime
         )
     }
 
@@ -253,7 +258,7 @@ fun AssetScreen(
                                     editingAsset = asset
                                     showAssetDialog = true
                                 },
-                                onDelete = { onDeleteAsset(asset.id) }
+                                onDelete = { assetToDelete = asset }
                             )
                         }
                         item { Spacer(modifier = Modifier.height(96.dp)) }
@@ -278,7 +283,7 @@ fun AssetScreen(
                                     editingIncome = income
                                     showIncomeDialog = true
                                 },
-                                onDelete = { onDeleteIncome(income.id) }
+                                onDelete = { incomeToDelete = income }
                             )
                         }
                         item { Spacer(modifier = Modifier.height(96.dp)) }
@@ -308,6 +313,79 @@ fun AssetScreen(
             onSave = {
                 onSaveIncome(it)
                 showIncomeDialog = false
+            }
+        )
+    }
+
+    // 자산 삭제 확인 다이얼로그
+    if (assetToDelete != null) {
+        val target = assetToDelete!!
+        val isLiability = target.isLiability
+        AlertDialog(
+            onDismissRequest = { assetToDelete = null },
+            title = {
+                Text(
+                    text = if (isLiability) "부채 항목 삭제" else "자산 항목 삭제",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = "'${target.name}' 항목을 삭제하시겠습니까?\n삭제된 데이터는 복구할 수 없습니다.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onDeleteAsset(target.id)
+                        assetToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = RoseDanger)
+                ) {
+                    Text("삭제")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { assetToDelete = null }) {
+                    Text("취소")
+                }
+            }
+        )
+    }
+
+    // 소득 삭제 확인 다이얼로그
+    if (incomeToDelete != null) {
+        val target = incomeToDelete!!
+        AlertDialog(
+            onDismissRequest = { incomeToDelete = null },
+            title = {
+                Text(
+                    text = "소득 항목 삭제",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = "'${target.name}' 항목을 삭제하시겠습니까?\n삭제된 데이터는 복구할 수 없습니다.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onDeleteIncome(target.id)
+                        incomeToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = RoseDanger)
+                ) {
+                    Text("삭제")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { incomeToDelete = null }) {
+                    Text("취소")
+                }
             }
         )
     }

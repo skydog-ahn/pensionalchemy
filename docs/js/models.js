@@ -90,6 +90,7 @@ class UserProfile {
         this.medicalExpenseRatio = init.medicalExpenseRatio ?? 0.10;
         this.inflationRate = init.inflationRate ?? 2.0;
         this.currency = init.currency ?? 'KRW';
+        this.globalBaseDateTime = init.globalBaseDateTime ?? '2026-01-01';
         this.policySettings = new PolicySettings(init.policySettings || {});
     }
 
@@ -108,6 +109,7 @@ class Asset {
         this.repaymentMethod = init.repaymentMethod || 'EQUAL_PRINCIPAL_AND_INTEREST';
         this.maturityYears = Number(init.maturityYears) || 10;
         this.isLiability = init.isLiability !== undefined ? Boolean(init.isLiability) : (this.type === 'DEBT');
+        this.baseDate = init.baseDate || '2026-01-01';
     }
 }
 
@@ -125,6 +127,8 @@ class Pension {
         this.contributionEndAge = Number(init.contributionEndAge) || 60;
         this.isTaxDeductionEligible = Boolean(init.isTaxDeductionEligible);
         this.claimOffsetYears = Number(init.claimOffsetYears) || 0;
+        this.isDeductedFromIncome = init.isDeductedFromIncome !== undefined ? Boolean(init.isDeductedFromIncome) : true;
+        this.baseDate = init.baseDate || '2026-01-01';
     }
 }
 
@@ -136,6 +140,7 @@ class Income {
         this.monthlyAmount = Number(init.monthlyAmount) || 0;
         this.endAge = Number(init.endAge) || 60;
         this.expectedGrowthRate = Number(init.expectedGrowthRate) || 0;
+        this.baseDate = init.baseDate || '2026-01-01';
     }
 }
 
@@ -150,20 +155,21 @@ const Presets = {
             currentMonthlyExpenses: 1800000,
             monthlyExpenses: 2000000,
             medicalExpenseRatio: 0.08,
-            inflationRate: 2.0
+            inflationRate: 2.0,
+            globalBaseDateTime: '2026-01-01'
         }),
         pensions: [
-            new Pension({ id: 'p_20_1', name: '국민연금', type: 'NATIONAL', startAge: 65, endAge: 100, expectedMonthlyAmount: 1200000, expectedGrowthRate: 2.0, claimOffsetYears: 0 }),
-            new Pension({ id: 'p_20_2', name: '개인연금저축펀드', type: 'PERSONAL', startAge: 60, endAge: 85, expectedMonthlyAmount: 600000, expectedGrowthRate: 6.0, currentBalance: 3000000, monthlyContribution: 200000, contributionEndAge: 60, isTaxDeductionEligible: true }),
-            new Pension({ id: 'p_20_3', name: '퇴직연금 (DC)', type: 'RETIREMENT', startAge: 60, endAge: 80, expectedMonthlyAmount: 500000, expectedGrowthRate: 5.0, currentBalance: 4000000, monthlyContribution: 250000, contributionEndAge: 60, isTaxDeductionEligible: true })
+            new Pension({ id: 'p_20_1', name: '국민연금', type: 'NATIONAL', startAge: 65, endAge: 100, expectedMonthlyAmount: 1200000, expectedGrowthRate: 2.0, claimOffsetYears: 0, baseDate: '2026-01-01' }),
+            new Pension({ id: 'p_20_2', name: '개인연금저축펀드', type: 'PERSONAL', startAge: 60, endAge: 85, expectedMonthlyAmount: 600000, expectedGrowthRate: 6.0, currentBalance: 3000000, monthlyContribution: 200000, contributionEndAge: 60, isTaxDeductionEligible: true, baseDate: '2026-01-01' }),
+            new Pension({ id: 'p_20_3', name: '퇴직연금 (DC)', type: 'RETIREMENT', startAge: 60, endAge: 80, expectedMonthlyAmount: 500000, expectedGrowthRate: 5.0, currentBalance: 4000000, monthlyContribution: 250000, contributionEndAge: 60, isTaxDeductionEligible: true, baseDate: '2026-01-01' })
         ],
         assets: [
-            new Asset({ id: 'a_20_1', name: '청년도약 및 청약저축', type: 'SAVINGS', currentValue: 15000000, expectedGrowthRate: 4.5, isLiability: false }),
-            new Asset({ id: 'a_20_2', name: '비상금 파킹통장', type: 'DEPOSIT', currentValue: 5000000, expectedGrowthRate: 2.5, isLiability: false }),
-            new Asset({ id: 'a_20_3', name: '학자금 대출(부채)', type: 'DEBT', currentValue: 8000000, expectedGrowthRate: 1.7, repaymentMethod: 'EQUAL_PRINCIPAL_AND_INTEREST', maturityYears: 5, isLiability: true })
+            new Asset({ id: 'a_20_1', name: '청년도약 및 청약저축', type: 'SAVINGS', currentValue: 15000000, expectedGrowthRate: 4.5, isLiability: false, baseDate: '2026-01-01' }),
+            new Asset({ id: 'a_20_2', name: '비상금 파킹통장', type: 'DEPOSIT', currentValue: 5000000, expectedGrowthRate: 2.5, isLiability: false, baseDate: '2026-01-01' }),
+            new Asset({ id: 'a_20_3', name: '학자금 대출(부채)', type: 'DEBT', currentValue: 8000000, expectedGrowthRate: 1.7, repaymentMethod: 'EQUAL_PRINCIPAL_AND_INTEREST', maturityYears: 5, isLiability: true, baseDate: '2026-01-01' })
         ],
         incomes: [
-            new Income({ id: 'i_20_1', name: '첫 직장 급여', type: 'SALARY', monthlyAmount: 2800000, endAge: 60, expectedGrowthRate: 3.5 })
+            new Income({ id: 'i_20_1', name: '첫 직장 급여', type: 'SALARY', monthlyAmount: 2800000, endAge: 60, expectedGrowthRate: 3.5, baseDate: '2026-01-01' })
         ]
     }),
 
@@ -176,21 +182,22 @@ const Presets = {
             currentMonthlyExpenses: 2800000,
             monthlyExpenses: 2600000,
             medicalExpenseRatio: 0.09,
-            inflationRate: 2.0
+            inflationRate: 2.0,
+            globalBaseDateTime: '2026-01-01'
         }),
         pensions: [
-            new Pension({ id: 'p_30_1', name: '국민연금', type: 'NATIONAL', startAge: 65, endAge: 100, expectedMonthlyAmount: 1500000, expectedGrowthRate: 2.0, claimOffsetYears: 0 }),
-            new Pension({ id: 'p_30_2', name: '퇴직연금 (IRP)', type: 'RETIREMENT', startAge: 60, endAge: 80, expectedMonthlyAmount: 900000, expectedGrowthRate: 5.0, currentBalance: 35000000, monthlyContribution: 300000, contributionEndAge: 60, isTaxDeductionEligible: true }),
-            new Pension({ id: 'p_30_3', name: '개인연금저축', type: 'PERSONAL', startAge: 60, endAge: 85, expectedMonthlyAmount: 850000, expectedGrowthRate: 5.5, currentBalance: 25000000, monthlyContribution: 400000, contributionEndAge: 60, isTaxDeductionEligible: true })
+            new Pension({ id: 'p_30_1', name: '국민연금', type: 'NATIONAL', startAge: 65, endAge: 100, expectedMonthlyAmount: 1500000, expectedGrowthRate: 2.0, claimOffsetYears: 0, baseDate: '2026-01-01' }),
+            new Pension({ id: 'p_30_2', name: '퇴직연금 (IRP)', type: 'RETIREMENT', startAge: 60, endAge: 80, expectedMonthlyAmount: 900000, expectedGrowthRate: 5.0, currentBalance: 35000000, monthlyContribution: 300000, contributionEndAge: 60, isTaxDeductionEligible: true, baseDate: '2026-01-01' }),
+            new Pension({ id: 'p_30_3', name: '개인연금저축', type: 'PERSONAL', startAge: 60, endAge: 85, expectedMonthlyAmount: 850000, expectedGrowthRate: 5.5, currentBalance: 25000000, monthlyContribution: 400000, contributionEndAge: 60, isTaxDeductionEligible: true, baseDate: '2026-01-01' })
         ],
         assets: [
-            new Asset({ id: 'a_30_1', name: '전세보증금(부동산)', type: 'REAL_ESTATE', currentValue: 300000000, expectedGrowthRate: 2.0, isLiability: false }),
-            new Asset({ id: 'a_30_2', name: '미국 지수 ETF', type: 'ETF', currentValue: 45000000, expectedGrowthRate: 7.0, isLiability: false }),
-            new Asset({ id: 'a_30_3', name: '비상금 CMA', type: 'DEPOSIT', currentValue: 15000000, expectedGrowthRate: 3.0, isLiability: false }),
-            new Asset({ id: 'a_30_4', name: '전세대출(부채)', type: 'DEBT', currentValue: 140000000, expectedGrowthRate: 3.8, repaymentMethod: 'BULLET', maturityYears: 4, isLiability: true })
+            new Asset({ id: 'a_30_1', name: '전세보증금(부동산)', type: 'REAL_ESTATE', currentValue: 300000000, expectedGrowthRate: 2.0, isLiability: false, baseDate: '2026-01-01' }),
+            new Asset({ id: 'a_30_2', name: '미국 지수 ETF', type: 'ETF', currentValue: 45000000, expectedGrowthRate: 7.0, isLiability: false, baseDate: '2026-01-01' }),
+            new Asset({ id: 'a_30_3', name: '비상금 CMA', type: 'DEPOSIT', currentValue: 15000000, expectedGrowthRate: 3.0, isLiability: false, baseDate: '2026-01-01' }),
+            new Asset({ id: 'a_30_4', name: '전세대출(부채)', type: 'DEBT', currentValue: 140000000, expectedGrowthRate: 3.8, repaymentMethod: 'BULLET', maturityYears: 4, isLiability: true, baseDate: '2026-01-01' })
         ],
         incomes: [
-            new Income({ id: 'i_30_1', name: '주 직장 급여', type: 'SALARY', monthlyAmount: 4200000, endAge: 60, expectedGrowthRate: 3.0 })
+            new Income({ id: 'i_30_1', name: '주 직장 급여', type: 'SALARY', monthlyAmount: 4200000, endAge: 60, expectedGrowthRate: 3.0, baseDate: '2026-01-01' })
         ]
     }),
 
@@ -203,23 +210,24 @@ const Presets = {
             currentMonthlyExpenses: 3800000,
             monthlyExpenses: 3300000,
             medicalExpenseRatio: 0.10,
-            inflationRate: 2.0
+            inflationRate: 2.0,
+            globalBaseDateTime: '2026-01-01'
         }),
         pensions: [
-            new Pension({ id: 'p_40_1', name: '국민연금', type: 'NATIONAL', startAge: 65, endAge: 100, expectedMonthlyAmount: 1800000, expectedGrowthRate: 2.0, claimOffsetYears: 0 }),
-            new Pension({ id: 'p_40_2', name: '퇴직연금 (DC/IRP)', type: 'RETIREMENT', startAge: 60, endAge: 80, expectedMonthlyAmount: 1250000, expectedGrowthRate: 4.5, currentBalance: 85000000, monthlyContribution: 600000, contributionEndAge: 60, isTaxDeductionEligible: true }),
-            new Pension({ id: 'p_40_3', name: '개인연금저축', type: 'PERSONAL', startAge: 60, endAge: 85, expectedMonthlyAmount: 950000, expectedGrowthRate: 5.5, currentBalance: 55000000, monthlyContribution: 750000, contributionEndAge: 60, isTaxDeductionEligible: true }),
-            new Pension({ id: 'p_40_4', name: '개인연금보험 (비과세)', type: 'ANNUITY_INSURANCE', startAge: 60, endAge: 90, expectedMonthlyAmount: 400000, expectedGrowthRate: 3.5, currentBalance: 25000000, monthlyContribution: 300000, contributionEndAge: 60, isTaxDeductionEligible: false })
+            new Pension({ id: 'p_40_1', name: '국민연금', type: 'NATIONAL', startAge: 65, endAge: 100, expectedMonthlyAmount: 1800000, expectedGrowthRate: 2.0, claimOffsetYears: 0, baseDate: '2026-01-01' }),
+            new Pension({ id: 'p_40_2', name: '퇴직연금 (DC/IRP)', type: 'RETIREMENT', startAge: 60, endAge: 80, expectedMonthlyAmount: 1250000, expectedGrowthRate: 4.5, currentBalance: 85000000, monthlyContribution: 600000, contributionEndAge: 60, isTaxDeductionEligible: true, baseDate: '2026-01-01' }),
+            new Pension({ id: 'p_40_3', name: '개인연금저축', type: 'PERSONAL', startAge: 60, endAge: 85, expectedMonthlyAmount: 950000, expectedGrowthRate: 5.5, currentBalance: 55000000, monthlyContribution: 750000, contributionEndAge: 60, isTaxDeductionEligible: true, baseDate: '2026-01-01' }),
+            new Pension({ id: 'p_40_4', name: '개인연금보험 (비과세)', type: 'ANNUITY_INSURANCE', startAge: 60, endAge: 90, expectedMonthlyAmount: 400000, expectedGrowthRate: 3.5, currentBalance: 25000000, monthlyContribution: 300000, contributionEndAge: 60, isTaxDeductionEligible: false, baseDate: '2026-01-01' })
         ],
         assets: [
-            new Asset({ id: 'a_40_1', name: '거주 아파트', type: 'REAL_ESTATE', currentValue: 700000000, expectedGrowthRate: 2.5, isLiability: false }),
-            new Asset({ id: 'a_40_2', name: '주식 및 글로벌 ETF', type: 'ETF', currentValue: 120000000, expectedGrowthRate: 6.0, isLiability: false }),
-            new Asset({ id: 'a_40_3', name: '비상금 예적금', type: 'DEPOSIT', currentValue: 50000000, expectedGrowthRate: 3.0, isLiability: false }),
-            new Asset({ id: 'a_40_4', name: '주택담보대출(부채)', type: 'DEBT', currentValue: 220000000, expectedGrowthRate: 3.8, repaymentMethod: 'EQUAL_PRINCIPAL_AND_INTEREST', maturityYears: 15, isLiability: true })
+            new Asset({ id: 'a_40_1', name: '거주 아파트', type: 'REAL_ESTATE', currentValue: 700000000, expectedGrowthRate: 2.5, isLiability: false, baseDate: '2026-01-01' }),
+            new Asset({ id: 'a_40_2', name: '주식 및 글로벌 ETF', type: 'ETF', currentValue: 120000000, expectedGrowthRate: 6.0, isLiability: false, baseDate: '2026-01-01' }),
+            new Asset({ id: 'a_40_3', name: '비상금 예적금', type: 'DEPOSIT', currentValue: 50000000, expectedGrowthRate: 3.0, isLiability: false, baseDate: '2026-01-01' }),
+            new Asset({ id: 'a_40_4', name: '주택담보대출(부채)', type: 'DEBT', currentValue: 220000000, expectedGrowthRate: 3.8, repaymentMethod: 'EQUAL_PRINCIPAL_AND_INTEREST', maturityYears: 15, isLiability: true, baseDate: '2026-01-01' })
         ],
         incomes: [
-            new Income({ id: 'i_40_1', name: '본인 근로소득', type: 'SALARY', monthlyAmount: 5800000, endAge: 60, expectedGrowthRate: 2.5 }),
-            new Income({ id: 'i_40_2', name: '배우자 부업/파트타임', type: 'OTHER', monthlyAmount: 1500000, endAge: 58, expectedGrowthRate: 1.5 })
+            new Income({ id: 'i_40_1', name: '본인 근로소득', type: 'SALARY', monthlyAmount: 5800000, endAge: 60, expectedGrowthRate: 2.5, baseDate: '2026-01-01' }),
+            new Income({ id: 'i_40_2', name: '배우자 부업/파트타임', type: 'OTHER', monthlyAmount: 1500000, endAge: 58, expectedGrowthRate: 1.5, baseDate: '2026-01-01' })
         ]
     }),
 
@@ -232,23 +240,24 @@ const Presets = {
             currentMonthlyExpenses: 4200000,
             monthlyExpenses: 3500000,
             medicalExpenseRatio: 0.12,
-            inflationRate: 2.0
+            inflationRate: 2.0,
+            globalBaseDateTime: '2026-01-01'
         }),
         pensions: [
-            new Pension({ id: 'p_50_1', name: '국민연금', type: 'NATIONAL', startAge: 65, endAge: 100, expectedMonthlyAmount: 1950000, expectedGrowthRate: 2.0, claimOffsetYears: 0 }),
-            new Pension({ id: 'p_50_2', name: '퇴직연금 DB/DC', type: 'RETIREMENT', startAge: 60, endAge: 80, expectedMonthlyAmount: 1650000, expectedGrowthRate: 4.0, currentBalance: 190000000, monthlyContribution: 800000, contributionEndAge: 60, isTaxDeductionEligible: true }),
-            new Pension({ id: 'p_50_3', name: '개인연금저축', type: 'PERSONAL', startAge: 60, endAge: 85, expectedMonthlyAmount: 1100000, expectedGrowthRate: 4.5, currentBalance: 130000000, monthlyContribution: 750000, contributionEndAge: 60, isTaxDeductionEligible: true }),
-            new Pension({ id: 'p_50_4', name: '개인연금보험 (비과세)', type: 'ANNUITY_INSURANCE', startAge: 60, endAge: 90, expectedMonthlyAmount: 500000, expectedGrowthRate: 3.5, currentBalance: 40000000, monthlyContribution: 300000, contributionEndAge: 60, isTaxDeductionEligible: false }),
-            new Pension({ id: 'p_50_5', name: '주택연금 (역모기지)', type: 'HOUSING', startAge: 70, endAge: 100, expectedMonthlyAmount: 1350000, expectedGrowthRate: 0.0 })
+            new Pension({ id: 'p_50_1', name: '국민연금', type: 'NATIONAL', startAge: 65, endAge: 100, expectedMonthlyAmount: 1950000, expectedGrowthRate: 2.0, claimOffsetYears: 0, baseDate: '2026-01-01' }),
+            new Pension({ id: 'p_50_2', name: '퇴직연금 DB/DC', type: 'RETIREMENT', startAge: 60, endAge: 80, expectedMonthlyAmount: 1650000, expectedGrowthRate: 4.0, currentBalance: 190000000, monthlyContribution: 800000, contributionEndAge: 60, isTaxDeductionEligible: true, baseDate: '2026-01-01' }),
+            new Pension({ id: 'p_50_3', name: '개인연금저축', type: 'PERSONAL', startAge: 60, endAge: 85, expectedMonthlyAmount: 1100000, expectedGrowthRate: 4.5, currentBalance: 130000000, monthlyContribution: 750000, contributionEndAge: 60, isTaxDeductionEligible: true, baseDate: '2026-01-01' }),
+            new Pension({ id: 'p_50_4', name: '개인연금보험 (비과세)', type: 'ANNUITY_INSURANCE', startAge: 60, endAge: 90, expectedMonthlyAmount: 500000, expectedGrowthRate: 3.5, currentBalance: 40000000, monthlyContribution: 300000, contributionEndAge: 60, isTaxDeductionEligible: false, baseDate: '2026-01-01' }),
+            new Pension({ id: 'p_50_5', name: '주택연금 (역모기지)', type: 'HOUSING', startAge: 70, endAge: 100, expectedMonthlyAmount: 1350000, expectedGrowthRate: 0.0, baseDate: '2026-01-01' })
         ],
         assets: [
-            new Asset({ id: 'a_50_1', name: '보유 주택', type: 'REAL_ESTATE', currentValue: 850000000, expectedGrowthRate: 2.0, isLiability: false }),
-            new Asset({ id: 'a_50_2', name: '안전 배당주 및 채권', type: 'BOND', currentValue: 180000000, expectedGrowthRate: 4.8, isLiability: false }),
-            new Asset({ id: 'a_50_3', name: '정기예금', type: 'DEPOSIT', currentValue: 100000000, expectedGrowthRate: 3.2, isLiability: false }),
-            new Asset({ id: 'a_50_4', name: '잔여 대출(부채)', type: 'DEBT', currentValue: 30000000, expectedGrowthRate: 3.9, repaymentMethod: 'EQUAL_PRINCIPAL_AND_INTEREST', maturityYears: 5, isLiability: true })
+            new Asset({ id: 'a_50_1', name: '보유 주택', type: 'REAL_ESTATE', currentValue: 850000000, expectedGrowthRate: 2.0, isLiability: false, baseDate: '2026-01-01' }),
+            new Asset({ id: 'a_50_2', name: '안전 배당주 및 채권', type: 'BOND', currentValue: 180000000, expectedGrowthRate: 4.8, isLiability: false, baseDate: '2026-01-01' }),
+            new Asset({ id: 'a_50_3', name: '정기예금', type: 'DEPOSIT', currentValue: 100000000, expectedGrowthRate: 3.2, isLiability: false, baseDate: '2026-01-01' }),
+            new Asset({ id: 'a_50_4', name: '잔여 대출(부채)', type: 'DEBT', currentValue: 30000000, expectedGrowthRate: 3.9, repaymentMethod: 'EQUAL_PRINCIPAL_AND_INTEREST', maturityYears: 5, isLiability: true, baseDate: '2026-01-01' })
         ],
         incomes: [
-            new Income({ id: 'i_50_1', name: '본인 급여', type: 'SALARY', monthlyAmount: 6500000, endAge: 60, expectedGrowthRate: 1.0 })
+            new Income({ id: 'i_50_1', name: '본인 급여', type: 'SALARY', monthlyAmount: 6500000, endAge: 60, expectedGrowthRate: 1.0, baseDate: '2026-01-01' })
         ]
     }),
 
@@ -261,21 +270,22 @@ const Presets = {
             currentMonthlyExpenses: 2800000,
             monthlyExpenses: 2800000,
             medicalExpenseRatio: 0.15,
-            inflationRate: 2.0
+            inflationRate: 2.0,
+            globalBaseDateTime: '2026-01-01'
         }),
         pensions: [
-            new Pension({ id: 'p_60_1', name: '국민연금', type: 'NATIONAL', startAge: 63, endAge: 100, expectedMonthlyAmount: 1650000, expectedGrowthRate: 2.0, claimOffsetYears: 0 }),
-            new Pension({ id: 'p_60_2', name: '퇴직연금 (IRP 분할수령)', type: 'RETIREMENT', startAge: 60, endAge: 80, expectedMonthlyAmount: 1100000, expectedGrowthRate: 3.8, currentBalance: 150000000, monthlyContribution: 0, contributionEndAge: 60, isTaxDeductionEligible: true }),
-            new Pension({ id: 'p_60_3', name: '개인연금저축', type: 'PERSONAL', startAge: 60, endAge: 85, expectedMonthlyAmount: 650000, expectedGrowthRate: 4.0, currentBalance: 90000000, monthlyContribution: 0, contributionEndAge: 60, isTaxDeductionEligible: true }),
-            new Pension({ id: 'p_60_4', name: '주택연금 (역모기지)', type: 'HOUSING', startAge: 70, endAge: 100, expectedMonthlyAmount: 1200000, expectedGrowthRate: 0.0 })
+            new Pension({ id: 'p_60_1', name: '국민연금', type: 'NATIONAL', startAge: 63, endAge: 100, expectedMonthlyAmount: 1650000, expectedGrowthRate: 2.0, claimOffsetYears: 0, baseDate: '2026-01-01' }),
+            new Pension({ id: 'p_60_2', name: '퇴직연금 (IRP 분할수령)', type: 'RETIREMENT', startAge: 60, endAge: 80, expectedMonthlyAmount: 1100000, expectedGrowthRate: 3.8, currentBalance: 150000000, monthlyContribution: 0, contributionEndAge: 60, isTaxDeductionEligible: true, baseDate: '2026-01-01' }),
+            new Pension({ id: 'p_60_3', name: '개인연금저축', type: 'PERSONAL', startAge: 60, endAge: 85, expectedMonthlyAmount: 650000, expectedGrowthRate: 4.0, currentBalance: 90000000, monthlyContribution: 0, contributionEndAge: 60, isTaxDeductionEligible: true, baseDate: '2026-01-01' }),
+            new Pension({ id: 'p_60_4', name: '주택연금 (역모기지)', type: 'HOUSING', startAge: 70, endAge: 100, expectedMonthlyAmount: 1200000, expectedGrowthRate: 0.0, baseDate: '2026-01-01' })
         ],
         assets: [
-            new Asset({ id: 'a_60_1', name: '거주 주택', type: 'REAL_ESTATE', currentValue: 650000000, expectedGrowthRate: 1.8, isLiability: false }),
-            new Asset({ id: 'a_60_2', name: '배당주 및 안정형 펀드', type: 'STOCK', currentValue: 120000000, expectedGrowthRate: 4.5, isLiability: false }),
-            new Asset({ id: 'a_60_3', name: '비상금 및 MMF', type: 'DEPOSIT', currentValue: 40000000, expectedGrowthRate: 2.8, isLiability: false })
+            new Asset({ id: 'a_60_1', name: '거주 주택', type: 'REAL_ESTATE', currentValue: 650000000, expectedGrowthRate: 1.8, isLiability: false, baseDate: '2026-01-01' }),
+            new Asset({ id: 'a_60_2', name: '배당주 및 안정형 펀드', type: 'STOCK', currentValue: 120000000, expectedGrowthRate: 4.5, isLiability: false, baseDate: '2026-01-01' }),
+            new Asset({ id: 'a_60_3', name: '비상금 및 MMF', type: 'DEPOSIT', currentValue: 40000000, expectedGrowthRate: 2.8, isLiability: false, baseDate: '2026-01-01' })
         ],
         incomes: [
-            new Income({ id: 'i_60_1', name: '시니어 자문/소일거리', type: 'OTHER', monthlyAmount: 1000000, endAge: 68, expectedGrowthRate: 0.0 })
+            new Income({ id: 'i_60_1', name: '시니어 자문/소일거리', type: 'OTHER', monthlyAmount: 1000000, endAge: 68, expectedGrowthRate: 0.0, baseDate: '2026-01-01' })
         ]
     })
 };

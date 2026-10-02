@@ -171,7 +171,8 @@ fun MainScreen(
                         onReorderAssets = { scope.launch { repository.reorderAssets(it) } },
                         onSaveIncome = { scope.launch { repository.saveIncome(it) } },
                         onDeleteIncome = { scope.launch { repository.deleteIncome(it) } },
-                        onReorderIncomes = { scope.launch { repository.reorderIncomes(it) } }
+                        onReorderIncomes = { scope.launch { repository.reorderIncomes(it) } },
+                        profile = profile
                     )
                     ScreenTab.PENSIONS -> PensionScreen(
                         pensions = pensions,

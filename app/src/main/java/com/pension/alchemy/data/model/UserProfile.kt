@@ -13,9 +13,13 @@ data class UserProfile(
     val medicalExpenseRatio: Double = 0.10,        // 의료비 비중 (물가+3% 가중 적용)
     val inflationRate: Double = 2.0,               // 연간 물가상승률 (%)
     val currency: String = "KRW",
-    val policySettings: PolicySettings = PolicySettings()
+    val policySettings: PolicySettings = PolicySettings(),
+    val globalBaseDateTime: String = ""            // 전체 공통 실시간 총자산 증가 계산 기준일시 (YYYY-MM-DD 또는 YYYY-MM-DD HH:mm)
 ) {
     val currentAge: Int get() = LocalDate.now().year - birthYear
+
+    val effectiveGlobalBaseDateTime: String
+        get() = if (globalBaseDateTime.isNotBlank()) globalBaseDateTime else LocalDate.now().toString()
 
     /**
      * 은퇴 시점(retirementAge)의 물가상승률 복리 환산 예상 월 필요 생활비(미래가치) 계산

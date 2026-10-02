@@ -185,7 +185,7 @@ fun GuideHelpScreen(
                                             shape = RoundedCornerShape(6.dp)
                                         ) {
                                             Text(
-                                                text = "v1.3.2 릴리즈",
+                                                text = "v1.3.3 릴리즈",
                                                 fontSize = 11.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = EmeraldPrimary,
@@ -202,10 +202,10 @@ fun GuideHelpScreen(
                                     }
                                     Spacer(modifier = Modifier.height(6.dp))
                                     Text(
-                                        text = "• 실시간 순자산 증감 티커: 양수(+)·음수(-) 상태별 불어남/줄어듦 및 증감 속도 라이브 동적 전환\n" +
-                                            "• 생애 자산 시뮬레이션 궤적 데이터 스프레드시트(CSV) 다운로드 기능 탑재\n" +
-                                            "• 연금관리 수령액/수령기간 진입 시 사전 자동 연산 & 예상 적립금 시인성 강화\n" +
-                                            "• 자산·연금·소득 항목별 입력 기준일(baseDate) 연동 초당 실시간 가산 엔진",
+                                        text = "• 공통 기준일 & 개별 등록일 일원화: 전체 기준일(yyyy-MM-dd)과 개별 자산·연금 기준일 연동 정밀 계산\n" +
+                                            "• 실시간 순자산 증감 티커: [기준일] 및 [오늘] 누적 순자산 증감액 & 회계 항등식 보존 실시간 연산\n" +
+                                            "• 연도·월 퀵 네비게이터: FastDatePicker 탑재로 수십 년 전후 날짜를 1초 만에 원터치 선택\n" +
+                                            "• 2026년 기준 20~60대 생애주기 프리셋 전면 리뉴얼 및 회계 보존 무결성 검증 완료",
                                         fontSize = 11.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         lineHeight = 16.sp
@@ -220,7 +220,7 @@ fun GuideHelpScreen(
                                 title = "1. 대시보드 (종합 진단 & 실시간 순자산 증감)",
                                 icon = Icons.Default.Dashboard,
                                 accentColor = EmeraldPrimary,
-                                description = "내 순자산, 65세 예상 월연금, 소득대체율과 100점 만점 은퇴 건강 점수를 확인합니다. 특히 [실시간 순자산 증감 티커]를 통해 [기준일 이후] 혹은 [오늘 0시]부터 변동된 순자산 금액을 원 단위까지 깔끔하게 확인하며, 1초 단위 초당 증감 속도를 라이브로 체감할 수 있습니다.",
+                                description = "내 순자산, 65세 예상 월연금, 소득대체율과 100점 만점 은퇴 건강 점수를 확인합니다. 특히 [실시간 순자산 증감 티커]를 통해 [기준일] 혹은 [오늘] 누적된 순자산 금액을 원 단위까지 깔끔하게 확인하며, 1초 단위 초당 증감 속도를 라이브로 체감할 수 있습니다.",
                                 shortcutLabel = "대시보드 바로가기",
                                 onShortcut = { onNavigateToTab(ScreenTab.DASHBOARD) }
                             )
@@ -472,22 +472,26 @@ fun GuideHelpScreen(
                         item {
                             FormulaHelpCard(
                                 badge = "공식 5",
-                                title = "자산 가중수익률 & 실시간 초당 속도 산식",
+                                title = "공통 기준일 & 항목 기준일 연동 실시간 누적 증감 산식",
                                 formula = """
-                                    // 1. 개별 자산 기대수익률 가중평균
-                                    가중수익률 = Σ(개별자산평가액 × 개별기대수익률) / 총자산평가액
-                                    * 부동산 수익률 0% 설정 시 가치 변동 없이 완벽 보존
+                                    // 1. 공통 기준일(T_global)과 항목 기준일(T_item) 경과시간(t_eff)
+                                    if (T_item <= T_global):
+                                        t_eff = T_now - T_global  // 공통 기준일 시점에 이미 평가 반영된 항목
+                                    else if (T_item > T_global):
+                                        t_eff = T_now - T_item    // 기준일 이후 신규 취득/등록된 항목
 
-                                    // 2. 실시간 초당 순자산 증식 속도 (wps, Won Per Second)
-                                    연간순자산증가액 = 연간총유입(소득+자산수익) - 연간총유출(소비+이자+납입)
-                                    초당증식속도 = 연간순자산증가액 / (365.25 × 86,400초)
+                                    // 2. 가계 실질 순자산 순증가 속도 (wps, Won Per Second)
+                                    초당순증가속도 = (총유입속도 - 총유출속도)
+                                    * 개인연금 정기납입액은 현금 ➜ 연금자산 내 이전 보존 처리
 
-                                    // 3. 오늘 자정 이후 실시간 누적 순자산 증감액
-                                    오늘누적액 = 초당증식속도 × 오늘자정이후경과초수(t)
+                                    // 3. 누적 순자산 증감액
+                                    기준일 누적액 = Σ(t_eff × wps_item) - t_eff_global × wps_living
+                                    오늘 누적액 = 초당순증가속도 × 오늘자정이후경과초수(t)
                                 """.trimIndent(),
-                                description = "대시보드 상단에서 실시간으로 1초마다 올라가는 순자산 금액을 산출하는 핵심 공식입니다. 내 자산과 소득이 일하는 속도를 시각적으로 체감할 수 있습니다.",
+                                description = "대시보드 상단에서 실시간으로 1초마다 갱신되는 순자산 금액을 산출하는 핵심 공식입니다. 전체 공통 기준일과 개별 자산 등록일의 회계 항등식을 완벽하게 보존합니다.",
                                 details = listOf(
-                                    "초당 속도가 양수면 자산이 불어나는 축적 상태, 음수면 소비가 초과하는 고갈 상태 표시",
+                                    "공통 기준일(yyyy-MM-dd) 이전 항목은 기준일 이후 수익만 가산하여 왜곡 방지",
+                                    "기준일 누적액 및 오늘 누적액을 탭하여 실시간 모드 자유 전환",
                                     "8시간 수면 동안 불어나는 순자산 = 초당속도 × 28,800초 (취침 중 축적되는 자산 확인)"
                                 ),
                                 accentColor = EmeraldPrimary

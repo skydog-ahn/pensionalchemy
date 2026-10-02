@@ -63,13 +63,23 @@ fun WealthDistributionCanvasChart(
     val currentNetWorthOk = (currentNetWorthWon.toDouble() / 100_000_000.0).coerceAtLeast(0.0)
 
     // 사용자가 현재 조회/탐색 중인 자산 (억원)
-    var inspectedOk by remember(currentNetWorthWon) {
+    var inspectedOk by remember {
         mutableDoubleStateOf(currentNetWorthOk)
     }
 
-    // 직접 입력 텍스트: 사용자 타이핑 중 자동 포맷팅 덮어쓰기 방지를 위해 currentNetWorthWon 기준으로만 초기화
-    var inputStr by remember(currentNetWorthWon) {
+    // 직접 입력 텍스트: 사용자 타이핑 중 자동 포맷팅 덮어쓰기 방지
+    var inputStr by remember {
         mutableStateOf(formatAssetNumber(currentNetWorthOk))
+    }
+
+    // 1,000만원(0.1억) 단위로 유의미한 변동이 있거나 초기 진입 시, 내 자산 위치를 보고 있을 때만 동기화
+    val netWorthKey = currentNetWorthWon / 10_000_000L
+    LaunchedEffect(netWorthKey) {
+        val isMyAsset = kotlin.math.abs(inspectedOk - currentNetWorthOk) < 0.05
+        if (isMyAsset) {
+            inspectedOk = currentNetWorthOk
+            inputStr = formatAssetNumber(currentNetWorthOk)
+        }
     }
 
     // 모수 안전 보정

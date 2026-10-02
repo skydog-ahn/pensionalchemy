@@ -461,7 +461,7 @@ const SimulationEngine = {
             .reduce((sum, p) => sum + (Number(p.monthlyContribution) || 0) * 12, 0);
         const annualTotalOutflow = annualLivingExpenses + annualDebtInterestCost + annualPensionContributionDeducted;
 
-        const annualNetWealthGrowth = annualTotalInflow - annualTotalOutflow;
+        const annualNetWealthGrowth = annualTotalInflow - (annualLivingExpenses + annualDebtInterestCost);
         const annualNetCapitalGain = annualFinancialGain + annualRealEstateGain + annualPensionGain - annualDebtInterestCost;
 
         const wonPerSecond = annualNetWealthGrowth / (365.25 * 86400.0);

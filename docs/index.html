@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
-    <title>연금술사 (PensionAlchemy) v1.3.2 - 상세 사용설명서 & 인터랙티브 시뮬레이터</title>
-    <meta name="description" content="대한민국 100세 생애 은퇴·연금 시뮬레이터 '연금술사' 공식 종합 매뉴얼 및 인터랙티브 앱 시뮬레이터. 기준일 연동 실시간 초당 순자산 증가 티커, 개별 자산 기대수익률 가중합산, 연금 급여 직접 납입 여부 스위치, 3층 연금 피라미드, 소득 크레바스 방어, 4% 룰, 6대 재무 계산기, 순자산 백분위 분석.">
+    <title>연금술사 (PensionAlchemy) v1.3.3 - 상세 사용설명서 & 인터랙티브 시뮬레이터</title>
+    <meta name="description" content="대한민국 100세 생애 은퇴·연금 시뮬레이터 '연금술사' 공식 종합 매뉴얼 및 인터랙티브 앱 시뮬레이터. 전체 공통 기준일 연동 실시간 초당 순자산 증가 티커, 초고속 연·월 캘린더 탐색(FastDatePicker), 2026년 생애주기 프리셋, 사적연금 납입금 보존, 개별 자산 기대수익률 가중합산, 3층 연금 피라미드, 소득 크레바스 방어, 4% 룰, 6대 재무 계산기, 순자산 백분위 분석.">
     
     <!-- 파비콘 및 앱 아이콘 -->
     <link rel="icon" type="image/png" href="assets/images/appicon.png">
@@ -19,7 +19,7 @@
     </script>
     
     <!-- CSS 스타일시트 -->
-    <link rel="stylesheet" href="css/style.css?v=1.3.2">
+    <link rel="stylesheet" href="css/style.css?v=1.3.3">
 </head>
 <body>
 
@@ -30,7 +30,7 @@
             <div>
                 <div class="brand-title">
                     연금술사 (PensionAlchemy)
-                    <span class="version-tag">v 1.3.2</span>
+                    <span class="version-tag">v 1.3.3</span>
                 </div>
                 <div class="brand-subtitle">대한민국 100세 생애 은퇴·연금 시뮬레이터 공식 사용설명서</div>
             </div>
@@ -91,16 +91,17 @@
                         대한민국 금융 시장과 최신 개정 세법, 공적연금 제도를 완벽히 반영하여 <strong>100세 시대의 생애 자산 궤적과 은퇴 현금흐름을 시뮬레이션</strong>하는 종합 은퇴 설계 플랫폼입니다.
                     </p>
 
-                    <!-- v1.3.2 신규 업데이트 하이라이트 -->
+                    <!-- v1.3.3 신규 업데이트 하이라이트 -->
                     <div class="alert-box alert-emerald" style="margin-bottom: 24px; border: 1px solid var(--primary); background: rgba(16, 185, 129, 0.08);">
                         <span class="alert-icon">🚀</span>
                         <div>
-                            <div class="alert-title" style="color: var(--primary); font-size: 15px; font-weight: 700;">v1.3.2 신규 업데이트 릴리즈 (Release Highlights)</div>
+                            <div class="alert-title" style="color: var(--primary); font-size: 15px; font-weight: 700;">v1.3.3 신규 업데이트 릴리즈 (Release Highlights)</div>
                             <div class="alert-desc" style="font-size: 13px; line-height: 1.6; margin-top: 6px;">
-                                • <strong>실시간 순자산 증감 티커 & 동적 피드백:</strong> 자산 증가/감소 상황을 완벽히 포괄하는 공식 명칭 도입 및 플러스/마이너스 상태별 불어남/줄어듦 속도 라이브 동적 전환.<br>
-                                • <strong>생애 자산 궤적 스프레드시트(CSV) 다운로드:</strong> 차트 하단 [자료 다운로드] 버튼으로 안드로이드 SAF 연동, Excel 및 구글 스프레드시트 완벽 호환(UTF-8 BOM).<br>
-                                • <strong>연금관리 수령액/수령기간 사전 동적 자동 계산 & 단독 줄 배치:</strong> 화면 및 다이얼로그 진입 시 즉시 사전 계산, 예상 적립금 전폭 단독 배치로 겹침 현상 완전 제거.<br>
-                                • <strong>자산·연금·소득 항목별 입력 기준일(baseDate) 가산 엔진:</strong> 잔액 기록 기준일 기반 경과시간 초 단위 라이브 가산.
+                                • <strong>전체 공통 기준일 도입 및 날짜 형식 표준화:</strong> 환경설정에서 가계 전체의 실시간 자산 성장 측정 기준일(globalBaseDateTime)을 일원화하고, 표기를 'yyyy.MM.dd 기준'으로 통일하며 불필요한 시/분 선택을 배제한 YYYY-MM-DD 날짜 전용 입력으로 단순화.<br>
+                                • <strong>초고속 연·월 퀵 탐색 캘린더 (FastDatePicker):</strong> 과거 몇 년 전이나 미래 시점도 연도/월 칩 클릭 한 번으로 수십 번 스크롤할 필요 없이 즉시 탐색.<br>
+                                • <strong>실시간 순자산 증감 티커 UI & 엄격한 회계 항등식 확립:</strong> 티커 탭을 [기준일 / 오늘]로 직관화하고, 기준일 변경 시에도 '현재 순자산'은 보유 자산 가치로 절대 불변 유지되며 기초 순자산과 누적 순증가액이 정합성 있게 연동.<br>
+                                • <strong>사적연금 급여 납입금 이중 차감 방지 및 자산 보존:</strong> 소득에서 차감되는 연금저축·IRP 납입금이 연금 적립금 자산으로 정확히 환원되어 순자산 보존.<br>
+                                • <strong>20대~60대 생애주기 프리셋 전면 최신화:</strong> 2026년 기준 현실적인 금융 스펙 및 2026-01-01 기준일을 기본 세팅하여 로드 즉시 왜곡 없는 연산 결과 제공.
                             </div>
                         </div>
                     </div>
@@ -199,8 +200,8 @@
                                     </tr>
                                     <tr>
                                         <td><strong>2. 실시간 순자산 증감 티커</strong></td>
-                                        <td>[기준일 / 오늘0시] 선택 토글, 초당 틱 단위 원 단위 누적 증감액, 초당 순자산 증감 속도(⚡ won/sec), 주기별(시간/일/월) 환산 및 유입/유출 브레이크다운</td>
-                                        <td>자산 기대수익률, 정기 소득 및 생활소비·이자비용을 종합하여 초 단위로 변화하는 순자산 증감 속도를 라이브 체감</td>
+                                        <td>[기준일 / 오늘] 선택 토글, 초당 틱 단위 원 단위 누적 증감액, 초당 순자산 증감 속도(⚡ won/sec), 주기별(시간/일/월) 환산 및 유입/유출 브레이크다운</td>
+                                        <td>자산 기대수익률, 정기 소득 및 생활소비·이자비용을 종합하여 초 단위로 변화하는 순자산 증감 속도를 라이브 체감. 공통 기준일 변경 시에도 '현재 순자산'은 보유 자산 가치로 절대 보존되며 기준일 시점의 기초 순자산과 누적 순증가액이 정합성 있게 연동됨</td>
                                     </tr>
                                     <tr>
                                         <td><strong>3. 은퇴 준비 건강도 점수</strong></td>
@@ -245,7 +246,7 @@
                                     <tr>
                                         <td><strong>10. 순자산 백분위 분포 차트</strong></td>
                                         <td>2025 가계금융복지조사 로그정규분포 곡선 및 내 위치</td>
-                                        <td>중위값(2.4억), 평균값(4.7억) 기준선 및 내 순자산 상위 % 실시간 마킹</td>
+                                        <td>중위값(2.4억), 평균값(4.7억) 기준선 및 전체 기준일이 반영된 내 현재 실시간 순자산(displayNetWorth) 기반 상위 % 실시간 마킹</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -354,6 +355,7 @@
                                     <li><strong>평가 금액 & 기대수익률:</strong> 현재 평가금액(원)과 장기 보수적 연평균 기대수익률(대출인 경우 연 대출금리) 입력.</li>
                                     <li><strong>부채 만기년수:</strong> 잔여 대출 상환 기간(년)을 설정하여 은퇴 전 부채 청산 여부 점검.</li>
                                     <li><strong>정기 소득 종료 나이 & 상승률:</strong> 근로/사업 소득의 은퇴 시기(예: 60세)와 연간 임금상승률 설정.</li>
+                                    <li><strong>입력 기준일(baseDate) & 퀵 캘린더:</strong> 잔액을 평가한 기준일(YYYY-MM-DD)을 설정하며, 상단 연/월 칩 터치 한 번으로 원하는 날짜를 초고속 탐색 가능.</li>
                                 </ul>
                             </div>
 
@@ -362,6 +364,7 @@
                                 <ul class="feature-col-list">
                                     <li><strong>잉여 현금의 복리 재투자:</strong> 소득이 지출+대출상환액보다 많을 때 남은 잉여금은 유동 금융자산에 자동으로 편입되어 복리 증식됩니다.</li>
                                     <li><strong>적자 시 자산 인출 순서:</strong> 은퇴 후 소득이 부족할 경우, 유동 금융자산에서 우선 인출되며, 금융자산이 바닥나면 부동산 자산이 차감(주택 유동화 가정)됩니다.</li>
+                                    <li><strong>실시간 초당 가산:</strong> 개별 항목의 기준일(미입력 시 전체 공통 기준일 자동 상속)부터 현재 시각까지 경과된 시간에 비례하여 초당 수익이 라이브로 가산됩니다.</li>
                                 </ul>
                             </div>
                         </div>
@@ -408,11 +411,11 @@
                             </div>
 
                             <div class="feature-col-card">
-                                <div class="feature-col-title">💡 연금 종류별 핵심 절세 포인트</div>
+                                <div class="feature-col-title">💡 연금 종류별 핵심 절세 & 회계 포인트</div>
                                 <ul class="feature-col-list">
                                     <li><strong>퇴직연금 (IRP):</strong> 10년 이상 분할 수령 시 1~10년차는 퇴직소득세의 30%를 감면받고, 11년차부터는 40% 감면 혜택을 받습니다.</li>
                                     <li><strong>개인연금저축:</strong> 2024년 세법 개정으로 연간 1,500만원까지 저율 분리과세(5.5%~3.3%)가 적용되며, 1,500만원 초과분에 대해서만 16.5% 분리과세됩니다.</li>
-                                    <li><strong>개인연금보험 & 주택연금:</strong> 10년 이상 유지한 비과세 보험과 역모기지 주택연금은 소득세가 0원(전액 비과세)입니다.</li>
+                                    <li><strong>사적연금 납입금 보존:</strong> 급여에서 직접 차감 납입되는 연금저축/IRP 납입금은 가계 유출이 아닌 '연금 적립금 자산으로의 대체'이므로, 실시간 순자산에서 이중 차감 없이 온전히 자산으로 보존됩니다.</li>
                                     <li><strong>동적 수령액 사전 자동 계산:</strong> 퇴직연금·개인연금 등록 시 적립금/납입액과 수령 기간(기본 25년)을 기반으로 진입 즉시 월 예상 수령액이 자동으로 정밀 산출됩니다.</li>
                                     <li><strong>예상 적립금 전용 단독 줄 레이아웃:</strong> 개시 시점 예상 적립금 금액을 상하 세로 적층 구조로 단독 배치하여, 고액 자산이나 큰 폰트에서도 금액이 2줄로 꺾이지 않고 시원하게 표시됩니다.</li>
                                 </ul>
@@ -529,28 +532,35 @@
                         출생연도, 은퇴 희망나이, 목표수명, '현재 월 생활소비'와 '은퇴 후 필요생활비(현재가치 ↔ 은퇴시점 미래가치 자동 환산)'를 설정하고, 5대 맞춤 프리셋을 원터치로 불러옵니다.
                     </p>
 
-                    <!-- v1.2.8 핵심 신규 기능 안내 카드 -->
+                    <!-- v1.3.3 핵심 신규 기능 안내 카드 -->
                     <div class="manual-card" style="border: 1px solid var(--primary); background: rgba(16, 185, 129, 0.04);">
                         <div class="card-row-between">
-                            <h3 style="color: var(--primary);">🌟 [v1.2.8 신기능] 현재 생활 소비 vs 은퇴 후 지출 분리 시뮬레이션</h3>
+                            <h3 style="color: var(--primary);">🌟 [v1.3.3 신기능] 전체 공통 기준일 도입 & 생활소비 분리 시뮬레이션</h3>
                             <button class="jump-to-sim-btn" onclick="AppSimulator.openOnboardingGuide()">
                                 ✨ 시작 가이드 열기
                             </button>
                         </div>
                         <p>
-                            은퇴 전 생활과 은퇴 후 생활은 지출 규모와 성격이 완전히 다릅니다. 연금술사 v1.2.8에서는 이 두 가지 지출을 완벽하게 분리하여 정밀 시뮬레이션을 수행합니다:
+                            가계의 실시간 순자산 증가를 통일된 시점부터 정확하게 측정하기 위해 <strong>전체 공통 기준일(globalBaseDateTime)</strong>을 도입하고, 은퇴 전 생활비와 은퇴 후 지출을 분리하여 정밀 시뮬레이션을 수행합니다:
                         </p>
                         <div class="principles-grid" style="margin-top: 12px;">
                             <div class="principle-card">
+                                <span class="principle-icon">📅</span>
+                                <div class="principle-title">1. 전체 공통 기준일 (yyyy.MM.dd 기준)</div>
+                                <div class="principle-text">
+                                    가계의 실시간 총자산 및 순자산 누적 증가액을 계산하는 통합 기준 시점입니다. 불필요한 시간 입력을 배제한 YYYY-MM-DD 날짜 전용 입력과 초고속 연/월 칩 피커(FastDatePicker)로 과거 또는 기준일을 1초 만에 지정할 수 있습니다.
+                                </div>
+                            </div>
+                            <div class="principle-card">
                                 <span class="principle-icon">🛒</span>
-                                <div class="principle-title">1. 은퇴 전: 현재 월 생활 소비 지출</div>
+                                <div class="principle-title">2. 은퇴 전: 현재 월 생활 소비 지출</div>
                                 <div class="principle-text">
                                     현재 나이부터 은퇴 직전까지 매월 소득에서 차감되는 실제 생활비입니다. 물가상승률이 누적 적용되며, 근로소득에서 생활비와 부채 원리금을 뺀 잉여금이 매년 금융자산(저축/투자)으로 정밀하게 축적됩니다.
                                 </div>
                             </div>
                             <div class="principle-card">
                                 <span class="principle-icon">🎯</span>
-                                <div class="principle-title">2. 은퇴 후: 미래가치 자동 환산 지출</div>
+                                <div class="principle-title">3. 은퇴 후: 미래가치 자동 환산 지출</div>
                                 <div class="principle-text">
                                     설정에는 편안한 입력을 위해 '현재 물가 기준 필요 지출'을 기재합니다. 입력 즉시 은퇴 시점까지의 연간 물가상승률이 복리로 자동 환산된 <strong>실제 은퇴 시점 미래가치(FV)</strong>가 실시간으로 안내되며, 지정한 은퇴 나이부터 해당 금액이 소비로 계산됩니다.
                                 </div>
@@ -560,7 +570,7 @@
 
                     <div class="manual-card">
                         <div class="card-row-between">
-                            <h3>🎯 5대 생애주기 프리셋 및 세법 상수 커스텀</h3>
+                            <h3>🎯 5대 생애주기 프리셋 (2026년 최신 규격 완비) & 세법 커스텀</h3>
                             <button class="jump-to-sim-btn" onclick="ManualController.syncSimulatorTab('SETTINGS')">
                                 📱 시뮬레이터에서 설정 보기
                             </button>
@@ -571,7 +581,7 @@
                                 <thead>
                                     <tr>
                                         <th>생애주기 프리셋</th>
-                                        <th>기준 나이</th>
+                                        <th>기준 나이 (2026년)</th>
                                         <th>자산 및 연금 구성 특징</th>
                                         <th>추천 사용자군</th>
                                     </tr>
@@ -579,32 +589,32 @@
                                 <tbody>
                                     <tr>
                                         <td><strong>20대 청년기</strong></td>
-                                        <td>만 26세</td>
-                                        <td>청년도약/청약저축 1,500만, 학자금대출 800만, 연금저축 월 20만 납입 시작</td>
+                                        <td>만 26세 (2000년생)</td>
+                                        <td>기준일 2026-01-01, 청년도약/청약저축 1,500만, 학자금대출 800만, 연금저축 월 20만 납입 시작</td>
                                         <td>사회초년생, 첫 직장 입사자</td>
                                     </tr>
                                     <tr>
                                         <td><strong>30대 형성기</strong></td>
-                                        <td>만 35세</td>
-                                        <td>전세보증금 3억, 미국 ETF 4,500만, 전세대출 1.4억, IRP+연금저축 월 70만</td>
+                                        <td>만 35세 (1991년생)</td>
+                                        <td>기준일 2026-01-01, 전세보증금 2.5억, 미국 ETF 3,500만, 전세대출 1.2억, IRP+연금저축 월 90만</td>
                                         <td>신혼부부, 자산 본격 형성기</td>
                                     </tr>
                                     <tr>
-                                        <td><strong>40대 기본형</strong></td>
-                                        <td>만 41세</td>
-                                        <td>거주아파트 7억, 주식 1.2억, 주담대 2.2억, 3층 연금 완성 (기본값)</td>
+                                        <td><strong>40대 확장형</strong></td>
+                                        <td>만 45세 (1981년생)</td>
+                                        <td>기준일 2026-01-01, 거주아파트 7억, 주식 1.2억, 주담대 2.2억, 3층 연금 완성 (기본값)</td>
                                         <td>초중고 자녀를 둔 4인 가구 가장</td>
                                     </tr>
                                     <tr>
                                         <td><strong>50대 가속기</strong></td>
-                                        <td>만 55세</td>
-                                        <td>보유주택 8.5억, 안전채권 1.8억, 잔여대출 3,000만, 연금적립금 3.6억, 주택연금 결합</td>
+                                        <td>만 55세 (1971년생)</td>
+                                        <td>기준일 2026-01-01, 보유주택 8.5억, 채권 1.8억, 잔여대출 3,000만, 연금적립금 3.6억, 주택연금 결합</td>
                                         <td>은퇴 5년 전 집중 축적기</td>
                                     </tr>
                                     <tr>
                                         <td><strong>60대 은퇴기</strong></td>
-                                        <td>만 63세</td>
-                                        <td>부채 0원, 주택 6.5억, 배당주 1.2억, 국민+퇴직+개인+주택연금 즉시 인출</td>
+                                        <td>만 63세 (1963년생)</td>
+                                        <td>기준일 2026-01-01, 부채 0원, 주택 6.5억, 배당주 1.2억, 국민+퇴직+개인+주택연금 즉시 인출</td>
                                         <td>은퇴 완료 및 연금 수령기</td>
                                     </tr>
                                 </tbody>
@@ -793,20 +803,28 @@
                         </div>
                     </div>
 
-                    <!-- 부록 5: 실시간 초당 순자산 증식 속도 -->
+                    <!-- 부록 5: 실시간 초당 순자산 증식 속도 및 기준일 연동 -->
                     <div class="manual-card">
                         <span class="step-badge" style="background: rgba(16, 185, 129, 0.15); color: var(--primary);">공식 5</span>
-                        <h3>개별 항목 기준일 연동 & 실시간 가계 종합 순자산 순증가 공식</h3>
+                        <h3>공통 기준일(T_global) & 개별 항목 기준일(T_item) 연동 실시간 순자산 누적 증감 공식</h3>
                         <div class="formula-box" style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; font-family: monospace; margin: 8px 0; line-height: 1.6;">
-                            // 1. 가계 총 유입 속도 (자산 운용수익 + 연금 복리운용 + 정기소득)<br>
-                            wps_inflow = [Σ(Value_i × r_i) + Σ(Pension_p × r_p) + Σ(Income_k × 12)] / 31,557,600초<br><br>
-                            // 2. 가계 총 유출 속도 (생활소비 + 대출이자 + 연금납입)<br>
-                            wps_outflow = [Expenses_living × 12 + Σ(Debt_d × r_d) + Σ(Contrib_p × 12)] / 31,557,600초<br><br>
-                            // 3. 종합 실질 순자산 순증가 속도 (wps, Won Per Second)<br>
-                            wps_net = wps_inflow - wps_outflow<br><br>
-                            // 4. 개별 항목 기준일(baseDate) 연동 누적 순증가액 (상단 순자산 & 티커 기준일 일원화)<br>
-                            Gain_baseDate(t) = Σ(t_i × wps_asset_i) + Σ(t_k × wps_income_k) - [Σ(t_d × wps_debt_d) + t_exp × wps_living + t_p × wps_contrib]<br>
-                            Gain_today(t) = wps_net × ElapsedSeconds_from_midnight
+                            // 1. 공통 기준일(T_global)과 개별 항목 기준일(T_item) 간의 유효 경과시간 t_eff 산출<br>
+                            if (T_item &lt;= T_global):<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;t_eff = T_now - T_global &nbsp;&nbsp;// 전체 기준일 시점에 이미 평가 반영된 항목<br>
+                            else if (T_item &gt; T_global):<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;t_eff = T_now - T_item &nbsp;&nbsp;&nbsp;// 기준일 이후 신규 취득/등록된 항목<br><br>
+                            // 2. 가계 부문별 초당 유입/유출 속도 (wps, Won Per Second)<br>
+                            wps_asset_i = (Value_i × r_i) / 31,557,600초 (복리운용 수익)<br>
+                            wps_pension_p = (PensionValue_p × r_p) / 31,557,600초 (퇴직/개인연금 복리수익)<br>
+                            wps_income_k = (Income_k × 12) / 31,557,600초 (정기소득)<br>
+                            wps_debt_d = (Debt_d × r_d) / 31,557,600초 (대출이자 비용)<br>
+                            wps_living = (Expense_living × 12) / 31,557,600초 (생활비 지출)<br>
+                            wps_contrib = (Contrib_private × 12) / 31,557,600초 (개인연금 납입액 ➜ 자산 내 이전 보존 처리)<br><br>
+                            // 3. 종합 실질 순자산 순증가 속도 (wps_net)<br>
+                            wps_net = (Σ wps_asset + Σ wps_pension + Σ wps_income) - (Σ wps_debt + wps_living)<br><br>
+                            // 4. 누적 순증가액 (기준일 기준 & 오늘 기준)<br>
+                            Gain_baseDate(t) = Σ(t_eff_i × wps_asset_i) + Σ(t_eff_p × wps_pension_p) + Σ(t_eff_k × wps_income_k) - [Σ(t_eff_d × wps_debt_d) + t_eff_global × wps_living]<br>
+                            Gain_today(t) = wps_net × ElapsedSeconds_from_today_midnight
                         </div>
                     </div>
 
@@ -858,7 +876,7 @@
                         <div class="app-bar-info">
                             <div class="app-bar-row">
                                 <span class="app-bar-title" id="phone-header-title">연금술사</span>
-                                <span class="app-bar-version">v 1.3.2</span>
+                                <span class="app-bar-version">v 1.3.3</span>
                             </div>
                             <span class="app-bar-subtitle" id="phone-header-subtitle">대시보드 종합 진단</span>
                         </div>
@@ -941,17 +959,17 @@
         </div>
     </div>
 
-    <!-- JS 스크립트 모듈 로드 (캐시 방지 v1.3.2) -->
-    <script src="js/models.js?v=1.3.2"></script>
-    <script src="js/currency.js?v=1.3.2"></script>
-    <script src="js/engines/distribution.js?v=1.3.2"></script>
-    <script src="js/engines/loan.js?v=1.3.2"></script>
-    <script src="js/engines/tax.js?v=1.3.2"></script>
-    <script src="js/engines/health.js?v=1.3.2"></script>
-    <script src="js/engines/calculators.js?v=1.3.2"></script>
-    <script src="js/engines/simulation.js?v=1.3.2"></script>
-    <script src="js/simulator.js?v=1.3.2"></script>
-    <script src="js/manual.js?v=1.3.2"></script>
+    <!-- JS 스크립트 모듈 로드 (캐시 방지 v1.3.3) -->
+    <script src="js/models.js?v=1.3.3"></script>
+    <script src="js/currency.js?v=1.3.3"></script>
+    <script src="js/engines/distribution.js?v=1.3.3"></script>
+    <script src="js/engines/loan.js?v=1.3.3"></script>
+    <script src="js/engines/tax.js?v=1.3.3"></script>
+    <script src="js/engines/health.js?v=1.3.3"></script>
+    <script src="js/engines/calculators.js?v=1.3.3"></script>
+    <script src="js/engines/simulation.js?v=1.3.3"></script>
+    <script src="js/simulator.js?v=1.3.3"></script>
+    <script src="js/manual.js?v=1.3.3"></script>
 
     <!-- 초기화 실행 -->
     <script>

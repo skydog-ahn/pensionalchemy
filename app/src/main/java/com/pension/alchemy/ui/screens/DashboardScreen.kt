@@ -65,14 +65,15 @@ fun DashboardScreen(
     }
 
     // 기준일 기반 실시간 자산 및 순자산 초당 증가 연산 (소득·소비 종합 순증가 속도 연동)
-    val realTimeGrowth = remember(assets, pensions, incomes, profile.currentMonthlyExpenses, summary.currentAge, currentDateTime) {
+    val realTimeGrowth = remember(assets, pensions, incomes, profile.currentMonthlyExpenses, summary.currentAge, currentDateTime, profile.effectiveGlobalBaseDateTime) {
         RealTimeGrowthCalculator.calculateTotalRealTimeGrowth(
             assets = assets,
             pensions = pensions,
             incomes = incomes,
             monthlyExpenses = profile.currentMonthlyExpenses,
             currentAge = summary.currentAge,
-            currentDateTime = currentDateTime
+            currentDateTime = currentDateTime,
+            globalBaseDateTime = profile.effectiveGlobalBaseDateTime
         )
     }
 
@@ -142,28 +143,6 @@ fun DashboardScreen(
                     maxLines = 1,
                     softWrap = false
                 )
-                if (realTimeGrowth.totalNetGain != 0L || realTimeGrowth.netWonPerSecond != 0.0) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(7.dp)
-                                .background(EmeraldPrimary, CircleShape)
-                        )
-                        val prefix = if (realTimeGrowth.totalNetGain >= 0) "+" else ""
-                        Text(
-                            text = "기준일 대비 $prefix${CurrencyFormatter.formatKoreanWon(realTimeGrowth.totalNetGain)} (초당 +${String.format(Locale.KOREA, "%,.2f", realTimeGrowth.netWonPerSecond)}원)",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f),
-                            maxLines = 1,
-                            softWrap = false
-                        )
-                    }
-                }
                 Spacer(modifier = Modifier.height(12.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -192,7 +171,8 @@ fun DashboardScreen(
         // 1-1. 실시간 초당 자산 수익 다이내믹 티커 카드
         RealTimeAssetGrowthTickerCard(
             metrics = summary.realTimeYield,
-            baseDateAccumulatedGain = if (realTimeGrowth.totalNetGain != 0L) realTimeGrowth.totalNetGain else null
+            baseDateAccumulatedGain = if (realTimeGrowth.totalNetGain != 0L) realTimeGrowth.totalNetGain else null,
+            globalBaseDateStr = profile.globalBaseDateTime
         )
 
         // 2. 은퇴 준비 건강도 점수 배너 (0 ~ 100점)
@@ -742,7 +722,7 @@ fun DashboardScreen(
 
         // 9. 대한민국 순자산 백분위 분포 차트 (로그정규분포)
         WealthDistributionCanvasChart(
-            currentNetWorthWon = summary.currentNetWorth,
+            currentNetWorthWon = displayNetWorth,
             mu = profile.policySettings.wealthDistributionMean,
             sigma = profile.policySettings.wealthDistributionStdDev
         )

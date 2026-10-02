@@ -495,7 +495,10 @@ object SimulationEngine {
         val annualTotalOutflow = annualLivingExpenses + annualDebtInterestCost + annualPensionContributionDeducted
 
         // 3. 종합 실질 순자산 순증가액 (Net Wealth Growth)
-        val annualNetWealthGrowth = annualTotalInflow - annualTotalOutflow
+        // 사적연금 납입금(annualPensionContributionDeducted)은 급여에서 연금 적립금 계좌로 이체되는 저축이므로,
+        // 가계 순자산 관점에서는 유출이 아닌 자산 간 재분배입니다.
+        // 순자본 유출은 순수 소멸성 비용인 생활비와 부채 이자비용입니다.
+        val annualNetWealthGrowth = annualTotalInflow - (annualLivingExpenses + annualDebtInterestCost)
         val annualNetCapitalGain = annualFinancialGain + annualRealEstateGain + annualPensionGain - annualDebtInterestCost
 
         val wonPerSecond = annualNetWealthGrowth / (365.25 * 86400.0)

@@ -31,6 +31,7 @@ import com.pension.alchemy.data.model.UserProfile
 import com.pension.alchemy.data.repository.PensionAlchemyRepository
 import com.pension.alchemy.theme.*
 import com.pension.alchemy.ui.components.AutoSelectOutlinedTextField
+import com.pension.alchemy.ui.components.BaseDateInputField
 import com.pension.alchemy.util.CreateBackupDocumentContract
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -114,6 +115,9 @@ fun SettingsScreen(
     var currentExpensesManwonStr by remember(profile.currentMonthlyExpenses) { mutableStateOf((profile.currentMonthlyExpenses / 10_000L).toString()) }
     var expensesManwonStr by remember(profile.monthlyExpenses) { mutableStateOf((profile.monthlyExpenses / 10_000L).toString()) }
     var inflationStr by remember(profile.inflationRate) { mutableStateOf(profile.inflationRate.toString()) }
+    var globalBaseDateTimeStr by remember(profile.globalBaseDateTime) { 
+        mutableStateOf(if (profile.globalBaseDateTime.length >= 10) profile.globalBaseDateTime.take(10) else profile.globalBaseDateTime) 
+    }
 
     // ──────────────────────────────────────────────
     // 2. 세법 & 정책 변수 (상수) 상태
@@ -155,6 +159,7 @@ fun SettingsScreen(
         currentExpensesManwonStr = (profile.currentMonthlyExpenses / 10_000L).toString()
         expensesManwonStr = (profile.monthlyExpenses / 10_000L).toString()
         inflationStr = profile.inflationRate.toString()
+        globalBaseDateTimeStr = if (profile.globalBaseDateTime.length >= 10) profile.globalBaseDateTime.take(10) else profile.globalBaseDateTime
 
         val pol = profile.policySettings
         privLimitManwonStr = (pol.privatePensionAnnualLimit / 10_000L).toString()
@@ -227,6 +232,7 @@ fun SettingsScreen(
                 currentMonthlyExpenses = currentExp,
                 monthlyExpenses = exp,
                 inflationRate = inf,
+                globalBaseDateTime = globalBaseDateTimeStr.trim(),
                 policySettings = updatedPolicy
             )
         )
@@ -325,6 +331,18 @@ fun SettingsScreen(
                                 fontSize = 13.sp
                             )
                         }
+
+                        // 전체 공통 실시간 총자산 계산 기준일
+                        BaseDateInputField(
+                            baseDate = if (globalBaseDateTimeStr.isNotBlank()) {
+                                if (globalBaseDateTimeStr.length >= 10) globalBaseDateTimeStr.take(10) else globalBaseDateTimeStr
+                            } else {
+                                LocalDate.now().toString()
+                            },
+                            onDateChange = { globalBaseDateTimeStr = if (it.length >= 10) it.take(10) else it },
+                            label = "전체 공통 기준일 (총자산 증가 계산 기준일)",
+                            helperText = "⏱️ 총자산 증가 및 실시간 타이머 계산의 공통 기준일입니다. 각 항목 기준일이 이보다 빠르면 기준일까지의 계산값이 기초자산에 합산되고 현재까지 계산되며, 늦으면 각 항목 기준일부터 계산되어 총자산 타이머에 반영됩니다."
+                        )
 
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             AutoSelectOutlinedTextField(
