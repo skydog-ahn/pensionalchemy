@@ -185,7 +185,7 @@ fun GuideHelpScreen(
                                             shape = RoundedCornerShape(6.dp)
                                         ) {
                                             Text(
-                                                text = "v1.3.4 릴리즈",
+                                                text = "v1.3.5 릴리즈",
                                                 fontSize = 11.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = EmeraldPrimary,
@@ -202,10 +202,10 @@ fun GuideHelpScreen(
                                     }
                                     Spacer(modifier = Modifier.height(6.dp))
                                     Text(
-                                        text = "• 대출 상환 차감 연동: 대출 원리금 상환액이 가계 현금흐름과 자산 증가에 차등 차감되어 실질 가처분소득 반영\n" +
-                                            "• 대시보드 순자산 카드 개편: 총자산(좌) 및 총부채(우)를 만원 단위로 1행 좌우 나란히 배치\n" +
-                                            "• 순자산 백분위 차트 최적화: 오늘 0시 기준 만원 단위 연동, 초기 로딩 시 내 자산 100% 자동 선택 & 간결한 1행 정보 표기\n" +
-                                            "• 자산증가속도 표기 간결화 및 전체 회계 보존 무결성 검증 완료",
+                                        text = "• 금액 단위 표기 일관성 전면 정돈: 축약 표기 및 차트 틱에서 누락되던 단위를 '원, 만원, 억원'으로 일관되게 정돈하고 중복 기간단위 배제\n" +
+                                            "• 나이별 정밀 인스펙터 헤더 개편: 나이 뱃지 분리 배치로 글자 찌그러짐을 해결하고 생애주기 단계 독립 뱃지 적용\n" +
+                                            "• 예상 순자산 카드 상하 2단 재배치: 100% 가로폭 단독 활용으로 대규모 자산가 금액도 글자 잘림 없이 시원하게 표시\n" +
+                                            "• 현재 순자산 카드 2열 인셋 박스: 총자산·총부채를 상하 2열로 분리하여 시인성과 심미성 극대화",
                                         fontSize = 11.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         lineHeight = 16.sp
@@ -480,7 +480,7 @@ fun GuideHelpScreen(
                                     else if (T_item > T_global):
                                         t_eff = T_now - T_item    // 기준일 이후 신규 취득/등록된 항목
 
-                                    // 2. 자산증가속도(=Wealth Velocity, ${'$'}v_w$) (단위: 환단위/시간단위, 예: 원/초)
+                                    // 2. 자산증가속도(=Wealth Velocity, ${'$'}v_w$) (단위: 원/초)
                                     자산증가속도(${'$'}v_w$) = (총유입속도 - 총유출속도)
                                     * 개인연금 정기납입액은 현금 ➜ 연금자산 내 이전 보존 처리
 

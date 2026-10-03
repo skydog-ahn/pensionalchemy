@@ -254,9 +254,17 @@ const AppSimulator = {
                         <span class="card-badge-sub">기준 나이: ${s.currentAge}세</span>
                     </div>
                     <div class="net-worth-amount">${CurrencyFormatter.formatKoreanWon(s.currentNetWorth)}</div>
-                    <div class="sub-assets-row" style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
-                        <span style="font-size: 13px; font-weight: 600; color: #6EE7B7;">총자산 ${CurrencyFormatter.formatToManWon(s.currentTotalAssets)}</span>
-                        <span style="font-size: 13px; font-weight: 600; color: #FCA5A5;">총부채 ${CurrencyFormatter.formatToManWon(s.currentTotalDebt)}</span>
+                    <!-- 총자산 / 총부채 인셋 서머리 박스 (금액 잘림 방지 2열 구조) -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px; padding: 8px 14px; background: rgba(0, 0, 0, 0.12); border-radius: 10px;">
+                        <div style="display: flex; flex-direction: column;">
+                            <span style="font-size: 11px; opacity: 0.8; color: inherit;">총자산</span>
+                            <span style="font-size: 14px; font-weight: 700; color: #6EE7B7; margin-top: 2px;">${CurrencyFormatter.formatToManWon(s.currentTotalAssets)}</span>
+                        </div>
+                        <div style="width: 1px; height: 24px; background: rgba(255, 255, 255, 0.18);"></div>
+                        <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                            <span style="font-size: 11px; opacity: 0.8; color: inherit;">총부채</span>
+                            <span style="font-size: 14px; font-weight: 700; color: #FCA5A5; margin-top: 2px;">${CurrencyFormatter.formatToManWon(s.currentTotalDebt)}</span>
+                        </div>
                     </div>
                 </div>
 
@@ -311,7 +319,7 @@ const AppSimulator = {
                             <span class="metric-icon">🏛️</span>
                             <span class="metric-name">65세 월연금</span>
                         </div>
-                        <div class="metric-value text-cyan">${CurrencyFormatter.formatKoreanWon(s.postRetirementMonthlyPension, true)}/월</div>
+                        <div class="metric-value text-cyan">${CurrencyFormatter.formatKoreanWon(s.postRetirementMonthlyPension, true)}</div>
                         <div class="metric-sub">국민+퇴직+개인 합산</div>
                     </div>
                     <div class="metric-card">
@@ -429,8 +437,14 @@ const AppSimulator = {
         return `
             <div class="card-row-between">
                 <span class="inspector-title">나이별 정밀 인스펙터</span>
-                <span class="inspector-badge">${item.age}세 (${item.stage})</span>
+                <span class="inspector-badge" style="font-size: 14px; font-weight: 800; padding: 4px 10px;">${item.age}세</span>
             </div>
+            ${item.stage ? `
+                <div style="margin-top: 6px; display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; background: ${item.stage.includes('크레바스') ? 'rgba(239, 68, 68, 0.15)' : item.stage.includes('은퇴') ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)'}; color: ${item.stage.includes('크레바스') ? '#EF4444' : item.stage.includes('은퇴') ? '#F59E0B' : '#10B981'};">
+                    <span style="width: 6px; height: 6px; border-radius: 50%; background: currentColor;"></span>
+                    ${item.stage}
+                </div>
+            ` : ''}
 
             <div class="slider-container">
                 <input type="range" class="app-slider" id="inspector-age-slider"
@@ -444,16 +458,20 @@ const AppSimulator = {
                 </div>
             </div>
 
-            <!-- 1) 생애 순자산 -->
-            <div class="inspector-row-box highlight-box">
-                <div class="box-left">
-                    <span class="box-icon">💼</span>
-                    <div>
-                        <div class="box-label">예상 순자산</div>
-                        <div class="box-sub">총자산 - 총부채</div>
+            <!-- 1) 생애 순자산 (상하 배치로 금액 잘림 방지) -->
+            <div class="inspector-row-box" style="padding: 12px 14px; background: var(--phone-card-bg); border-radius: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="box-icon" style="font-size: 16px;">💼</span>
+                        <div class="box-label" style="font-size: 13px; font-weight: 700;">예상 순자산</div>
+                    </div>
+                    <div class="box-sub" style="font-size: 11px; color: ${item.netAssetValue < 0 ? '#EF4444' : 'var(--text-muted)'};">
+                        ${item.netAssetValue < 0 ? '자산 소진 후 누적 결손' : `${item.age}세 시점 예상 잔액`}
                     </div>
                 </div>
-                <div class="box-amount">${CurrencyFormatter.formatKoreanWon(item.netAssetValue)}</div>
+                <div style="margin-top: 8px; font-size: 20px; font-weight: 800; color: ${item.netAssetValue < 0 ? '#EF4444' : 'var(--text-main)'}; letter-spacing: -0.5px;">
+                    ${CurrencyFormatter.formatKoreanWon(item.netAssetValue)}
+                </div>
             </div>
 
             <!-- 2) 월간 현금흐름 밸런스 -->
@@ -461,11 +479,11 @@ const AppSimulator = {
                 <div class="cashflow-list">
                     <div class="cf-row">
                         <span><span class="cf-dot text-emerald">▲</span> 월 총소득</span>
-                        <span class="cf-val text-emerald">+${CurrencyFormatter.formatKoreanWon(item.monthlyTotalIncome)}/월</span>
+                        <span class="cf-val text-emerald">+${CurrencyFormatter.formatKoreanWon(item.monthlyTotalIncome)}</span>
                     </div>
                     <div class="cf-row">
                         <span><span class="cf-dot text-danger">▼</span> 월 생활지출</span>
-                        <span class="cf-val text-danger">-${CurrencyFormatter.formatKoreanWon(item.monthlyExpenses)}/월</span>
+                        <span class="cf-val text-danger">-${CurrencyFormatter.formatKoreanWon(item.monthlyExpenses)}</span>
                     </div>
                     <div class="cf-divider"></div>
                     <div class="cf-row font-bold">
@@ -473,7 +491,7 @@ const AppSimulator = {
                             ${item.monthlyNetCashFlow >= 0 ? '💰 월 잉여금(흑자)' : '🚨 월 적자(부족금)'}
                         </span>
                         <span class="cf-val ${item.monthlyNetCashFlow >= 0 ? 'text-emerald' : 'text-danger'}">
-                            ${item.monthlyNetCashFlow >= 0 ? '+' : ''}${CurrencyFormatter.formatKoreanWon(item.monthlyNetCashFlow)}/월
+                            ${item.monthlyNetCashFlow >= 0 ? '+' : ''}${CurrencyFormatter.formatKoreanWon(item.monthlyNetCashFlow)}
                         </span>
                     </div>
                 </div>
@@ -483,17 +501,17 @@ const AppSimulator = {
             <div class="inspector-row-box">
                 <div class="cashflow-list">
                     <div class="cf-row font-bold">
-                        <span><span class="cf-dot text-emerald">🛡️</span> 연금 실수령액(세후)</span>
-                        <span class="cf-val text-emerald">${CurrencyFormatter.formatKoreanWon(item.monthlyPensionIncome)}/월</span>
+                        <span><span class="cf-dot text-emerald">🛡️</span> 월 연금 실수령액(세후)</span>
+                        <span class="cf-val text-emerald">${CurrencyFormatter.formatKoreanWon(item.monthlyPensionIncome)}</span>
                     </div>
                     ${item.monthlyPensionTax > 0 ? `
                     <div class="cf-row sub-row text-muted">
-                        <span>• 연금 세전 총액</span>
-                        <span>${CurrencyFormatter.formatKoreanWon(item.grossMonthlyPensionIncome)}/월</span>
+                        <span>• 월 세전 총액</span>
+                        <span>${CurrencyFormatter.formatKoreanWon(item.grossMonthlyPensionIncome)}</span>
                     </div>
                     <div class="cf-row sub-row text-amber">
-                        <span>• 예상 원천징수 세금</span>
-                        <span>-${CurrencyFormatter.formatKoreanWon(item.monthlyPensionTax)}/월</span>
+                        <span>• 월 예상 세금</span>
+                        <span>-${CurrencyFormatter.formatKoreanWon(item.monthlyPensionTax)}</span>
                     </div>
                     ` : ''}
                 </div>
@@ -699,25 +717,25 @@ const AppSimulator = {
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 10px;">
                     <div style="background: var(--bg-hover, rgba(255,255,255,0.03)); padding: 6px; border-radius: 6px; text-align: center;">
                         <div style="color: var(--text-muted); font-size: 10px;">시간당</div>
-                        <div style="font-weight: 700; color: ${trendColor}; font-size: 11px;">${isPos ? '+' : ''}${CurrencyFormatter.formatKoreanWon(Math.round(y.wonPerHour || 0), true)}/시간</div>
+                        <div style="font-weight: 700; color: ${trendColor}; font-size: 11px;">${isPos ? '+' : ''}${CurrencyFormatter.formatKoreanWon(Math.round(y.wonPerHour || 0), true)}</div>
                     </div>
                     <div style="background: var(--bg-hover, rgba(255,255,255,0.03)); padding: 6px; border-radius: 6px; text-align: center;">
                         <div style="color: var(--text-muted); font-size: 10px;">하루(일당)</div>
-                        <div style="font-weight: 700; color: ${trendColor}; font-size: 11px;">${isPos ? '+' : ''}${CurrencyFormatter.formatKoreanWon(Math.round(y.wonPerDay || 0), true)}/일</div>
+                        <div style="font-weight: 700; color: ${trendColor}; font-size: 11px;">${isPos ? '+' : ''}${CurrencyFormatter.formatKoreanWon(Math.round(y.wonPerDay || 0), true)}</div>
                     </div>
                     <div style="background: var(--bg-hover, rgba(255,255,255,0.03)); padding: 6px; border-radius: 6px; text-align: center;">
                         <div style="color: var(--text-muted); font-size: 10px;">한달(월)</div>
-                        <div style="font-weight: 700; color: ${trendColor}; font-size: 11px;">${isPos ? '+' : ''}${CurrencyFormatter.formatKoreanWon(Math.round(y.wonPerMonth || 0), true)}/월</div>
+                        <div style="font-weight: 700; color: ${trendColor}; font-size: 11px;">${isPos ? '+' : ''}${CurrencyFormatter.formatKoreanWon(Math.round(y.wonPerMonth || 0), true)}</div>
                     </div>
                 </div>
                 <div style="display: flex; justify-content: space-between; padding: 6px 0; border-top: 1px solid var(--border-color);">
                     <span style="font-weight: 700;">${isPos ? '연간 순자산 순증가 합계' : '연간 순자산 순감소 합계'}</span>
-                    <span style="font-weight: 800; color: ${trendColor};">${isPos ? '+' : ''}${CurrencyFormatter.formatKoreanWon(Math.round(y.annualNetWealthGrowth || 0))} 원/연</span>
+                    <span style="font-weight: 800; color: ${trendColor};">${isPos ? '+' : ''}${CurrencyFormatter.formatToManWon(Math.round(y.annualNetWealthGrowth || 0))}</span>
                 </div>
                 ${(y.annualDebtServiceTotal || 0) > 0 ? `
                 <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 10px; color: var(--text-muted);">
                     <span>대출 상환 후 월 가처분소득</span>
-                    <span style="color: var(--primary, #06b6d4); font-weight: 700;">${CurrencyFormatter.formatKoreanWon(y.disposableMonthlyRegularIncome || 0)}/월</span>
+                    <span style="color: var(--primary, #06b6d4); font-weight: 700;">${CurrencyFormatter.formatToManWon(y.disposableMonthlyRegularIncome || 0)}</span>
                 </div>
                 ` : ''}
             </div>
@@ -794,7 +812,7 @@ const AppSimulator = {
                         </div>
                         <div>
                             <div class="sub-summary-label">정기 월소득 합계</div>
-                            <div class="sub-summary-val text-cyan">${CurrencyFormatter.formatKoreanWon(totalMonthlyIncome, true)}/월</div>
+                            <div class="sub-summary-val text-cyan">${CurrencyFormatter.formatKoreanWon(totalMonthlyIncome, true)}</div>
                         </div>
                     </div>
                     <div class="sub-summary-sub">
@@ -805,16 +823,16 @@ const AppSimulator = {
                     <div class="sub-summary-row">
                         <div>
                             <div class="sub-summary-label">총 월 소득</div>
-                            <div class="sub-summary-val text-emerald">${CurrencyFormatter.formatKoreanWon(totalMonthlyIncome, true)}/월</div>
+                            <div class="sub-summary-val text-emerald">${CurrencyFormatter.formatKoreanWon(totalMonthlyIncome, true)}</div>
                         </div>
                         ${totalMonthlyLoanRepayment > 0 ? `
                         <div>
                             <div class="sub-summary-label">대출 상환</div>
-                            <div class="sub-summary-val text-danger">-${CurrencyFormatter.formatKoreanWon(totalMonthlyLoanRepayment, true)}/월</div>
+                            <div class="sub-summary-val text-danger">-${CurrencyFormatter.formatKoreanWon(totalMonthlyLoanRepayment, true)}</div>
                         </div>
                         <div>
                             <div class="sub-summary-label">실질 가처분 소득</div>
-                            <div class="sub-summary-val text-cyan">${CurrencyFormatter.formatKoreanWon(disposableMonthlyIncome, true)}/월</div>
+                            <div class="sub-summary-val text-cyan">${CurrencyFormatter.formatKoreanWon(disposableMonthlyIncome, true)}</div>
                         </div>
                         ` : `
                         <div>
@@ -879,7 +897,7 @@ const AppSimulator = {
                                 </div>
                                 <div style="display:flex; align-items:center; gap:8px;">
                                     <span class="item-val text-emerald">
-                                        +${CurrencyFormatter.formatKoreanWon(i.monthlyAmount)}/월
+                                        +${CurrencyFormatter.formatKoreanWon(i.monthlyAmount)}
                                     </span>
                                     <button class="item-delete-btn" onclick="AppSimulator.deleteIncome('${i.id}')" title="삭제">✕</button>
                                 </div>
@@ -927,25 +945,25 @@ const AppSimulator = {
                     <div class="tier-bars-stack">
                         <div class="tier-bar tier-3-personal">
                             <div class="tier-label"><span>3층 세제적격</span> 개인연금저축</div>
-                            <div class="tier-val">${CurrencyFormatter.formatKoreanWon(pensions.filter(p => p.type === 'PERSONAL').reduce((s, p) => s + Number(p.expectedMonthlyAmount), 0), true)}/월</div>
+                            <div class="tier-val">${CurrencyFormatter.formatKoreanWon(pensions.filter(p => p.type === 'PERSONAL').reduce((s, p) => s + Number(p.expectedMonthlyAmount), 0), true)}</div>
                         </div>
                         <div class="tier-bar tier-3-annuity">
                             <div class="tier-label"><span>3층 비과세</span> 개인연금보험</div>
-                            <div class="tier-val">${CurrencyFormatter.formatKoreanWon(pensions.filter(p => p.type === 'ANNUITY_INSURANCE').reduce((s, p) => s + Number(p.expectedMonthlyAmount), 0), true)}/월</div>
+                            <div class="tier-val">${CurrencyFormatter.formatKoreanWon(pensions.filter(p => p.type === 'ANNUITY_INSURANCE').reduce((s, p) => s + Number(p.expectedMonthlyAmount), 0), true)}</div>
                         </div>
                         <div class="tier-bar tier-2-retire">
                             <div class="tier-label"><span>2층 표준보장</span> 퇴직연금/IRP</div>
-                            <div class="tier-val">${CurrencyFormatter.formatKoreanWon(pensions.filter(p => p.type === 'RETIREMENT').reduce((s, p) => s + Number(p.expectedMonthlyAmount), 0), true)}/월</div>
+                            <div class="tier-val">${CurrencyFormatter.formatKoreanWon(pensions.filter(p => p.type === 'RETIREMENT').reduce((s, p) => s + Number(p.expectedMonthlyAmount), 0), true)}</div>
                         </div>
                         <div class="tier-bar tier-1-national">
                             <div class="tier-label"><span>1층 기본보장</span> 국민연금</div>
-                            <div class="tier-val">${CurrencyFormatter.formatKoreanWon(pensions.filter(p => p.type === 'NATIONAL').reduce((s, p) => s + Number(p.expectedMonthlyAmount), 0), true)}/월</div>
+                            <div class="tier-val">${CurrencyFormatter.formatKoreanWon(pensions.filter(p => p.type === 'NATIONAL').reduce((s, p) => s + Number(p.expectedMonthlyAmount), 0), true)}</div>
                         </div>
                     </div>
 
                     <div class="card-row-between pyramid-footer">
                         <span>적립 잔액: ${CurrencyFormatter.formatKoreanWon(totalBalance, true)}</span>
-                        <span>예상 합산: <strong class="text-emerald">${CurrencyFormatter.formatKoreanWon(totalMonthly, true)}/월</strong></span>
+                        <span>월 예상 합산: <strong class="text-emerald">${CurrencyFormatter.formatKoreanWon(totalMonthly, true)}</strong></span>
                     </div>
                 </div>
 
@@ -972,7 +990,7 @@ const AppSimulator = {
 
                     <div class="national-result-banner">
                         <div>개시 나이: <strong>${national.startAge + offset}세</strong></div>
-                        <div>수령 예상액: <strong class="text-emerald">${CurrencyFormatter.formatKoreanWon(adjustedNational)}/월</strong></div>
+                        <div>월 수령 예상액: <strong class="text-emerald">${CurrencyFormatter.formatKoreanWon(adjustedNational)}</strong></div>
                     </div>
                 </div>
                 ` : ''}
@@ -996,7 +1014,7 @@ const AppSimulator = {
                                 </div>
                                 <div style="display:flex; align-items:center; gap:8px;">
                                     <span class="item-val text-emerald">
-                                        ${CurrencyFormatter.formatKoreanWon(p.expectedMonthlyAmount)}/월
+                                        ${CurrencyFormatter.formatKoreanWon(p.expectedMonthlyAmount)}
                                     </span>
                                     ${p.type !== 'NATIONAL' ? `
                                     <button class="item-delete-btn" onclick="event.stopPropagation(); AppSimulator.deletePension('${p.id}')" title="삭제">✕</button>
@@ -1206,7 +1224,7 @@ const AppSimulator = {
                         ${res.isForeverSafe ? '평생 영구 보존 (안전)' : `${res.depletionYears.toFixed(1)}년 버팀 (${res.depletionAge.toFixed(0)}세 고갈)`}
                     </div>
                     <div class="result-detail-row">
-                        <span>원금 보존 안전 인출액: <strong>${CurrencyFormatter.formatKoreanWon(res.recommendedSafeMonthlyWithdrawal)}/월</strong></span>
+                        <span>원금 보존 월 안전 인출액: <strong>${CurrencyFormatter.formatKoreanWon(res.recommendedSafeMonthlyWithdrawal)}</strong></span>
                     </div>
                 </div>
             </div>
@@ -1255,7 +1273,7 @@ const AppSimulator = {
                     <div class="result-label">은퇴 시점 필요 총자산</div>
                     <div class="result-big-val text-emerald">${CurrencyFormatter.formatKoreanWon(res.targetTotalWealth)}</div>
                     <div class="result-detail-row">
-                        <span>현재부터 월 필요 저축액: <strong class="text-cyan">${CurrencyFormatter.formatKoreanWon(res.monthlySavingsNeeded)}/월</strong></span>
+                        <span>현재부터 월 필요 저축액: <strong class="text-cyan">${CurrencyFormatter.formatKoreanWon(res.monthlySavingsNeeded)}</strong></span>
                     </div>
                 </div>
             </div>
@@ -2575,8 +2593,8 @@ const AppSimulator = {
             ctx.fillText(label, x, padding.top + 6);
         };
 
-        drawRefLine(2.4, '중위 2.4억', '#94A3B8');
-        drawRefLine(4.7, '평균 4.7억', '#F59E0B');
+        drawRefLine(2.4, '중위 2.4억원', '#94A3B8');
+        drawRefLine(4.7, '평균 4.7억원', '#F59E0B');
 
         // 내 순자산 마커 핀
         const curEok = Math.min(maxEok, this.state.summary.currentNetWorth / 100000000.0);
@@ -2606,7 +2624,7 @@ const AppSimulator = {
         ctx.font = '10px Inter, sans-serif';
         ctx.textAlign = 'center';
         [0, 2.5, 5, 7.5, 10, 12.5, 15].forEach(e => {
-            ctx.fillText(`${e}억`, getX(e), padding.top + chartH + 16);
+            ctx.fillText(`${e}억원`, getX(e), padding.top + chartH + 16);
         });
     },
 

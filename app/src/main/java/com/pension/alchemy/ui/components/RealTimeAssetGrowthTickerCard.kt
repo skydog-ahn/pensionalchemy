@@ -310,9 +310,9 @@ fun RealTimeAssetGrowthTickerCard(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         val prefix = if (metrics.wonPerSecond >= 0) "+" else ""
-                        YieldPeriodChip("시간당", "$prefix${CurrencyFormatter.formatKoreanWon(metrics.wonPerHour.roundToLong(), isShort = true)} 원/시간", Modifier.weight(1f))
-                        YieldPeriodChip("하루(일당)", "$prefix${CurrencyFormatter.formatKoreanWon(metrics.wonPerDay, isShort = true)} 원/일", Modifier.weight(1f))
-                        YieldPeriodChip("한달(월)", "$prefix${CurrencyFormatter.formatKoreanWon(metrics.wonPerMonth, isShort = true)} 원/월", Modifier.weight(1f))
+                        YieldPeriodChip("시간당", "$prefix${CurrencyFormatter.formatKoreanWon(metrics.wonPerHour.roundToLong(), isShort = true)}", Modifier.weight(1f))
+                        YieldPeriodChip("하루(일당)", "$prefix${CurrencyFormatter.formatKoreanWon(metrics.wonPerDay, isShort = true)}", Modifier.weight(1f))
+                        YieldPeriodChip("한달(월)", "$prefix${CurrencyFormatter.formatKoreanWon(metrics.wonPerMonth, isShort = true)}", Modifier.weight(1f))
                     }
 
                     // B) 종합 재정 흐름 브레이크다운 (유입 vs 유출)
@@ -378,9 +378,13 @@ fun RealTimeAssetGrowthTickerCard(
                                 fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
-                            val netPrefix = if (metrics.annualNetWealthGrowth >= 0L) "+" else ""
+                            val netFormatted = if (metrics.annualNetWealthGrowth > 0L) {
+                                "+${CurrencyFormatter.formatToManWon(metrics.annualNetWealthGrowth)}"
+                            } else {
+                                CurrencyFormatter.formatToManWon(metrics.annualNetWealthGrowth)
+                            }
                             Text(
-                                text = "$netPrefix${CurrencyFormatter.formatKoreanWon(metrics.annualNetWealthGrowth)} 원/연",
+                                text = netFormatted,
                                 fontWeight = FontWeight.ExtraBold,
                                 fontSize = 13.sp,
                                 color = trendColor
@@ -397,7 +401,7 @@ fun RealTimeAssetGrowthTickerCard(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
-                                    text = "${CurrencyFormatter.formatKoreanWon(metrics.disposableMonthlyRegularIncome)}/월",
+                                    text = CurrencyFormatter.formatToManWon(metrics.disposableMonthlyRegularIncome),
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = CyanInfo
@@ -493,9 +497,13 @@ private fun ContributionRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        val prefix = if (amount > 0L) "+" else ""
+        val formattedAmount = if (amount > 0L) {
+            "+${CurrencyFormatter.formatToManWon(amount)}"
+        } else {
+            CurrencyFormatter.formatToManWon(amount)
+        }
         Text(
-            text = "$prefix${CurrencyFormatter.formatKoreanWon(amount, isShort = true)} 원/연",
+            text = formattedAmount,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
             color = if (amount >= 0L) MaterialTheme.colorScheme.onSurface else RoseDanger

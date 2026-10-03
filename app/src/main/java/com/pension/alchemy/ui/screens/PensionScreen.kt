@@ -134,7 +134,7 @@ fun PensionScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = "예상 합산: ${CurrencyFormatter.formatKoreanWon(totalMonthlyPayout, isShort = true)}/월",
+                                text = "월 예상 합산: ${CurrencyFormatter.formatKoreanWon(totalMonthlyPayout, isShort = true)}",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = EmeraldPrimary,
@@ -252,7 +252,7 @@ private fun TierBar(title: String, color: Color, monthlyAmount: Long) {
                 Text(text = title, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = color)
             }
             Text(
-                text = "${CurrencyFormatter.formatKoreanWon(monthlyAmount, isShort = true)}/월",
+                text = CurrencyFormatter.formatKoreanWon(monthlyAmount, isShort = true),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -347,7 +347,7 @@ private fun NationalPensionAdjustmentCard(
             ) {
                 Text(text = "수령 개시: ${effectiveAge}세", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, softWrap = false, maxLines = 1)
                 Text(
-                    text = "예상: ${CurrencyFormatter.formatKoreanWon(adjustedAmount)}/월",
+                    text = "월 예상: ${CurrencyFormatter.formatKoreanWon(adjustedAmount)}",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = Tier1NationalColor,
@@ -522,7 +522,7 @@ private fun PensionItemCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "월 예상 ${CurrencyFormatter.formatKoreanWon(displayMonthlyAmount)}/월",
+                    text = "월 예상 ${CurrencyFormatter.formatKoreanWon(displayMonthlyAmount)}",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = EmeraldPrimary,

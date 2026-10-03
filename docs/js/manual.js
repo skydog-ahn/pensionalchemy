@@ -155,7 +155,7 @@ const ManualController = {
             if (key === 'netWorth') {
                 el.textContent = CurrencyFormatter.formatKoreanWon(simState.summary.currentNetWorth);
             } else if (key === 'pensionMonthly') {
-                el.textContent = CurrencyFormatter.formatKoreanWon(simState.summary.postRetirementMonthlyPension, true) + '/월';
+                el.textContent = CurrencyFormatter.formatKoreanWon(simState.summary.postRetirementMonthlyPension, true);
             } else if (key === 'healthScore') {
                 el.textContent = `${simState.summary.healthScore.score}점 (${simState.summary.healthScore.grade})`;
                 el.style.color = simState.summary.healthScore.gradeColorHex;

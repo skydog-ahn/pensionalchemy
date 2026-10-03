@@ -178,34 +178,66 @@ fun DashboardScreen(
                     maxLines = 1,
                     softWrap = false
                 )
-                val isDark = isSystemInDarkTheme()
-                val assetColor = if (isDark) Color(0xFF6EE7B7) else Color(0xFF065F46)
-                val debtColor = if (isDark) Color(0xFFFCA5A5) else Color(0xFF991B1B)
 
-                // 총자산(왼쪽) 및 총부채(오른쪽) 나란히 표기 (만원 단위까지)
+                val isDark = isSystemInDarkTheme()
+                val assetColor = if (isDark) Color(0xFF6EE7B7) else Color(0xFF047857)
+                val debtColor = if (isDark) Color(0xFFFCA5A5) else Color(0xFFB91C1C)
+
+                Spacer(modifier = Modifier.height(14.dp))
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 10.dp),
+                        .background(
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.08f),
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "총자산 ${CurrencyFormatter.formatToManWon(displayTotalAssets)}",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = assetColor,
-                        maxLines = 1,
-                        softWrap = false
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "총자산",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = CurrencyFormatter.formatToManWon(displayTotalAssets),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = assetColor,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .width(1.dp)
+                            .height(24.dp)
+                            .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.15f))
                     )
-                    Text(
-                        text = "총부채 ${CurrencyFormatter.formatToManWon(displayTotalDebt)}",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = debtColor,
-                        maxLines = 1,
-                        softWrap = false
-                    )
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.End
+                    ) {
+                        Text(
+                            text = "총부채",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = CurrencyFormatter.formatToManWon(displayTotalDebt),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = debtColor,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    }
                 }
             }
         }
@@ -338,7 +370,7 @@ fun DashboardScreen(
         ) {
             MetricCard(
                 title = "65세 월 연금수령액",
-                value = CurrencyFormatter.formatKoreanWon(summary.postRetirementMonthlyPension, isShort = true) + "/월",
+                value = CurrencyFormatter.formatKoreanWon(summary.postRetirementMonthlyPension, isShort = true),
                 subtitle = "국민+퇴직+개인 합산",
                 icon = Icons.Default.AccountBalance,
                 accentColor = CyanInfo,
@@ -406,12 +438,52 @@ fun DashboardScreen(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
-                    Text(
-                        text = "${safeAge}세 (${selectedYearResult?.stage ?: ""})",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = "${safeAge}세",
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+
+                if (!selectedYearResult?.stage.isNullOrEmpty()) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    val stage = selectedYearResult.stage
+                    val isCrevasse = stage.contains("크레바스")
+                    val isRetire = stage.contains("은퇴")
+                    val badgeColor = when {
+                        isCrevasse -> RoseDanger
+                        isRetire -> Color(0xFFF59E0B)
+                        else -> MaterialTheme.colorScheme.primary
+                    }
+                    Surface(
+                        color = badgeColor.copy(alpha = 0.12f),
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .background(badgeColor, CircleShape)
+                            )
+                            Text(
+                                text = stage,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = badgeColor
+                            )
+                        }
+                    }
                 }
 
                 val minSliderAge = summary.currentAge.toFloat()
@@ -430,54 +502,63 @@ fun DashboardScreen(
                 if (selectedYearResult != null) {
                     HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp), color = Color.Gray.copy(alpha = 0.2f))
 
-                    // 1) 메인 하이라이트: 생애 순자산
+                    // 1) 메인 하이라이트: 생애 순자산 (상하 배치로 금액 잘림 완벽 방지)
                     Surface(
                         color = MaterialTheme.colorScheme.surface,
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Row(
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 14.dp, vertical = 12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                                .padding(14.dp)
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(32.dp)
-                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f), RoundedCornerShape(8.dp)),
-                                    contentAlignment = Alignment.Center
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.AccountBalanceWallet,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                                Column {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f), RoundedCornerShape(6.dp)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.AccountBalanceWallet,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
                                     Text(
                                         text = "예상 순자산",
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
-                                    Text(
-                                        text = if (selectedYearResult.netAssetValue < 0L) "자산 소진 후 누적 결손" else "총자산 - 총부채",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = if (selectedYearResult.netAssetValue < 0L) RoseDanger else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
                                 }
+                                Text(
+                                    text = if (selectedYearResult.netAssetValue < 0L) "자산 소진 후 누적 결손" else "${selectedYearResult.age}세 시점 예상 잔액",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (selectedYearResult.netAssetValue < 0L) RoseDanger else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
                             Text(
                                 text = CurrencyFormatter.formatKoreanWon(selectedYearResult.netAssetValue),
-                                style = MaterialTheme.typography.titleMedium.copy(
+                                style = MaterialTheme.typography.titleLarge.copy(
                                     fontWeight = FontWeight.ExtraBold,
-                                    fontSize = 17.sp
+                                    fontSize = 20.sp
                                 ),
                                 color = if (selectedYearResult.netAssetValue < 0L) RoseDanger else MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.fillMaxWidth(),
                                 softWrap = false,
                                 maxLines = 1
                             )
@@ -525,7 +606,7 @@ fun DashboardScreen(
                                     )
                                 }
                                 Text(
-                                    text = "+${CurrencyFormatter.formatKoreanWon(selectedYearResult.monthlyTotalIncome)}/월",
+                                    text = "+${CurrencyFormatter.formatKoreanWon(selectedYearResult.monthlyTotalIncome)}",
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = EmeraldPrimary,
@@ -554,7 +635,7 @@ fun DashboardScreen(
                                     )
                                 }
                                 Text(
-                                    text = "-${CurrencyFormatter.formatKoreanWon(selectedYearResult.monthlyExpenses)}/월",
+                                    text = "-${CurrencyFormatter.formatKoreanWon(selectedYearResult.monthlyExpenses)}",
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = RoseDanger,
@@ -593,7 +674,7 @@ fun DashboardScreen(
                                     }
                                 }
                                 Text(
-                                    text = "${if (selectedYearResult.monthlyNetCashFlow > 0) "+" else ""}${CurrencyFormatter.formatKoreanWon(selectedYearResult.monthlyNetCashFlow)}/월",
+                                    text = "${if (selectedYearResult.monthlyNetCashFlow > 0) "+" else ""}${CurrencyFormatter.formatKoreanWon(selectedYearResult.monthlyNetCashFlow)}",
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = if (selectedYearResult.monthlyNetCashFlow >= 0) EmeraldPrimary else RoseDanger,
@@ -631,14 +712,14 @@ fun DashboardScreen(
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Text(
-                                        text = "연금 실수령액",
+                                        text = "월 연금 실수령액",
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                 }
                                 Text(
-                                    text = "${CurrencyFormatter.formatKoreanWon(selectedYearResult.monthlyPensionIncome)}/월",
+                                    text = CurrencyFormatter.formatKoreanWon(selectedYearResult.monthlyPensionIncome),
                                     style = MaterialTheme.typography.bodyLarge,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = EmeraldPrimary,
@@ -655,12 +736,12 @@ fun DashboardScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = "• 연금 세전 총액",
+                                        text = "• 월 세전 총액",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     Text(
-                                        text = "${CurrencyFormatter.formatKoreanWon(selectedYearResult.grossMonthlyPensionIncome)}/월",
+                                        text = CurrencyFormatter.formatKoreanWon(selectedYearResult.grossMonthlyPensionIncome),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         softWrap = false,
@@ -673,12 +754,12 @@ fun DashboardScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = "• 예상 원천징수 세금",
+                                        text = "• 월 예상 세금",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = AmberWarning
                                     )
                                     Text(
-                                        text = "-${CurrencyFormatter.formatKoreanWon(selectedYearResult.monthlyPensionTax)}/월",
+                                        text = "-${CurrencyFormatter.formatKoreanWon(selectedYearResult.monthlyPensionTax)}",
                                         style = MaterialTheme.typography.bodySmall,
                                         fontWeight = FontWeight.SemiBold,
                                         color = AmberWarning,

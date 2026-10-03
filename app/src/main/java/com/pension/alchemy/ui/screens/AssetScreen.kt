@@ -244,10 +244,10 @@ fun AssetScreen(
                         horizontalArrangement = Arrangement.SpaceAround,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        SummaryCol("총 월 소득", CurrencyFormatter.formatKoreanWon(totalMonthlyIncome, isShort = true) + "/월", EmeraldPrimary)
+                        SummaryCol("총 월 소득", CurrencyFormatter.formatKoreanWon(totalMonthlyIncome, isShort = true), EmeraldPrimary)
                         if (totalMonthlyLoanRepayment > 0L) {
-                            SummaryCol("대출 상환", "- " + CurrencyFormatter.formatKoreanWon(totalMonthlyLoanRepayment, isShort = true) + "/월", RoseDanger)
-                            SummaryCol("실질 가처분 소득", CurrencyFormatter.formatKoreanWon(disposableMonthlyIncome, isShort = true) + "/월", CyanInfo)
+                            SummaryCol("대출 상환", "-" + CurrencyFormatter.formatKoreanWon(totalMonthlyLoanRepayment, isShort = true), RoseDanger)
+                            SummaryCol("실질 가처분 소득", CurrencyFormatter.formatKoreanWon(disposableMonthlyIncome, isShort = true), CyanInfo)
                         } else {
                             SummaryCol("연간 환산", CurrencyFormatter.formatKoreanWon(totalMonthlyIncome * 12L, isShort = true), CyanInfo)
                         }
@@ -537,7 +537,7 @@ private fun AssetItemRow(
                     val repaidText = if (growth.accumulatedGrowth > 0L) {
                         "월 ${CurrencyFormatter.formatKoreanWon(monthlyPay)} (상환 -${CurrencyFormatter.formatKoreanWon(growth.accumulatedGrowth)})"
                     } else {
-                        "월 상환 약 ${CurrencyFormatter.formatKoreanWon(monthlyPay)}/월"
+                        "월 상환 약 ${CurrencyFormatter.formatKoreanWon(monthlyPay)}"
                     }
                     Text(
                         text = repaidText,
@@ -647,7 +647,7 @@ private fun IncomeItemRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "+${CurrencyFormatter.formatKoreanWon(income.monthlyAmount)}/월",
+                    text = "+${CurrencyFormatter.formatKoreanWon(income.monthlyAmount)}",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = EmeraldPrimary,
@@ -850,7 +850,7 @@ private fun AssetEditDialog(
                     ) {
                         Column(modifier = Modifier.padding(10.dp)) {
                             Text(
-                                text = "예상 월 상환액: 약 ${CurrencyFormatter.formatKoreanWon(previewMonthly)}/월",
+                                text = "예상 월 상환액: 약 ${CurrencyFormatter.formatKoreanWon(previewMonthly)}",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = RoseDanger

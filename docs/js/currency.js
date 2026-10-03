@@ -38,10 +38,14 @@ const CurrencyFormatter = {
         if (isShort) {
             if (eok > 0) {
                 const eokVal = absAmount / 100000000.0;
-                formatted = `${eokVal.toFixed(1)}억`;
+                if (absAmount % 100000000 === 0) {
+                    formatted = `${this.decimalFormat(eok)}억원`;
+                } else {
+                    formatted = `${eokVal.toFixed(1)}억원`;
+                }
             } else if (man > 0) {
-                const manVal = absAmount / 10000.0;
-                formatted = `${Math.round(manVal)}만`;
+                const manVal = Math.floor(absAmount / 10000);
+                formatted = `${this.decimalFormat(manVal)}만원`;
             } else {
                 formatted = `${this.decimalFormat(absAmount)}원`;
             }

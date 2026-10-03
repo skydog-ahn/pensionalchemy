@@ -281,6 +281,29 @@ class RealTimeGrowthCalculatorTest {
     }
 
     @Test
+    fun testFormatKoreanWonShort() {
+        // 정수 억 단위 (1억원, 100억원)
+        assertEquals("1억원", CurrencyFormatter.formatKoreanWon(100_000_000L, isShort = true))
+        assertEquals("100억원", CurrencyFormatter.formatKoreanWon(10_000_000_000L, isShort = true))
+
+        // 소수 억 단위 (1.5억원)
+        assertEquals("1.5억원", CurrencyFormatter.formatKoreanWon(150_000_000L, isShort = true))
+
+        // 만원 단위 (2만원, 42만원, 1,285만원, 7,800만원)
+        assertEquals("2만원", CurrencyFormatter.formatKoreanWon(20_000L, isShort = true))
+        assertEquals("42만원", CurrencyFormatter.formatKoreanWon(420_000L, isShort = true))
+        assertEquals("1,285만원", CurrencyFormatter.formatKoreanWon(12_850_000L, isShort = true))
+        assertEquals("7,800만원", CurrencyFormatter.formatKoreanWon(78_000_000L, isShort = true))
+
+        // 만원 미만 (원 단위)
+        assertEquals("5,000원", CurrencyFormatter.formatKoreanWon(5_000L, isShort = true))
+        assertEquals("0원", CurrencyFormatter.formatKoreanWon(0L, isShort = true))
+
+        // 음수
+        assertEquals("-4,800만원", CurrencyFormatter.formatKoreanWon(-48_000_000L, isShort = true))
+    }
+
+    @Test
     fun testFormatToManWon() {
         // 5억 2000만원
         assertEquals("5억 2,000만원", CurrencyFormatter.formatToManWon(520_000_000L))

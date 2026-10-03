@@ -44,11 +44,15 @@ object CurrencyFormatter {
             when {
                 eok > 0 -> {
                     val eokVal = absAmount.toDouble() / 100_000_000.0
-                    "${String.format("%.1f", eokVal)}억"
+                    if (absAmount % 100_000_000L == 0L) {
+                        "${decimalFormat.format(eok)}억원"
+                    } else {
+                        "${String.format("%.1f", eokVal)}억원"
+                    }
                 }
                 man > 0 -> {
-                    val manVal = absAmount.toDouble() / 10_000.0
-                    "${String.format("%.0f", manVal)}만"
+                    val manVal = absAmount / 10_000L
+                    "${decimalFormat.format(manVal)}만원"
                 }
                 else -> "${decimalFormat.format(absAmount)}원"
             }

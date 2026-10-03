@@ -529,12 +529,12 @@ fun WealthDistributionCanvasChart(
                 maxX <= 100.0 -> 20.0
                 else -> 50.0
             }
-            Text(text = "0억", fontSize = 10.sp, color = textVariantColor, maxLines = 1, softWrap = false)
+            Text(text = "0억원", fontSize = 10.sp, color = textVariantColor, maxLines = 1, softWrap = false)
 
-            // 중위수 표기 (약 2.7억)
+            // 중위수 표기 (약 2.7억원)
             if (maxX >= 15.0) {
                 Text(
-                    text = "중위(${String.format(Locale.US, "%.1f", p50Value)}억)",
+                    text = "중위(${String.format(Locale.US, "%.1f", p50Value)}억원)",
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Medium,
                     color = textVariantColor.copy(alpha = 0.8f),
@@ -545,10 +545,10 @@ fun WealthDistributionCanvasChart(
 
             var tick = step
             while (tick < maxX) {
-                Text(text = "${tick.toInt()}억", fontSize = 10.sp, color = textVariantColor, maxLines = 1, softWrap = false)
+                Text(text = "${tick.toInt()}억원", fontSize = 10.sp, color = textVariantColor, maxLines = 1, softWrap = false)
                 tick += step
             }
-            Text(text = "${maxX.toInt()}억+", fontSize = 10.sp, color = textVariantColor, maxLines = 1, softWrap = false)
+            Text(text = "${maxX.toInt()}억원+", fontSize = 10.sp, color = textVariantColor, maxLines = 1, softWrap = false)
         }
 
         HorizontalDivider(color = outlineColor.copy(alpha = 0.4f))
@@ -719,7 +719,7 @@ private fun BenchmarkChip(
                 color = if (selected) primaryColor else MaterialTheme.colorScheme.onSurface
             )
             Text(
-                text = "${String.format(Locale.US, "%.1f", valueOk)}억",
+                text = "${String.format(Locale.US, "%.1f", valueOk)}억원",
                 fontSize = 9.sp,
                 color = if (selected) primaryColor else MaterialTheme.colorScheme.onSurfaceVariant
             )

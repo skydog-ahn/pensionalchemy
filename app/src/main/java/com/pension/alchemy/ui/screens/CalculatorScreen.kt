@@ -330,7 +330,7 @@ private fun WithdrawalModeView(vm: CalculatorViewModel) {
                     val copyText = buildString {
                         appendLine("[연금술사 - 자산 인출 시뮬레이션 결과]")
                         appendLine("• 시작 자산: ${CurrencyFormatter.formatKoreanWon(vm.wdWealth)}")
-                        appendLine("• 월 인출액: ${CurrencyFormatter.formatKoreanWon(vm.wdMonthlyWithdrawal)}/월")
+                        appendLine("• 월 인출액: ${CurrencyFormatter.formatKoreanWon(vm.wdMonthlyWithdrawal)}")
                         appendLine("• 운용 수익률: 연 ${String.format("%.1f", vm.wdGrowthRate)}%")
                         appendLine("────────────────────────")
                         if (result.isDepleted) {
@@ -445,7 +445,7 @@ private fun DepletionModeView(vm: CalculatorViewModel) {
                     val copyText = buildString {
                         appendLine("[연금술사 - 자산 고갈 타이머 결과]")
                         appendLine("• 보유 자산: ${CurrencyFormatter.formatKoreanWon(vm.depWealth)}")
-                        appendLine("• 월 인출액: ${CurrencyFormatter.formatKoreanWon(vm.depWithdrawal)}/월")
+                        appendLine("• 월 인출액: ${CurrencyFormatter.formatKoreanWon(vm.depWithdrawal)}")
                         appendLine("• 운용 수익률: 연 ${String.format("%.1f", vm.depGrowth)}%")
                         appendLine("• 물가상승률: 연 ${String.format("%.1f", vm.depInflation)}% (실질수익률 ${String.format("%.1f", vm.depGrowth - vm.depInflation)}%)")
                         appendLine("────────────────────────")
@@ -454,7 +454,7 @@ private fun DepletionModeView(vm: CalculatorViewModel) {
                         } else {
                             appendLine("▶ 고갈 판정: 약 ${String.format("%.1f", result.depletionYears)}년 후 (${String.format("%.0f", result.depletionAge)}세) 소진")
                         }
-                        appendLine("• 원금 보존 권장 인출한도: ${CurrencyFormatter.formatKoreanWon(result.recommendedSafeMonthlyWithdrawal)}/월")
+                        appendLine("• 원금 보존 월 권장 인출한도: ${CurrencyFormatter.formatKoreanWon(result.recommendedSafeMonthlyWithdrawal)}")
                     }
                     vm.copyToClipboard(context, "자산 고갈 타이머 결과", copyText)
                 }
@@ -467,8 +467,8 @@ private fun DepletionModeView(vm: CalculatorViewModel) {
                 color = if (result.isForeverSafe) EmeraldPrimary else RoseDanger
             )
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("원금 보존 안전 인출한도", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("${CurrencyFormatter.formatKoreanWon(result.recommendedSafeMonthlyWithdrawal)}/월", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Text("원금 보존 월 안전 인출한도", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(CurrencyFormatter.formatKoreanWon(result.recommendedSafeMonthlyWithdrawal), fontSize = 13.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -548,12 +548,12 @@ private fun RequiredWealthModeView(
                 onCopy = {
                     val copyText = buildString {
                         appendLine("[연금술사 - 목표 필요자산 역산 결과]")
-                        appendLine("• 목표 월 생활비: ${CurrencyFormatter.formatKoreanWon(vm.reqExpense)}/월")
+                        appendLine("• 목표 월 생활비: ${CurrencyFormatter.formatKoreanWon(vm.reqExpense)}")
                         appendLine("• 인출 유지 기간: ${vm.reqYears}년")
                         appendLine("• 기대 운용 수익률: 연 ${String.format("%.1f", vm.reqReturnRate)}%")
                         appendLine("────────────────────────")
                         appendLine("▶ 목표 필요 총자산: ${CurrencyFormatter.formatKoreanWon(result.targetTotalWealth)}")
-                        appendLine("• 매월 필요 추가 저축액: ${CurrencyFormatter.formatKoreanWon(result.monthlySavingsNeeded)}/월 (15년 적립 기준)")
+                        appendLine("• 매월 필요 추가 저축액: ${CurrencyFormatter.formatKoreanWon(result.monthlySavingsNeeded)} (15년 적립 기준)")
                     }
                     vm.copyToClipboard(context, "목표 필요자산 결과", copyText)
                 }
@@ -569,12 +569,12 @@ private fun RequiredWealthModeView(
             if (isWideScreen) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("매월 필요 추가 저축액", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("${CurrencyFormatter.formatKoreanWon(result.monthlySavingsNeeded)}/월 (15년 적립 기준)", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text("${CurrencyFormatter.formatKoreanWon(result.monthlySavingsNeeded)} (15년 적립 기준)", fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 }
             } else {
                 Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text("매월 필요 추가 저축액 (15년 적립 기준)", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("${CurrencyFormatter.formatKoreanWon(result.monthlySavingsNeeded)} / 월", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Text(CurrencyFormatter.formatKoreanWon(result.monthlySavingsNeeded), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                 }
             }
         }
@@ -632,10 +632,10 @@ private fun BreakEvenModeView(
                 onCopy = {
                     val copyText = buildString {
                         appendLine("[연금술사 - 국민연금 수령시기 손익분기 분석]")
-                        appendLine("• 65세 정상수령 기준액: ${CurrencyFormatter.formatKoreanWon(vm.beNormalAmount)}/월")
-                        appendLine("• 조기수령(60세, -30%): ${CurrencyFormatter.formatKoreanWon(result.earlyMonthlyAmount)}/월")
-                        appendLine("• 정상수령(65세, 100%): ${CurrencyFormatter.formatKoreanWon(result.normalMonthlyAmount)}/월")
-                        appendLine("• 연기수령(70세, +36%): ${CurrencyFormatter.formatKoreanWon(result.delayedMonthlyAmount)}/월")
+                        appendLine("• 65세 정상수령 기준액: ${CurrencyFormatter.formatKoreanWon(vm.beNormalAmount)}")
+                        appendLine("• 조기수령(60세, -30%): ${CurrencyFormatter.formatKoreanWon(result.earlyMonthlyAmount)}")
+                        appendLine("• 정상수령(65세, 100%): ${CurrencyFormatter.formatKoreanWon(result.normalMonthlyAmount)}")
+                        appendLine("• 연기수령(70세, +36%): ${CurrencyFormatter.formatKoreanWon(result.delayedMonthlyAmount)}")
                         appendLine("────────────────────────")
                         appendLine("▶ 조기 vs 정상 교차 나이: 만 ${result.earlyVsNormalBreakEvenAge}세 (이후 정상수령 총수령액 우위)")
                         appendLine("▶ 정상 vs 연기 교차 나이: 만 ${result.normalVsDelayedBreakEvenAge}세 (이후 연기수령 총수령액 최대)")
@@ -658,7 +658,7 @@ private fun BreakEvenModeView(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(text = "조기 (60세)", fontSize = 11.sp, color = AmberWarning, fontWeight = FontWeight.Medium, maxLines = 1, softWrap = false)
-                        Text(text = "${CurrencyFormatter.formatKoreanWon(result.earlyMonthlyAmount, isShort = true)}/월", fontSize = 12.sp, color = AmberWarning, fontWeight = FontWeight.ExtraBold, maxLines = 1, softWrap = false)
+                        Text(text = CurrencyFormatter.formatKoreanWon(result.earlyMonthlyAmount, isShort = true), fontSize = 12.sp, color = AmberWarning, fontWeight = FontWeight.ExtraBold, maxLines = 1, softWrap = false)
                     }
                 }
                 Surface(
@@ -671,7 +671,7 @@ private fun BreakEvenModeView(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(text = "정상 (65세)", fontSize = 11.sp, color = CyanInfo, fontWeight = FontWeight.Medium, maxLines = 1, softWrap = false)
-                        Text(text = "${CurrencyFormatter.formatKoreanWon(result.normalMonthlyAmount, isShort = true)}/월", fontSize = 12.sp, color = CyanInfo, fontWeight = FontWeight.ExtraBold, maxLines = 1, softWrap = false)
+                        Text(text = CurrencyFormatter.formatKoreanWon(result.normalMonthlyAmount, isShort = true), fontSize = 12.sp, color = CyanInfo, fontWeight = FontWeight.ExtraBold, maxLines = 1, softWrap = false)
                     }
                 }
                 Surface(
@@ -684,7 +684,7 @@ private fun BreakEvenModeView(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(text = "연기 (70세)", fontSize = 11.sp, color = EmeraldPrimary, fontWeight = FontWeight.Medium, maxLines = 1, softWrap = false)
-                        Text(text = "${CurrencyFormatter.formatKoreanWon(result.delayedMonthlyAmount, isShort = true)}/월", fontSize = 12.sp, color = EmeraldPrimary, fontWeight = FontWeight.ExtraBold, maxLines = 1, softWrap = false)
+                        Text(text = CurrencyFormatter.formatKoreanWon(result.delayedMonthlyAmount, isShort = true), fontSize = 12.sp, color = EmeraldPrimary, fontWeight = FontWeight.ExtraBold, maxLines = 1, softWrap = false)
                     }
                 }
             }
