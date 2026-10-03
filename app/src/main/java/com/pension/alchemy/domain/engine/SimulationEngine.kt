@@ -486,13 +486,31 @@ object SimulationEngine {
             .sumOf { (it.currentBalance * (it.expectedGrowthRate / 100.0)).roundToLong() }
         val annualTotalInflow = initialAnnualRegularIncome + annualFinancialGain + annualRealEstateGain + annualPensionGain
 
-        // 2. 유출 (Outflow)
+        // 2. 대출 부채 원리금 상환 및 가계 유출 (Outflow)
+        var initialAnnualDebtPrincipal = 0L
+        var initialAnnualDebtInterest = 0L
+        for (debt in debtAssets) {
+            val result = LoanCalculator.calculateAnnualRepayment(
+                currentBalance = debt.currentValue,
+                originalPrincipal = debt.currentValue,
+                annualRatePercent = debt.expectedGrowthRate,
+                maturityYears = debt.maturityYears.coerceAtLeast(1),
+                repaymentMethod = debt.repaymentMethod,
+                yearIndex = 0
+            )
+            initialAnnualDebtPrincipal += result.principalPayment
+            initialAnnualDebtInterest += result.interestPayment
+        }
+        val initialAnnualDebtService = initialAnnualDebtPrincipal + initialAnnualDebtInterest
+        val disposableAnnualRegularIncome = (initialAnnualRegularIncome - initialAnnualDebtService).coerceAtLeast(0L)
+        val disposableMonthlyRegularIncome = disposableAnnualRegularIncome / 12L
+
         val annualLivingExpenses = profile.currentMonthlyExpenses * 12L
-        val annualDebtInterestCost = debtAssets.sumOf { (it.currentValue * (it.expectedGrowthRate / 100.0)).roundToLong() }
+        val annualDebtInterestCost = initialAnnualDebtInterest
         val annualPensionContributionDeducted = pensions
             .filter { it.type != PensionType.NATIONAL && it.type != PensionType.HOUSING && currentAge <= it.contributionEndAge && it.isDeductedFromIncome }
             .sumOf { it.monthlyContribution * 12L }
-        val annualTotalOutflow = annualLivingExpenses + annualDebtInterestCost + annualPensionContributionDeducted
+        val annualTotalOutflow = annualLivingExpenses + initialAnnualDebtService + annualPensionContributionDeducted
 
         // 3. 종합 실질 순자산 순증가액 (Net Wealth Growth)
         // 사적연금 납입금(annualPensionContributionDeducted)은 급여에서 연금 적립금 계좌로 이체되는 저축이므로,
@@ -516,6 +534,9 @@ object SimulationEngine {
             annualTotalInflow = annualTotalInflow,
             annualLivingExpenses = annualLivingExpenses,
             annualDebtInterestCost = annualDebtInterestCost,
+            annualDebtPrincipalRepayment = initialAnnualDebtPrincipal,
+            annualDebtServiceTotal = initialAnnualDebtService,
+            disposableMonthlyRegularIncome = disposableMonthlyRegularIncome,
             annualPensionContributionDeducted = annualPensionContributionDeducted,
             annualTotalOutflow = annualTotalOutflow,
             annualNetWealthGrowth = annualNetWealthGrowth,

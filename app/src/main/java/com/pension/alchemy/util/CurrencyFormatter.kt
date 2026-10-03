@@ -67,6 +67,34 @@ object CurrencyFormatter {
         return if (isNegative) "-$formatted" else formatted
     }
 
+    /**
+     * 만원 단위까지 포맷팅 (만원 미만 단위는 절사)
+     * 예: 520,000,000L -> "5억 2,000만원"
+     *     85,000,000L -> "8,500만원"
+     *     500,000,000L -> "5억원"
+     *     520,003,456L -> "5억 2,000만원"
+     *     0L -> "0원"
+     */
+    fun formatToManWon(amount: Long): String {
+        if (amount == 0L) return "0원"
+
+        val isNegative = amount < 0
+        val absAmount = abs(amount)
+
+        val eok = absAmount / 100_000_000L
+        val remainder = absAmount % 100_000_000L
+        val man = remainder / 10_000L
+
+        val formatted = when {
+            eok > 0 && man > 0 -> "${decimalFormat.format(eok)}억 ${decimalFormat.format(man)}만원"
+            eok > 0 -> "${decimalFormat.format(eok)}억원"
+            man > 0 -> "${decimalFormat.format(man)}만원"
+            else -> "0원"
+        }
+
+        return if (isNegative) "-$formatted" else formatted
+    }
+
     fun formatMonthly(amount: Long, currency: String = "KRW"): String {
         return "${format(amount, currency, isShort = false)}/월"
     }

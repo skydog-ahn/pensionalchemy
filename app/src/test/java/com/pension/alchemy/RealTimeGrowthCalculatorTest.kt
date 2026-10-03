@@ -58,21 +58,64 @@ class RealTimeGrowthCalculatorTest {
 
     @Test
     fun testLiabilityGrowthCalculation() {
-        val debt = Asset(
+        val amortizingDebt = Asset(
             id = "debt-1",
             name = "주택담보대출",
             type = AssetType.DEBT,
             currentValue = 200_000_000L,
             expectedGrowthRate = 4.0, // 연 4% 이자
+            repaymentMethod = com.pension.alchemy.data.model.RepaymentMethod.EQUAL_PRINCIPAL_AND_INTEREST,
+            maturityYears = 10,
             baseDate = "2026-09-01"
         )
 
         val currentDateTime = LocalDateTime.of(2026, 9, 1, 0, 0, 0).plusDays(30)
-        val detail = RealTimeGrowthCalculator.calculateAssetGrowth(debt, currentDateTime)
+        val detail = RealTimeGrowthCalculator.calculateAssetGrowth(amortizingDebt, currentDateTime)
 
-        // 부채는 원금 자체가 늘어나지 않음
-        assertEquals(200_000_000L, detail.realTimeValue)
+        // 원리금균등 부채는 30일간 원금 상환이 실시간 반영되어 잔여 원금이 감소함
+        assertTrue("30일 경과 후 잔여 부채는 2억원보다 작아야 함 (실제: ${detail.realTimeValue})", detail.realTimeValue < 200_000_000L)
+        assertTrue("30일간 상환된 원금은 양수여야 함", detail.accumulatedGrowth > 0L)
+        assertEquals(200_000_000L - detail.accumulatedGrowth, detail.realTimeValue)
         assertTrue(detail.wonPerSecond > 0.0) // 초당 발생 이자율
+
+        // 만기일시상환(BULLET)의 경우 만기 전까지는 원금 상환 없이 유지됨
+        val bulletDebt = amortizingDebt.copy(
+            id = "debt-2",
+            repaymentMethod = com.pension.alchemy.data.model.RepaymentMethod.BULLET
+        )
+        val bulletDetail = RealTimeGrowthCalculator.calculateAssetGrowth(bulletDebt, currentDateTime)
+        assertEquals(200_000_000L, bulletDetail.realTimeValue)
+        assertEquals(0L, bulletDetail.accumulatedGrowth)
+    }
+
+    @Test
+    fun testDebtRepaymentReflectedOnBaseDate() {
+        // 부채 등록일: 2026-01-01, 전체 기준일: 2026-07-01, 현재 시점: 2026-10-01
+        // 원금 1억 2천만원, 10년 원금균등상환(매년 1200만원, 매월 100만원 상환)
+        val debt = Asset(
+            id = "debt-base",
+            name = "원금균등대출",
+            type = AssetType.DEBT,
+            currentValue = 120_000_000L,
+            expectedGrowthRate = 3.0,
+            repaymentMethod = com.pension.alchemy.data.model.RepaymentMethod.EQUAL_PRINCIPAL,
+            maturityYears = 10,
+            baseDate = "2026-01-01"
+        )
+        val globalBase = "2026-07-01 00:00:00"
+        val currentDateTime = LocalDateTime.of(2026, 10, 1, 0, 0, 0)
+
+        val summary = RealTimeGrowthCalculator.calculateTotalRealTimeGrowth(
+            assets = listOf(debt),
+            pensions = emptyList(),
+            currentDateTime = currentDateTime,
+            globalBaseDateTime = globalBase
+        )
+
+        // 1월 1일 ~ 7월 1일 (약 6개월) 동안 약 600만원의 원금이 기준일에 상환되어 기초 부채가 감소해야 함
+        assertTrue("기준일 시점의 기초 부채는 1억 2천만원보다 작아야 함 (실제: ${summary.baseTotalDebt})", summary.baseTotalDebt < 120_000_000L)
+        // 7월 1일 ~ 10월 1일 (약 3개월) 동안 추가로 약 300만원의 원금이 실시간 상환되어 실시간 총부채가 더 감소해야 함
+        assertTrue("실시간 총부채는 기초 부채보다 더 작아야 함 (실제: ${summary.realTimeTotalDebt})", summary.realTimeTotalDebt < summary.baseTotalDebt)
     }
 
     @Test
@@ -235,6 +278,30 @@ class RealTimeGrowthCalculatorTest {
 
         // 0원
         assertEquals("0원", CurrencyFormatter.formatKoreanWon(0L))
+    }
+
+    @Test
+    fun testFormatToManWon() {
+        // 5억 2000만원
+        assertEquals("5억 2,000만원", CurrencyFormatter.formatToManWon(520_000_000L))
+
+        // 실시간 원 단위 가산 금액(5억 2000만 3456원) -> 만원 단위까지 절사 표기
+        assertEquals("5억 2,000만원", CurrencyFormatter.formatToManWon(520_003_456L))
+
+        // 8500만원
+        assertEquals("8,500만원", CurrencyFormatter.formatToManWon(85_000_000L))
+
+        // 5억원 정액
+        assertEquals("5억원", CurrencyFormatter.formatToManWon(500_000_000L))
+
+        // 35억 6527만원 (원 단위 가산)
+        assertEquals("35억 6,527만원", CurrencyFormatter.formatToManWon(3_565_276_711L))
+
+        // 0원
+        assertEquals("0원", CurrencyFormatter.formatToManWon(0L))
+
+        // 음수 (예: -8500만원)
+        assertEquals("-8,500만원", CurrencyFormatter.formatToManWon(-85_000_000L))
     }
 
     @Test
@@ -489,4 +556,144 @@ class RealTimeGrowthCalculatorTest {
         assertTrue(summaryA.totalNetGain > 0L)
         assertEquals(summaryA.baseNetWorth + summaryA.totalNetGain, summaryA.realTimeNetWorth)
     }
+
+    @Test
+    fun testDebtRepaymentDeductsFromCashFlowAndDifferentiatesGrowth() {
+        val baseDate = "2026-01-01"
+        val currentDateTime = LocalDateTime.of(2026, 7, 1, 0, 0, 0) // 6개월 경과
+
+        val stockAsset = Asset(
+            id = "a1",
+            name = "투자자산",
+            type = AssetType.STOCK,
+            currentValue = 100_000_000L,
+            expectedGrowthRate = 5.0,
+            baseDate = baseDate
+        )
+        val salaryIncome = Income(
+            id = "i1",
+            name = "급여",
+            type = IncomeType.SALARY,
+            monthlyAmount = 5_000_000L, // 월 500만원
+            baseDate = baseDate
+        )
+        val mortgageDebt = Asset(
+            id = "d1",
+            name = "주택담보대출",
+            type = AssetType.DEBT,
+            currentValue = 100_000_000L, // 1억원
+            expectedGrowthRate = 4.0,     // 연 4%
+            maturityYears = 10,
+            repaymentMethod = com.pension.alchemy.data.model.RepaymentMethod.EQUAL_PRINCIPAL_AND_INTEREST,
+            baseDate = baseDate
+        )
+
+        // 1. 대출이 없을 때의 실시간 지표
+        val summaryWithoutDebt = RealTimeGrowthCalculator.calculateTotalRealTimeGrowth(
+            assets = listOf(stockAsset),
+            pensions = emptyList(),
+            incomes = listOf(salaryIncome),
+            monthlyExpenses = 2_500_000L,
+            currentAge = 40,
+            currentDateTime = currentDateTime,
+            globalBaseDateTime = baseDate
+        )
+
+        // 2. 대출이 있을 때의 실시간 지표
+        val summaryWithDebt = RealTimeGrowthCalculator.calculateTotalRealTimeGrowth(
+            assets = listOf(stockAsset, mortgageDebt),
+            pensions = emptyList(),
+            incomes = listOf(salaryIncome),
+            monthlyExpenses = 2_500_000L,
+            currentAge = 40,
+            currentDateTime = currentDateTime,
+            globalBaseDateTime = baseDate
+        )
+
+        // 대출 상환액 누적 검증 (원금 상환 + 이자 상환)
+        assertTrue("대출 원금 상환액이 누적되어야 함", summaryWithDebt.debtPrincipalRepaidAccumulated > 0L)
+        assertTrue("대출 이자 지출이 누적되어야 함", summaryWithDebt.debtInterestAccumulated > 0L)
+        assertEquals(
+            "총 대출 상환액은 원금 상환액과 이자 지출의 합이어야 함",
+            summaryWithDebt.debtPrincipalRepaidAccumulated + summaryWithDebt.debtInterestAccumulated,
+            summaryWithDebt.debtRepaymentAccumulated
+        )
+
+        // 대출 유무에 따른 자산증가 차별화 검증
+        // 1) 대출 원리금 상환으로 인해 총자산 증가속도(초당 유입)가 대출 없을 때보다 둔화되어야 함
+        assertTrue(
+            "대출 상환으로 인해 초당 총자산 증가속도가 둔화되어야 함",
+            summaryWithDebt.grossAssetWonPerSecond < summaryWithoutDebt.grossAssetWonPerSecond
+        )
+        // 2) 이자 비용으로 인해 초당 순자산 증가속도(v_w) 역시 대출 없을 때보다 둔화되어야 함
+        assertTrue(
+            "대출 이자비용으로 인해 초당 순자산 증가속도가 둔화되어야 함",
+            summaryWithDebt.netWonPerSecond < summaryWithoutDebt.netWonPerSecond
+        )
+        // 3) 대출 원리금 상환 지출로 인해 실시간 총자산 평가액은 대출 없을 때보다 작아야 함
+        assertTrue(
+            "대출 상환 현금 지출로 인해 실시간 총자산은 대출 없을 때보다 적어야 함",
+            summaryWithDebt.realTimeTotalGrossAssets < summaryWithoutDebt.realTimeTotalGrossAssets
+        )
+        // 4) 이자 지출로 인해 누적 순자산 증가액(totalNetGain)도 대출 없을 때보다 작아야 함
+        assertTrue(
+            "대출 이자비용으로 인해 누적 순자산 증가액이 대출 없을 때보다 적어야 함",
+            summaryWithDebt.totalNetGain < summaryWithoutDebt.totalNetGain
+        )
+        // 5) 대출 원금 상환으로 잔여 부채는 기초 부채보다 줄어들어야 함
+        assertTrue(
+            "대출 원금 상환으로 실시간 부채가 기초 부채보다 감소해야 함",
+            summaryWithDebt.realTimeTotalDebt < summaryWithDebt.baseTotalDebt
+        )
+
+        // 회계적 항등식 검증: 총자산 = 부채 + 순자산
+        assertEquals(
+            "실시간 총자산 - 실시간 총부채 == 실시간 순자산",
+            summaryWithDebt.realTimeTotalGrossAssets - summaryWithDebt.realTimeTotalDebt,
+            summaryWithDebt.realTimeNetWorth
+        )
+        assertEquals(
+            "기초 총자산 - 기초 총부채 == 기초 순자산",
+            summaryWithDebt.baseTotalGrossAssets - summaryWithDebt.baseTotalDebt,
+            summaryWithDebt.baseNetWorth
+        )
+    }
+
+    @Test
+    fun testTodayMidnightNetWorthInManWon() {
+        val testBaseDate = "2026-01-01"
+        val todayMidnight = LocalDate.parse("2026-10-03").atStartOfDay()
+
+        val asset = Asset(
+            id = "a1",
+            name = "투자자산",
+            type = AssetType.STOCK,
+            currentValue = 500_000_000L,
+            expectedGrowthRate = 5.0,
+            baseDate = testBaseDate
+        )
+
+        val summary = RealTimeGrowthCalculator.calculateTotalRealTimeGrowth(
+            assets = listOf(asset),
+            pensions = emptyList(),
+            incomes = emptyList(),
+            monthlyExpenses = 0L,
+            currentAge = 40,
+            currentDateTime = todayMidnight,
+            globalBaseDateTime = testBaseDate
+        )
+
+        // 오늘 0시 기준 순자산 산출
+        val todayMidnightNetWorth = summary.realTimeNetWorth
+        assertTrue("오늘 0시 기준 순자산이 양수여야 함", todayMidnightNetWorth > 500_000_000L)
+
+        // 만원 단위 절사
+        val manWonVal = (todayMidnightNetWorth / 10_000L) * 10_000L
+        assertEquals("만원 미만 단위는 0이어야 함", 0L, manWonVal % 10_000L)
+
+        // formatToManWon 문자열 검증
+        val formatted = CurrencyFormatter.formatToManWon(manWonVal)
+        assertTrue("만원 또는 억원으로 정갈하게 끝나야 함", formatted.endsWith("만원") || formatted.endsWith("억원"))
+    }
 }
+

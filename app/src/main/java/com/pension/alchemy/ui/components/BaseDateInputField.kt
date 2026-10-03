@@ -23,9 +23,13 @@ fun BaseDateInputField(
     modifier: Modifier = Modifier,
     label: String = "입력/기준 일자",
     includeTime: Boolean = false,
-    helperText: String? = "⏱️ 기준일 00시부터 현재까지 초당 자산 증가가 실시간으로 가산됩니다."
+    helperText: String? = "⏱️ 기준일 00시부터 현재까지 초당 자산 증가가 실시간으로 가산됩니다.",
+    maxDate: LocalDate? = LocalDate.now()
 ) {
     var showDatePickerDialog by remember { mutableStateOf(false) }
+
+    val today = remember { LocalDate.now() }
+    val effectiveMax = maxDate ?: today
 
     val normalizedDate = if (baseDate.length >= 10) baseDate.take(10) else baseDate
 
@@ -34,9 +38,11 @@ fun BaseDateInputField(
             initialDateStr = normalizedDate,
             includeTime = false,
             title = "$label 선택",
+            maxDate = effectiveMax,
             onDismissRequest = { showDatePickerDialog = false },
             onConfirm = { selected ->
-                onDateChange(if (selected.length >= 10) selected.take(10) else selected)
+                val dateOnly = if (selected.length >= 10) selected.take(10) else selected
+                onDateChange(dateOnly)
                 showDatePickerDialog = false
             }
         )
@@ -45,13 +51,25 @@ fun BaseDateInputField(
     Column(modifier = modifier) {
         AutoSelectOutlinedTextField(
             value = normalizedDate,
-            onValueChange = onDateChange,
+            onValueChange = { newVal ->
+                val candidate = if (newVal.length >= 10) newVal.take(10) else newVal
+                try {
+                    if (candidate.length == 10) {
+                        val parsed = LocalDate.parse(candidate)
+                        if (parsed.isAfter(effectiveMax)) {
+                            onDateChange(effectiveMax.toString())
+                            return@AutoSelectOutlinedTextField
+                        }
+                    }
+                } catch (_: Exception) {}
+                onDateChange(candidate)
+            },
             label = { Text(label) },
             trailingIcon = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     TextButton(
                         onClick = {
-                            onDateChange(LocalDate.now().toString())
+                            onDateChange(effectiveMax.toString())
                         },
                         contentPadding = PaddingValues(horizontal = 6.dp)
                     ) {

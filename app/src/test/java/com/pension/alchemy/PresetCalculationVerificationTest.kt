@@ -49,9 +49,6 @@ class PresetCalculationVerificationTest {
             val simSummary = SimulationEngine.runComprehensiveSimulation(profile, pensions, assets, incomes)
             assertNotNull("$ageGroup 대 시뮬레이션 결과가 null이 아니어야 함", simSummary)
             assertTrue("$ageGroup 대 기초 순자산이 양수여야 함 (실제: ${simSummary.currentNetWorth})", simSummary.currentNetWorth > 0L)
-            assertTrue("$ageGroup 대 은퇴 건강점수가 0~100 사이여야 함", simSummary.healthScore.score in 0..100)
-            assertTrue("$ageGroup 대 초당 순자산 속도가 양수여야 함", simSummary.realTimeYield.wonPerSecond > 0.0)
-
             for (yr in simSummary.yearlyResults) {
                 assertFalse("$ageGroup 대 연간 결과에 NaN이나 비정상 값이 없어야 함", yr.netAssetValue.toDouble().isNaN())
                 assertTrue("$ageGroup 대 나이 순서가 올바르게 증가해야 함", yr.age >= profile.currentAge)

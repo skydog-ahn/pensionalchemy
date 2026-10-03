@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
-    <title>연금술사 (PensionAlchemy) v1.3.3 - 상세 사용설명서 & 인터랙티브 시뮬레이터</title>
+    <title>연금술사 (PensionAlchemy) v1.3.4 - 상세 사용설명서 & 인터랙티브 시뮬레이터</title>
     <meta name="description" content="대한민국 100세 생애 은퇴·연금 시뮬레이터 '연금술사' 공식 종합 매뉴얼 및 인터랙티브 앱 시뮬레이터. 전체 공통 기준일 연동 실시간 초당 순자산 증가 티커, 초고속 연·월 캘린더 탐색(FastDatePicker), 2026년 생애주기 프리셋, 사적연금 납입금 보존, 개별 자산 기대수익률 가중합산, 3층 연금 피라미드, 소득 크레바스 방어, 4% 룰, 6대 재무 계산기, 순자산 백분위 분석.">
     
     <!-- 파비콘 및 앱 아이콘 -->
@@ -19,7 +19,7 @@
     </script>
     
     <!-- CSS 스타일시트 -->
-    <link rel="stylesheet" href="css/style.css?v=1.3.3">
+    <link rel="stylesheet" href="css/style.css?v=1.3.4">
 </head>
 <body>
 
@@ -30,7 +30,7 @@
             <div>
                 <div class="brand-title">
                     연금술사 (PensionAlchemy)
-                    <span class="version-tag">v 1.3.3</span>
+                    <span class="version-tag">v 1.3.4</span>
                 </div>
                 <div class="brand-subtitle">대한민국 100세 생애 은퇴·연금 시뮬레이터 공식 사용설명서</div>
             </div>
@@ -91,17 +91,16 @@
                         대한민국 금융 시장과 최신 개정 세법, 공적연금 제도를 완벽히 반영하여 <strong>100세 시대의 생애 자산 궤적과 은퇴 현금흐름을 시뮬레이션</strong>하는 종합 은퇴 설계 플랫폼입니다.
                     </p>
 
-                    <!-- v1.3.3 신규 업데이트 하이라이트 -->
+                    <!-- v1.3.4 신규 업데이트 하이라이트 -->
                     <div class="alert-box alert-emerald" style="margin-bottom: 24px; border: 1px solid var(--primary); background: rgba(16, 185, 129, 0.08);">
                         <span class="alert-icon">🚀</span>
                         <div>
-                            <div class="alert-title" style="color: var(--primary); font-size: 15px; font-weight: 700;">v1.3.3 신규 업데이트 릴리즈 (Release Highlights)</div>
+                            <div class="alert-title" style="color: var(--primary); font-size: 15px; font-weight: 700;">v1.3.4 신규 업데이트 릴리즈 (Release Highlights)</div>
                             <div class="alert-desc" style="font-size: 13px; line-height: 1.6; margin-top: 6px;">
-                                • <strong>전체 공통 기준일 도입 및 날짜 형식 표준화:</strong> 환경설정에서 가계 전체의 실시간 자산 성장 측정 기준일(globalBaseDateTime)을 일원화하고, 표기를 'yyyy.MM.dd 기준'으로 통일하며 불필요한 시/분 선택을 배제한 YYYY-MM-DD 날짜 전용 입력으로 단순화.<br>
-                                • <strong>초고속 연·월 퀵 탐색 캘린더 (FastDatePicker):</strong> 과거 몇 년 전이나 미래 시점도 연도/월 칩 클릭 한 번으로 수십 번 스크롤할 필요 없이 즉시 탐색.<br>
-                                • <strong>실시간 순자산 증감 티커 UI & 엄격한 회계 항등식 확립:</strong> 티커 탭을 [기준일 / 오늘]로 직관화하고, 기준일 변경 시에도 '현재 순자산'은 보유 자산 가치로 절대 불변 유지되며 기초 순자산과 누적 순증가액이 정합성 있게 연동.<br>
-                                • <strong>사적연금 급여 납입금 이중 차감 방지 및 자산 보존:</strong> 소득에서 차감되는 연금저축·IRP 납입금이 연금 적립금 자산으로 정확히 환원되어 순자산 보존.<br>
-                                • <strong>20대~60대 생애주기 프리셋 전면 최신화:</strong> 2026년 기준 현실적인 금융 스펙 및 2026-01-01 기준일을 기본 세팅하여 로드 즉시 왜곡 없는 연산 결과 제공.
+                                • <strong>대출 상환의 가계 현금흐름 및 자산 증가 정밀 차감 반영:</strong> 대출 원리금 상환액이 가계 현금흐름에서 차감되어 대출이 있을 때 자산 증가속도와 누적 증가액이 정밀하게 둔화되며, 정기 소득 화면에서 '실질 가처분 소득' 분리 표시.<br>
+                                • <strong>대시보드 메인 순자산 카드 UI 개편:</strong> 총자산(좌측 에메랄드)과 총부채(우측 로즈)를 만원 단위(formatToManWon)로 가로 1행 좌우 나란히 배치하여 가독성 극대화.<br>
+                                • <strong>대한민국 순자산 백분위 차트 최적화 & 내 자산 100% 자동 동기화:</strong> 오늘 0시 기준 만원 단위 연동으로 실시간 초당 플리커를 제거하고, 앱 실행 시 비동기 로딩 즉시 내 자산으로 자동 동기화되며 하단 정보 표기를 1행 좌우로 간결화.<br>
+                                • <strong>자산증가속도 표기 명료화:</strong> 대시보드 실시간 카드 명칭을 직관적인 '⚡ 자산증가속도'로 정돈하고 46개 전체 단위 테스트 통과 및 회계 보존 무결성 검증 완료.
                             </div>
                         </div>
                     </div>
@@ -803,10 +802,10 @@
                         </div>
                     </div>
 
-                    <!-- 부록 5: 실시간 초당 순자산 증식 속도 및 기준일 연동 -->
+                    <!-- 부록 5: 실시간 자산증가속도(=Wealth Velocity, $v_w$) 및 기준일 연동 -->
                     <div class="manual-card">
                         <span class="step-badge" style="background: rgba(16, 185, 129, 0.15); color: var(--primary);">공식 5</span>
-                        <h3>공통 기준일(T_global) & 개별 항목 기준일(T_item) 연동 실시간 순자산 누적 증감 공식</h3>
+                        <h3>공통 기준일(T_global) & 개별 항목 기준일(T_item) 연동 실시간 자산증가속도($v_w$) 및 누적 증감 공식</h3>
                         <div class="formula-box" style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; font-family: monospace; margin: 8px 0; line-height: 1.6;">
                             // 1. 공통 기준일(T_global)과 개별 항목 기준일(T_item) 간의 유효 경과시간 t_eff 산출<br>
                             if (T_item &lt;= T_global):<br>
@@ -820,11 +819,11 @@
                             wps_debt_d = (Debt_d × r_d) / 31,557,600초 (대출이자 비용)<br>
                             wps_living = (Expense_living × 12) / 31,557,600초 (생활비 지출)<br>
                             wps_contrib = (Contrib_private × 12) / 31,557,600초 (개인연금 납입액 ➜ 자산 내 이전 보존 처리)<br><br>
-                            // 3. 종합 실질 순자산 순증가 속도 (wps_net)<br>
-                            wps_net = (Σ wps_asset + Σ wps_pension + Σ wps_income) - (Σ wps_debt + wps_living)<br><br>
+                            // 3. 자산증가속도(=Wealth Velocity, $v_w$, 단위: 환단위/시간단위 예: 원/초)<br>
+                            v_w = (Σ wps_asset + Σ wps_pension + Σ wps_income) - (Σ wps_debt + wps_living)<br><br>
                             // 4. 누적 순증가액 (기준일 기준 & 오늘 기준)<br>
                             Gain_baseDate(t) = Σ(t_eff_i × wps_asset_i) + Σ(t_eff_p × wps_pension_p) + Σ(t_eff_k × wps_income_k) - [Σ(t_eff_d × wps_debt_d) + t_eff_global × wps_living]<br>
-                            Gain_today(t) = wps_net × ElapsedSeconds_from_today_midnight
+                            Gain_today(t) = v_w × ElapsedSeconds_from_today_midnight
                         </div>
                     </div>
 
@@ -876,7 +875,7 @@
                         <div class="app-bar-info">
                             <div class="app-bar-row">
                                 <span class="app-bar-title" id="phone-header-title">연금술사</span>
-                                <span class="app-bar-version">v 1.3.3</span>
+                                <span class="app-bar-version">v 1.3.4</span>
                             </div>
                             <span class="app-bar-subtitle" id="phone-header-subtitle">대시보드 종합 진단</span>
                         </div>
@@ -959,17 +958,17 @@
         </div>
     </div>
 
-    <!-- JS 스크립트 모듈 로드 (캐시 방지 v1.3.3) -->
-    <script src="js/models.js?v=1.3.3"></script>
-    <script src="js/currency.js?v=1.3.3"></script>
-    <script src="js/engines/distribution.js?v=1.3.3"></script>
-    <script src="js/engines/loan.js?v=1.3.3"></script>
-    <script src="js/engines/tax.js?v=1.3.3"></script>
-    <script src="js/engines/health.js?v=1.3.3"></script>
-    <script src="js/engines/calculators.js?v=1.3.3"></script>
-    <script src="js/engines/simulation.js?v=1.3.3"></script>
-    <script src="js/simulator.js?v=1.3.3"></script>
-    <script src="js/manual.js?v=1.3.3"></script>
+    <!-- JS 스크립트 모듈 로드 (캐시 방지 v1.3.4) -->
+    <script src="js/models.js?v=1.3.4"></script>
+    <script src="js/currency.js?v=1.3.4"></script>
+    <script src="js/engines/distribution.js?v=1.3.4"></script>
+    <script src="js/engines/loan.js?v=1.3.4"></script>
+    <script src="js/engines/tax.js?v=1.3.4"></script>
+    <script src="js/engines/health.js?v=1.3.4"></script>
+    <script src="js/engines/calculators.js?v=1.3.4"></script>
+    <script src="js/engines/simulation.js?v=1.3.4"></script>
+    <script src="js/simulator.js?v=1.3.4"></script>
+    <script src="js/manual.js?v=1.3.4"></script>
 
     <!-- 초기화 실행 -->
     <script>

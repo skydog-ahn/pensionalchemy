@@ -62,6 +62,31 @@ const CurrencyFormatter = {
         return isNegative ? `-${formatted}` : formatted;
     },
 
+    formatToManWon(amount) {
+        const num = Math.round(amount || 0);
+        if (num === 0) return "0원";
+
+        const isNegative = num < 0;
+        const absAmount = Math.abs(num);
+
+        const eok = Math.floor(absAmount / 100000000);
+        const remainder = absAmount % 100000000;
+        const man = Math.floor(remainder / 10000);
+
+        let formatted = "";
+        if (eok > 0 && man > 0) {
+            formatted = `${this.decimalFormat(eok)}억 ${this.decimalFormat(man)}만원`;
+        } else if (eok > 0) {
+            formatted = `${this.decimalFormat(eok)}억원`;
+        } else if (man > 0) {
+            formatted = `${this.decimalFormat(man)}만원`;
+        } else {
+            formatted = "0원";
+        }
+
+        return isNegative ? `-${formatted}` : formatted;
+    },
+
     formatMonthly(amount, currency = 'KRW') {
         return `${this.format(amount, currency, false)}/월`;
     },

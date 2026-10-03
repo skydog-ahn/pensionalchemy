@@ -254,9 +254,9 @@ const AppSimulator = {
                         <span class="card-badge-sub">기준 나이: ${s.currentAge}세</span>
                     </div>
                     <div class="net-worth-amount">${CurrencyFormatter.formatKoreanWon(s.currentNetWorth)}</div>
-                    <div class="card-row-between sub-assets-row">
-                        <span>총자산 ${CurrencyFormatter.formatKoreanWon(s.currentTotalAssets, true)}</span>
-                        <span>총부채 ${CurrencyFormatter.formatKoreanWon(s.currentTotalDebt, true)}</span>
+                    <div class="sub-assets-row" style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                        <span style="font-size: 13px; font-weight: 600; color: #6EE7B7;">총자산 ${CurrencyFormatter.formatToManWon(s.currentTotalAssets)}</span>
+                        <span style="font-size: 13px; font-weight: 600; color: #FCA5A5;">총부채 ${CurrencyFormatter.formatToManWon(s.currentTotalDebt)}</span>
                     </div>
                 </div>
 
@@ -625,15 +625,16 @@ const AppSimulator = {
     },
 
     getDistributionInfoText() {
-        const curEok = this.state.summary.currentNetWorth / 100000000.0;
+        const midnightNetWorth = Math.floor(this.state.summary.currentNetWorth / 10000) * 10000;
+        const curEok = midnightNetWorth / 100000000.0;
         const topPct = LogNormalDistribution.topPercent(
             curEok,
             this.state.profile.policySettings.wealthDistributionMean,
             this.state.profile.policySettings.wealthDistributionStdDev
         );
         return `
-            <span>내 순자산: <strong>${CurrencyFormatter.formatKoreanWon(this.state.summary.currentNetWorth)}</strong></span>
-            <span>대한민국 상위 <strong>${topPct.toFixed(1)}%</strong></span>
+            <span>내 순자산: <strong>${CurrencyFormatter.formatToManWon(midnightNetWorth)}</strong></span>
+            <span>확률: <strong>${topPct.toFixed(1)}%</strong></span>
         `;
     },
 
@@ -686,33 +687,39 @@ const AppSimulator = {
             </div>
 
             <div style="margin-top: 10px; background: var(--bg-hover, rgba(255,255,255,0.04)); padding: 6px 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 11px; color: var(--text-muted);">${isPos ? '⚡ 순자산 증가 속도' : '⚡ 순자산 감소 속도'}</span>
+                <span style="font-size: 11px; color: var(--text-muted);">${isPos ? '⚡ 자산증가속도' : '⚡ 자산감소속도'}</span>
                 <span style="font-size: 11px; font-weight: 700; color: ${trendColor}; font-family: monospace;">
-                    초당 ${isPos ? '+' : ''}${wps.toFixed(1)}원
+                    ${isPos ? '+' : ''}${wps.toFixed(1)} 원/초
                 </span>
             </div>
 
             ${expanded ? `
             <div style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border-color); font-size: 11px;" onclick="event.stopPropagation()">
-                <div style="color: var(--text-muted); font-weight: 700; margin-bottom: 6px;">${isPos ? '⏱️ 주기별 실질 순증가 환산' : '⏱️ 주기별 실질 순감소 환산'}</div>
+                <div style="color: var(--text-muted); font-weight: 700; margin-bottom: 6px;">${isPos ? '⏱️ 주기별 실질 자산증가 환산' : '⏱️ 주기별 실질 자산감소 환산'}</div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 10px;">
                     <div style="background: var(--bg-hover, rgba(255,255,255,0.03)); padding: 6px; border-radius: 6px; text-align: center;">
                         <div style="color: var(--text-muted); font-size: 10px;">시간당</div>
-                        <div style="font-weight: 700; color: ${trendColor}; font-size: 11px;">${isPos ? '+' : ''}${CurrencyFormatter.formatKoreanWon(Math.round(y.wonPerHour || 0), true)}</div>
+                        <div style="font-weight: 700; color: ${trendColor}; font-size: 11px;">${isPos ? '+' : ''}${CurrencyFormatter.formatKoreanWon(Math.round(y.wonPerHour || 0), true)}/시간</div>
                     </div>
                     <div style="background: var(--bg-hover, rgba(255,255,255,0.03)); padding: 6px; border-radius: 6px; text-align: center;">
                         <div style="color: var(--text-muted); font-size: 10px;">하루(일당)</div>
-                        <div style="font-weight: 700; color: ${trendColor}; font-size: 11px;">${isPos ? '+' : ''}${CurrencyFormatter.formatKoreanWon(Math.round(y.wonPerDay || 0), true)}</div>
+                        <div style="font-weight: 700; color: ${trendColor}; font-size: 11px;">${isPos ? '+' : ''}${CurrencyFormatter.formatKoreanWon(Math.round(y.wonPerDay || 0), true)}/일</div>
                     </div>
                     <div style="background: var(--bg-hover, rgba(255,255,255,0.03)); padding: 6px; border-radius: 6px; text-align: center;">
                         <div style="color: var(--text-muted); font-size: 10px;">한달(월)</div>
-                        <div style="font-weight: 700; color: ${trendColor}; font-size: 11px;">${isPos ? '+' : ''}${CurrencyFormatter.formatKoreanWon(Math.round(y.wonPerMonth || 0), true)}</div>
+                        <div style="font-weight: 700; color: ${trendColor}; font-size: 11px;">${isPos ? '+' : ''}${CurrencyFormatter.formatKoreanWon(Math.round(y.wonPerMonth || 0), true)}/월</div>
                     </div>
                 </div>
                 <div style="display: flex; justify-content: space-between; padding: 6px 0; border-top: 1px solid var(--border-color);">
                     <span style="font-weight: 700;">${isPos ? '연간 순자산 순증가 합계' : '연간 순자산 순감소 합계'}</span>
-                    <span style="font-weight: 800; color: ${trendColor};">${isPos ? '+' : ''}${CurrencyFormatter.formatKoreanWon(Math.round(y.annualNetWealthGrowth || 0))}/연</span>
+                    <span style="font-weight: 800; color: ${trendColor};">${isPos ? '+' : ''}${CurrencyFormatter.formatKoreanWon(Math.round(y.annualNetWealthGrowth || 0))} 원/연</span>
                 </div>
+                ${(y.annualDebtServiceTotal || 0) > 0 ? `
+                <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 10px; color: var(--text-muted);">
+                    <span>대출 상환 후 월 가처분소득</span>
+                    <span style="color: var(--primary, #06b6d4); font-weight: 700;">${CurrencyFormatter.formatKoreanWon(y.disposableMonthlyRegularIncome || 0)}/월</span>
+                </div>
+                ` : ''}
             </div>
             ` : ''}
         </div>
@@ -754,6 +761,16 @@ const AppSimulator = {
         const totalDebt = this.state.assets.filter(a => isDebt(a)).reduce((s, a) => s + Number(a.currentValue || 0), 0);
         const netWorth = Math.max(0, totalAssets - totalDebt);
         const totalMonthlyIncome = this.state.incomes.reduce((s, i) => s + Number(i.monthlyAmount || 0), 0);
+        const totalMonthlyLoanRepayment = this.state.assets.filter(a => isDebt(a)).reduce((s, a) => {
+            const p = Number(a.currentValue) || 0;
+            const r = (Number(a.expectedGrowthRate) || 3.8) / 100.0 / 12.0;
+            const n = Math.max(1, Number(a.maturityYears) || 10) * 12;
+            const method = a.repaymentMethod || 'EQUAL_PRINCIPAL_AND_INTEREST';
+            if (method === 'BULLET' || method === 'INTEREST_ONLY') return s + Math.round(p * r);
+            if (method === 'EQUAL_PRINCIPAL') return s + Math.round(p / n + p * r);
+            return s + (r > 0 ? Math.round(p * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1)) : Math.round(p / n));
+        }, 0);
+        const disposableMonthlyIncome = Math.max(0, totalMonthlyIncome - totalMonthlyLoanRepayment);
 
         return `
             <div class="screen-scroll-container">
@@ -769,6 +786,7 @@ const AppSimulator = {
 
                 <!-- 자산 종합 요약 헤더 -->
                 <div class="app-card sub-summary-card">
+                    ${this.state.assetTab === 0 ? `
                     <div class="sub-summary-row">
                         <div>
                             <div class="sub-summary-label">순자산 (자산 - 부채)</div>
@@ -783,6 +801,29 @@ const AppSimulator = {
                         <span>총자산: ${CurrencyFormatter.formatKoreanWon(totalAssets, true)}</span>
                         <span>총부채: ${CurrencyFormatter.formatKoreanWon(totalDebt, true)}</span>
                     </div>
+                    ` : `
+                    <div class="sub-summary-row">
+                        <div>
+                            <div class="sub-summary-label">총 월 소득</div>
+                            <div class="sub-summary-val text-emerald">${CurrencyFormatter.formatKoreanWon(totalMonthlyIncome, true)}/월</div>
+                        </div>
+                        ${totalMonthlyLoanRepayment > 0 ? `
+                        <div>
+                            <div class="sub-summary-label">대출 상환</div>
+                            <div class="sub-summary-val text-danger">-${CurrencyFormatter.formatKoreanWon(totalMonthlyLoanRepayment, true)}/월</div>
+                        </div>
+                        <div>
+                            <div class="sub-summary-label">실질 가처분 소득</div>
+                            <div class="sub-summary-val text-cyan">${CurrencyFormatter.formatKoreanWon(disposableMonthlyIncome, true)}/월</div>
+                        </div>
+                        ` : `
+                        <div>
+                            <div class="sub-summary-label">연간 환산</div>
+                            <div class="sub-summary-val text-cyan">${CurrencyFormatter.formatKoreanWon(totalMonthlyIncome * 12, true)}</div>
+                        </div>
+                        `}
+                    </div>
+                    `}
                 </div>
 
                 ${this.state.assetTab === 0 ? `

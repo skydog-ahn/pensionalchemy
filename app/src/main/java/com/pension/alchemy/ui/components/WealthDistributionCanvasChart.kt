@@ -62,6 +62,9 @@ fun WealthDistributionCanvasChart(
     // 현재 사용자 순자산 (억원 단위, 0 이하인 경우 0.0)
     val currentNetWorthOk = (currentNetWorthWon.toDouble() / 100_000_000.0).coerceAtLeast(0.0)
 
+    // 사용자가 명시적으로 다른 위치를 수동 탐색/선택 중인지 여부
+    var isManualSelection by remember { mutableStateOf(false) }
+
     // 사용자가 현재 조회/탐색 중인 자산 (억원)
     var inspectedOk by remember {
         mutableDoubleStateOf(currentNetWorthOk)
@@ -72,13 +75,14 @@ fun WealthDistributionCanvasChart(
         mutableStateOf(formatAssetNumber(currentNetWorthOk))
     }
 
-    // 1,000만원(0.1억) 단위로 유의미한 변동이 있거나 초기 진입 시, 내 자산 위치를 보고 있을 때만 동기화
-    val netWorthKey = currentNetWorthWon / 10_000_000L
-    LaunchedEffect(netWorthKey) {
-        val isMyAsset = kotlin.math.abs(inspectedOk - currentNetWorthOk) < 0.05
-        if (isMyAsset) {
+    // 앱 진입 시 초기 비동기 데이터 로딩(0 -> 실제 자산) 및 내 자산 모드 유지 시 자동 동기화
+    LaunchedEffect(currentNetWorthOk) {
+        if (!isManualSelection || (inspectedOk == 0.0 && currentNetWorthOk > 0.0) || abs(inspectedOk - currentNetWorthOk) < 0.05) {
             inspectedOk = currentNetWorthOk
             inputStr = formatAssetNumber(currentNetWorthOk)
+            if (inspectedOk == 0.0 && currentNetWorthOk > 0.0) {
+                isManualSelection = false
+            }
         }
     }
 
@@ -89,6 +93,7 @@ fun WealthDistributionCanvasChart(
     // 상위 확률 P(X > x) 계산
     val inspectedProb = LogNormalDistribution.probabilityExceeding(inspectedOk, safeMu, safeSigma)
     val currentProb = LogNormalDistribution.probabilityExceeding(currentNetWorthOk, safeMu, safeSigma)
+    val isMyAsset = !isManualSelection || abs(inspectedOk - currentNetWorthOk) < 0.05
 
     // 차트 가로축 최대 범위 (maxX, 억원) 동적 스케일링
     val maxX = remember(inspectedOk, currentNetWorthOk, safeMu, safeSigma) {
@@ -135,7 +140,7 @@ fun WealthDistributionCanvasChart(
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "2025 대한민국 가계 순자산 로그정규분포 모델",
+                    text = "가계 순자산 로그정규분포 모델",
                     style = MaterialTheme.typography.labelSmall,
                     color = textVariantColor
                 )
@@ -187,13 +192,12 @@ fun WealthDistributionCanvasChart(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val isMyAsset = abs(inspectedOk - currentNetWorthOk) < 0.05
                     Surface(
                         color = if (isMyAsset) primaryColor.copy(alpha = 0.12f) else MaterialTheme.colorScheme.secondaryContainer,
                         shape = RoundedCornerShape(6.dp)
                     ) {
                         Text(
-                            text = if (isMyAsset) "현재 내 순자산 기준 백분위" else "선택/탐색 자산 기준 백분위",
+                            text = if (isMyAsset) "내 순자산 기준 백분위" else "선택/탐색 자산 기준 백분위",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = if (isMyAsset) primaryColor else MaterialTheme.colorScheme.onSecondaryContainer,
@@ -204,6 +208,7 @@ fun WealthDistributionCanvasChart(
                     if (!isMyAsset) {
                         OutlinedButton(
                             onClick = {
+                                isManualSelection = false
                                 inspectedOk = currentNetWorthOk
                                 inputStr = formatAssetNumber(currentNetWorthOk)
                                 focusManager.clearFocus()
@@ -254,36 +259,38 @@ fun WealthDistributionCanvasChart(
                 // 4) 기준 순자산 환산 금액 (단독 세로 행)
                 val wonAmount = (inspectedOk * 100_000_000.0).toLong()
                 Text(
-                    text = "• 기준 순자산: ${CurrencyFormatter.formatKoreanWon(wonAmount)}",
+                    text = "• 기준 순자산: ${CurrencyFormatter.formatToManWon(wonAmount)}",
                     fontSize = 12.sp,
                     color = textVariantColor,
                     softWrap = false,
                     maxLines = 1
                 )
 
-                // 5) 내 현재 순자산 및 확률 비교 (행 분리로 글자 잘림 방지 및 카드 높이 완전 고정)
+                // 5) 내 순자산 및 확률 (간결한 1행 배치: 좌측 내 순자산, 우측 확률)
                 HorizontalDivider(color = outlineColor.copy(alpha = 0.3f))
-                val isDifferent = abs(inspectedOk - currentNetWorthOk) >= 0.05
-                Text(
-                    text = if (isDifferent) {
-                        "• 내 현재 순자산: ${CurrencyFormatter.formatKoreanWon(currentNetWorthWon)}"
-                    } else {
-                        "• 내 현재 순자산: ${CurrencyFormatter.formatKoreanWon(currentNetWorthWon)} (현재 일치)"
-                    },
-                    fontSize = 12.sp,
-                    fontWeight = if (isDifferent) FontWeight.Medium else FontWeight.Normal,
-                    color = if (isDifferent) primaryColor else textVariantColor.copy(alpha = 0.85f),
-                    softWrap = false,
-                    maxLines = 1
-                )
-                Text(
-                    text = "• 내 순자산 확률: P(X > ${String.format(Locale.US, "%.1f", currentNetWorthOk)}억) = ${String.format(Locale.US, "%.1f", currentProb * 100.0)}%",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = if (isDifferent) primaryColor else textVariantColor.copy(alpha = 0.85f),
-                    softWrap = false,
-                    maxLines = 1
-                )
+                val isDifferent = !isMyAsset
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "• 내 순자산: ${CurrencyFormatter.formatToManWon(currentNetWorthWon)}",
+                        fontSize = 12.sp,
+                        fontWeight = if (isDifferent) FontWeight.SemiBold else FontWeight.Normal,
+                        color = if (isDifferent) primaryColor else textVariantColor.copy(alpha = 0.85f),
+                        softWrap = false,
+                        maxLines = 1
+                    )
+                    Text(
+                        text = "확률: ${String.format(Locale.US, "%.1f", currentProb * 100.0)}%",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (isDifferent) primaryColor else textVariantColor.copy(alpha = 0.85f),
+                        softWrap = false,
+                        maxLines = 1
+                    )
+                }
             }
         }
 
@@ -324,6 +331,7 @@ fun WealthDistributionCanvasChart(
                             val selectedOk = touchRatio * maxX
                             inspectedOk = (round(selectedOk * 10.0) / 10.0).coerceAtLeast(0.0)
                             inputStr = formatAssetNumber(inspectedOk)
+                            isManualSelection = abs(inspectedOk - currentNetWorthOk) >= 0.05
                             focusManager.clearFocus()
                         }
                     }
@@ -334,6 +342,7 @@ fun WealthDistributionCanvasChart(
                             val selectedOk = touchRatio * maxX
                             inspectedOk = (round(selectedOk * 10.0) / 10.0).coerceAtLeast(0.0)
                             inputStr = formatAssetNumber(inspectedOk)
+                            isManualSelection = abs(inspectedOk - currentNetWorthOk) >= 0.05
                         }
                     }
             ) {
@@ -572,6 +581,7 @@ fun WealthDistributionCanvasChart(
                             val parsed = filtered.toDoubleOrNull()
                             if (parsed != null && parsed >= 0.0) {
                                 inspectedOk = parsed
+                                isManualSelection = abs(inspectedOk - currentNetWorthOk) >= 0.05
                             }
                         }
                     },
@@ -607,6 +617,7 @@ fun WealthDistributionCanvasChart(
 
                 Button(
                     onClick = {
+                        isManualSelection = false
                         inspectedOk = currentNetWorthOk
                         inputStr = formatAssetNumber(currentNetWorthOk)
                         focusManager.clearFocus()
@@ -633,6 +644,7 @@ fun WealthDistributionCanvasChart(
                     onClick = {
                         inspectedOk = round(p50Value * 10.0) / 10.0
                         inputStr = formatAssetNumber(inspectedOk)
+                        isManualSelection = abs(inspectedOk - currentNetWorthOk) >= 0.05
                         focusManager.clearFocus()
                     },
                     modifier = Modifier.weight(1f)
@@ -644,6 +656,7 @@ fun WealthDistributionCanvasChart(
                     onClick = {
                         inspectedOk = round(p20Value * 10.0) / 10.0
                         inputStr = formatAssetNumber(inspectedOk)
+                        isManualSelection = abs(inspectedOk - currentNetWorthOk) >= 0.05
                         focusManager.clearFocus()
                     },
                     modifier = Modifier.weight(1f)
@@ -655,6 +668,7 @@ fun WealthDistributionCanvasChart(
                     onClick = {
                         inspectedOk = round(p10Value * 10.0) / 10.0
                         inputStr = formatAssetNumber(inspectedOk)
+                        isManualSelection = abs(inspectedOk - currentNetWorthOk) >= 0.05
                         focusManager.clearFocus()
                     },
                     modifier = Modifier.weight(1f)
@@ -666,6 +680,7 @@ fun WealthDistributionCanvasChart(
                     onClick = {
                         inspectedOk = round(p1Value * 10.0) / 10.0
                         inputStr = formatAssetNumber(inspectedOk)
+                        isManualSelection = abs(inspectedOk - currentNetWorthOk) >= 0.05
                         focusManager.clearFocus()
                     },
                     modifier = Modifier.weight(1f)

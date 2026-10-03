@@ -453,13 +453,30 @@ const SimulationEngine = {
             .reduce((sum, p) => sum + Math.round((Number(p.currentBalance) || 0) * ((Number(p.expectedGrowthRate) || 0) / 100.0)), 0);
         const annualTotalInflow = initialAnnualRegularIncome + annualFinancialGain + annualRealEstateGain + annualPensionGain;
 
+        let initialAnnualDebtPrincipal = 0;
+        let initialAnnualDebtInterest = 0;
+        for (const debt of debtAssets) {
+            const result = LoanCalculator.calculateAnnualRepayment({
+                currentBalance: Number(debt.currentValue) || 0,
+                originalPrincipal: Number(debt.currentValue) || 0,
+                annualRatePercent: Number(debt.expectedGrowthRate) || 3.8,
+                maturityYears: Math.max(1, Number(debt.maturityYears) || 10),
+                repaymentMethod: debt.repaymentMethod || 'EQUAL_PRINCIPAL_AND_INTEREST',
+                yearIndex: 0
+            });
+            initialAnnualDebtPrincipal += result.principalPayment;
+            initialAnnualDebtInterest += result.interestPayment;
+        }
+        const initialAnnualDebtService = initialAnnualDebtPrincipal + initialAnnualDebtInterest;
+        const disposableAnnualRegularIncome = Math.max(0, initialAnnualRegularIncome - initialAnnualDebtService);
+        const disposableMonthlyRegularIncome = Math.round(disposableAnnualRegularIncome / 12);
+
         const annualLivingExpenses = Number(profile.currentMonthlyExpenses || 3000000) * 12;
-        const annualDebtInterestCost = debtAssets
-            .reduce((sum, d) => sum + Math.round((Number(d.currentValue) || 0) * ((Number(d.expectedGrowthRate) || 3.8) / 100.0)), 0);
+        const annualDebtInterestCost = initialAnnualDebtInterest;
         const annualPensionContributionDeducted = pensions
             .filter(p => p.type !== 'NATIONAL' && p.type !== 'HOUSING' && currentAge <= (p.contributionEndAge || 60) && p.isDeductedFromIncome !== false)
             .reduce((sum, p) => sum + (Number(p.monthlyContribution) || 0) * 12, 0);
-        const annualTotalOutflow = annualLivingExpenses + annualDebtInterestCost + annualPensionContributionDeducted;
+        const annualTotalOutflow = annualLivingExpenses + initialAnnualDebtService + annualPensionContributionDeducted;
 
         const annualNetWealthGrowth = annualTotalInflow - (annualLivingExpenses + annualDebtInterestCost);
         const annualNetCapitalGain = annualFinancialGain + annualRealEstateGain + annualPensionGain - annualDebtInterestCost;
@@ -477,6 +494,9 @@ const SimulationEngine = {
             annualTotalInflow,
             annualLivingExpenses,
             annualDebtInterestCost,
+            annualDebtPrincipalRepayment: initialAnnualDebtPrincipal,
+            annualDebtServiceTotal: initialAnnualDebtService,
+            disposableMonthlyRegularIncome,
             annualPensionContributionDeducted,
             annualTotalOutflow,
             annualNetWealthGrowth,

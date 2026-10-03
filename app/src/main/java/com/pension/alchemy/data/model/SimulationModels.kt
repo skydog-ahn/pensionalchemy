@@ -56,6 +56,9 @@ data class RealTimeYieldMetrics(
     // 2. 유출 (Outflow)
     val annualLivingExpenses: Long = 0L,     // 현재 연간 생활비 소비 지출
     val annualDebtInterestCost: Long = 0L,   // 대출 부채 연간 이자비용
+    val annualDebtPrincipalRepayment: Long = 0L, // 대출 부채 연간 원금 상환액
+    val annualDebtServiceTotal: Long = 0L,       // 대출 부채 연간 총 상환액 (원리금 = 원금+이자)
+    val disposableMonthlyRegularIncome: Long = 0L,// 대출 상환 후 월 실질 가처분 소득
     val annualPensionContributionDeducted: Long = 0L, // 수입에서 직접 지출되는 사적연금 연간 납입액
     val annualTotalOutflow: Long = 0L,       // 연간 총 유출액 (생활비 + 대출이자 + 연금납입)
 

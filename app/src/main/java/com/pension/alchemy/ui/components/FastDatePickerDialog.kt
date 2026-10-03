@@ -58,17 +58,27 @@ fun FastDatePickerDialog(
     onDismissRequest: () -> Unit,
     onConfirm: (String) -> Unit,
     includeTime: Boolean = false,
-    title: String = "날짜 선택"
+    title: String = "날짜 선택",
+    maxDate: LocalDate? = LocalDate.now()
 ) {
-    val initialDateTime = remember(initialDateStr) {
-        RealTimeGrowthCalculator.parseDateTimeSafely(initialDateStr)
+    val today = remember { LocalDate.now() }
+    val effectiveMaxDate = maxDate ?: today
+
+    val initialDateTime = remember(initialDateStr, effectiveMaxDate) {
+        val parsed = RealTimeGrowthCalculator.parseDateTimeSafely(initialDateStr)
+        val initialLocalDate = parsed.toLocalDate()
+        if (initialLocalDate.isAfter(effectiveMaxDate)) {
+            effectiveMaxDate.atStartOfDay()
+        } else {
+            parsed.withHour(0).withMinute(0).withSecond(0)
+        }
     }
 
     var selectedYear by remember { mutableIntStateOf(initialDateTime.year) }
     var selectedMonth by remember { mutableIntStateOf(initialDateTime.monthValue) }
     var selectedDay by remember { mutableIntStateOf(initialDateTime.dayOfMonth) }
-    var selectedHour by remember { mutableIntStateOf(initialDateTime.hour) }
-    var selectedMinute by remember { mutableIntStateOf(initialDateTime.minute) }
+    var selectedHour by remember { mutableIntStateOf(0) }
+    var selectedMinute by remember { mutableIntStateOf(0) }
 
     var viewMode by remember { mutableStateOf(DatePickerViewMode.DAY) }
 
@@ -76,10 +86,21 @@ fun FastDatePickerDialog(
         YearMonth.of(selectedYear, selectedMonth).lengthOfMonth()
     }
 
-    // 날짜 유효성 자동 조정 (예: 31일 선택 상태에서 2월로 변경 시 28일/29일로 조정)
-    LaunchedEffect(daysInMonth) {
-        if (selectedDay > daysInMonth) {
-            selectedDay = daysInMonth
+    // 날짜 유효성 및 maxDate 자동 조정
+    LaunchedEffect(selectedYear, selectedMonth, daysInMonth, effectiveMaxDate) {
+        if (selectedYear > effectiveMaxDate.year) {
+            selectedYear = effectiveMaxDate.year
+        }
+        if (selectedYear == effectiveMaxDate.year && selectedMonth > effectiveMaxDate.monthValue) {
+            selectedMonth = effectiveMaxDate.monthValue
+        }
+        val maxDayForMonth = if (selectedYear == effectiveMaxDate.year && selectedMonth == effectiveMaxDate.monthValue) {
+            minOf(daysInMonth, effectiveMaxDate.dayOfMonth)
+        } else {
+            daysInMonth
+        }
+        if (selectedDay > maxDayForMonth) {
+            selectedDay = maxDayForMonth
         }
     }
 
@@ -120,8 +141,8 @@ fun FastDatePickerDialog(
                         Spacer(modifier = Modifier.height(2.dp))
                         val dayOfWeekStr = selectedLocalDate.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.KOREA)
                         val formattedDate = if (includeTime) {
-                            String.format(Locale.KOREA, "%04d년 %02d월 %02d일 (%s) %02d:%02d",
-                                selectedYear, selectedMonth, selectedDay, dayOfWeekStr, selectedHour, selectedMinute)
+                            String.format(Locale.KOREA, "%04d년 %02d월 %02d일 (%s) 00:00 (0시)",
+                                selectedYear, selectedMonth, selectedDay, dayOfWeekStr)
                         } else {
                             String.format(Locale.KOREA, "%04d년 %02d월 %02d일 (%s)",
                                 selectedYear, selectedMonth, selectedDay, dayOfWeekStr)
@@ -152,6 +173,7 @@ fun FastDatePickerDialog(
                         DatePickerViewMode.YEAR -> {
                             YearSelectorView(
                                 currentYear = selectedYear,
+                                maxYear = effectiveMaxDate.year,
                                 onSelectYear = {
                                     selectedYear = it
                                     viewMode = DatePickerViewMode.DAY
@@ -161,7 +183,10 @@ fun FastDatePickerDialog(
                         }
                         DatePickerViewMode.MONTH -> {
                             MonthSelectorView(
+                                currentYear = selectedYear,
                                 currentMonth = selectedMonth,
+                                maxYear = effectiveMaxDate.year,
+                                maxMonth = effectiveMaxDate.monthValue,
                                 onSelectMonth = {
                                     selectedMonth = it
                                     viewMode = DatePickerViewMode.DAY
@@ -174,10 +199,15 @@ fun FastDatePickerDialog(
                                 year = selectedYear,
                                 month = selectedMonth,
                                 selectedDay = selectedDay,
+                                maxDate = effectiveMaxDate,
                                 onYearClick = { viewMode = DatePickerViewMode.YEAR },
                                 onMonthClick = { viewMode = DatePickerViewMode.MONTH },
                                 onPrevYear = { selectedYear -= 1 },
-                                onNextYear = { selectedYear += 1 },
+                                onNextYear = {
+                                    if (selectedYear < effectiveMaxDate.year) {
+                                        selectedYear += 1
+                                    }
+                                },
                                 onPrevMonth = {
                                     if (selectedMonth == 1) {
                                         selectedYear -= 1
@@ -187,11 +217,14 @@ fun FastDatePickerDialog(
                                     }
                                 },
                                 onNextMonth = {
-                                    if (selectedMonth == 12) {
-                                        selectedYear += 1
-                                        selectedMonth = 1
+                                    val nextYm = if (selectedMonth == 12) {
+                                        YearMonth.of(selectedYear + 1, 1)
                                     } else {
-                                        selectedMonth += 1
+                                        YearMonth.of(selectedYear, selectedMonth + 1)
+                                    }
+                                    if (!nextYm.isAfter(YearMonth.from(effectiveMaxDate))) {
+                                        selectedYear = nextYm.year
+                                        selectedMonth = nextYm.monthValue
                                     }
                                 },
                                 onSelectDay = { selectedDay = it }
@@ -200,7 +233,7 @@ fun FastDatePickerDialog(
                     }
                 }
 
-                // 3. 시간 선택 영역 (includeTime == true 일 때 표시)
+                // 3. 시간 선택 영역 (날짜 선택 시 시간은 모두 0시로 통일)
                 if (includeTime && viewMode == DatePickerViewMode.DAY) {
                     Spacer(modifier = Modifier.height(12.dp))
                     Surface(
@@ -211,7 +244,7 @@ fun FastDatePickerDialog(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -221,30 +254,19 @@ fun FastDatePickerDialog(
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                TimeSpinSelector(
-                                    value = selectedHour,
-                                    maxValue = 23,
-                                    label = "시",
-                                    onValueChange = { selectedHour = it }
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(":", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                TimeSpinSelector(
-                                    value = selectedMinute,
-                                    maxValue = 59,
-                                    label = "분",
-                                    onValueChange = { selectedMinute = it }
-                                )
-                            }
+                            Text(
+                                text = "00:00 (0시 정각 기준)",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
                         }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // 4. 하단 버튼 액션: [오늘/현재], [취소], [적용]
+                // 4. 하단 버튼 액션: [오늘 날짜], [취소], [선택 완료]
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -252,17 +274,16 @@ fun FastDatePickerDialog(
                 ) {
                     OutlinedButton(
                         onClick = {
-                            val now = LocalDateTime.now()
-                            selectedYear = now.year
-                            selectedMonth = now.monthValue
-                            selectedDay = now.dayOfMonth
-                            selectedHour = now.hour
-                            selectedMinute = now.minute
+                            selectedYear = effectiveMaxDate.year
+                            selectedMonth = effectiveMaxDate.monthValue
+                            selectedDay = effectiveMaxDate.dayOfMonth
+                            selectedHour = 0
+                            selectedMinute = 0
                             viewMode = DatePickerViewMode.DAY
                         },
                         shape = RoundedCornerShape(10.dp)
                     ) {
-                        Text(if (includeTime) "현재 시각" else "오늘 날짜", fontSize = 13.sp)
+                        Text("오늘 날짜", fontSize = 13.sp)
                     }
 
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -275,8 +296,8 @@ fun FastDatePickerDialog(
                         Button(
                             onClick = {
                                 val resultStr = if (includeTime) {
-                                    String.format(Locale.US, "%04d-%02d-%02d %02d:%02d",
-                                        selectedYear, selectedMonth, selectedDay, selectedHour, selectedMinute)
+                                    String.format(Locale.US, "%04d-%02d-%02d 00:00",
+                                        selectedYear, selectedMonth, selectedDay)
                                 } else {
                                     String.format(Locale.US, "%04d-%02d-%02d",
                                         selectedYear, selectedMonth, selectedDay)
@@ -302,6 +323,7 @@ private fun DayCalendarView(
     year: Int,
     month: Int,
     selectedDay: Int,
+    maxDate: LocalDate,
     onYearClick: () -> Unit,
     onMonthClick: () -> Unit,
     onPrevYear: () -> Unit,
@@ -314,6 +336,9 @@ private fun DayCalendarView(
     val firstDayOfWeek = yearMonth.atDay(1).dayOfWeek.value % 7 // 0: 일요일, 1: 월요일, ...
     val daysInMonth = yearMonth.lengthOfMonth()
     val today = LocalDate.now()
+
+    val canGoNextMonth = YearMonth.of(year, month).isBefore(YearMonth.from(maxDate))
+    val canGoNextYear = year < maxDate.year
 
     Column(modifier = Modifier.fillMaxWidth()) {
         // 상단 네비게이션: << (1년전) < (1달전) [ 2026년 ▾ ] [ 10월 ▾ ] > (1달후) >> (1년후)
@@ -373,18 +398,26 @@ private fun DayCalendarView(
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onNextMonth, modifier = Modifier.size(32.dp)) {
+                IconButton(
+                    onClick = onNextMonth,
+                    enabled = canGoNextMonth,
+                    modifier = Modifier.size(32.dp)
+                ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                         contentDescription = "1달 후",
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = if (canGoNextMonth) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                     )
                 }
-                IconButton(onClick = onNextYear, modifier = Modifier.size(32.dp)) {
+                IconButton(
+                    onClick = onNextYear,
+                    enabled = canGoNextYear,
+                    modifier = Modifier.size(32.dp)
+                ) {
                     Icon(
                         imageVector = Icons.Default.KeyboardDoubleArrowRight,
                         contentDescription = "1년 후",
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = if (canGoNextYear) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                     )
                 }
             }
@@ -432,6 +465,8 @@ private fun DayCalendarView(
                             val isSelected = (dayNumber == selectedDay)
                             val isToday = (today.year == year && today.monthValue == month && today.dayOfMonth == dayNumber)
                             val dayOfWeek = c // 0: 일요일, 6: 토요일
+                            val cellDate = LocalDate.of(year, month, dayNumber)
+                            val isFuture = cellDate.isAfter(maxDate)
 
                             Box(
                                 modifier = Modifier
@@ -448,10 +483,11 @@ private fun DayCalendarView(
                                         if (isToday && !isSelected) Modifier.border(1.dp, MaterialTheme.colorScheme.primary, CircleShape)
                                         else Modifier
                                     )
-                                    .clickable { onSelectDay(dayNumber) },
+                                    .clickable(enabled = !isFuture) { onSelectDay(dayNumber) },
                                 contentAlignment = Alignment.Center
                             ) {
                                 val textColor = when {
+                                    isFuture -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
                                     isSelected -> MaterialTheme.colorScheme.onPrimary
                                     dayOfWeek == 0 -> RoseDanger
                                     dayOfWeek == 6 -> MaterialTheme.colorScheme.primary
@@ -475,16 +511,17 @@ private fun DayCalendarView(
 }
 
 /**
- * 연도 빠른 선택 뷰 (1940년 ~ 2060년 그리드)
+ * 연도 빠른 선택 뷰 (1940년 ~ maxYear 그리드: 미래 연도 선택 방지)
  */
 @Composable
 private fun YearSelectorView(
     currentYear: Int,
+    maxYear: Int,
     onSelectYear: (Int) -> Unit,
     onCancel: () -> Unit
 ) {
-    val years = remember { (1940..2060).toList() }
-    val initialIndex = remember { (currentYear - 1940).coerceIn(0, years.size - 1) }
+    val years = remember(maxYear) { (1940..maxYear).toList() }
+    val initialIndex = remember(currentYear, maxYear) { (currentYear.coerceAtMost(maxYear) - 1940).coerceIn(0, years.size - 1) }
     val gridState = rememberLazyGridState(initialFirstVisibleItemIndex = (initialIndex - 6).coerceAtLeast(0))
 
     Column(modifier = Modifier.fillMaxWidth().height(260.dp)) {
@@ -534,15 +571,19 @@ private fun YearSelectorView(
 }
 
 /**
- * 월 빠른 선택 뷰 (1월 ~ 12월 그리드)
+ * 월 빠른 선택 뷰 (1월 ~ 12월 그리드: 미래 월 비활성화)
  */
 @Composable
 private fun MonthSelectorView(
+    currentYear: Int,
     currentMonth: Int,
+    maxYear: Int,
+    maxMonth: Int,
     onSelectMonth: (Int) -> Unit,
     onCancel: () -> Unit
 ) {
     val months = remember { (1..12).toList() }
+    val effectiveMaxMonth = if (currentYear >= maxYear) maxMonth else 12
 
     Column(modifier = Modifier.fillMaxWidth().height(240.dp)) {
         Row(
@@ -570,16 +611,26 @@ private fun MonthSelectorView(
         ) {
             items(months) { month ->
                 val isSelected = month == currentMonth
+                val isEnabled = month <= effectiveMaxMonth
                 Surface(
-                    onClick = { onSelectMonth(month) },
+                    onClick = { if (isEnabled) onSelectMonth(month) },
+                    enabled = isEnabled,
                     shape = RoundedCornerShape(12.dp),
-                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                    color = when {
+                        isSelected -> MaterialTheme.colorScheme.primary
+                        isEnabled -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                        else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+                    }
                 ) {
                     Text(
                         text = "${month}월",
                         fontSize = 14.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                        color = when {
+                            isSelected -> MaterialTheme.colorScheme.onPrimary
+                            isEnabled -> MaterialTheme.colorScheme.onSurface
+                            else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
+                        },
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(vertical = 14.dp)
                     )

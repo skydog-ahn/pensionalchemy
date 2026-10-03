@@ -1,6 +1,7 @@
 package com.pension.alchemy.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -34,6 +35,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import android.net.Uri
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.Locale
 
@@ -77,18 +79,51 @@ fun DashboardScreen(
         )
     }
 
-    // 실시간 순자산 및 총자산
-    val displayNetWorth = if (assets.isNotEmpty() || pensions.isNotEmpty()) {
-        realTimeGrowth.realTimeNetWorth
-    } else {
-        summary.currentNetWorth
-    }
-
+    // 실시간 총자산, 총부채 및 순자산 (회계 항등식: 순자산 = 총자산 - 총부채)
     val displayTotalAssets = if (assets.isNotEmpty() || pensions.isNotEmpty()) {
         realTimeGrowth.realTimeTotalGrossAssets
     } else {
         summary.currentTotalAssets
     }
+
+    val displayTotalDebt = if (assets.any { it.isLiability }) {
+        realTimeGrowth.realTimeTotalDebt
+    } else {
+        summary.currentTotalDebt
+    }
+
+    val displayNetWorth = if (assets.isNotEmpty() || pensions.isNotEmpty()) {
+        (displayTotalAssets - displayTotalDebt).coerceAtLeast(0L)
+    } else {
+        summary.currentNetWorth
+    }
+
+    // 오늘 0시 기준 순자산 (대한민국 순자산 백분위 분포 차트 연동용 - 만원 단위 고정값)
+    val todayMidnight = remember { LocalDate.now().atStartOfDay() }
+    val todayMidnightGrowth = remember(assets, pensions, incomes, profile.currentMonthlyExpenses, summary.currentAge, profile.effectiveGlobalBaseDateTime) {
+        if (assets.isNotEmpty() || pensions.isNotEmpty()) {
+            RealTimeGrowthCalculator.calculateTotalRealTimeGrowth(
+                assets = assets,
+                pensions = pensions,
+                incomes = incomes,
+                monthlyExpenses = profile.currentMonthlyExpenses,
+                currentAge = summary.currentAge,
+                currentDateTime = todayMidnight,
+                globalBaseDateTime = profile.effectiveGlobalBaseDateTime
+            )
+        } else {
+            null
+        }
+    }
+
+    val todayMidnightNetWorth = if (todayMidnightGrowth != null) {
+        todayMidnightGrowth.realTimeNetWorth
+    } else {
+        summary.currentNetWorth
+    }
+
+    // 오늘 0시 기준 만원 단위 값 (10,000원 단위로 절사하여 실시간 초당 플리커 배제)
+    val todayMidnightNetWorthWon = (todayMidnightNetWorth / 10_000L) * 10_000L
 
     val context = LocalContext.current
     val exportLauncher = rememberLauncherForActivityResult(
@@ -143,24 +178,31 @@ fun DashboardScreen(
                     maxLines = 1,
                     softWrap = false
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+                val isDark = isSystemInDarkTheme()
+                val assetColor = if (isDark) Color(0xFF6EE7B7) else Color(0xFF065F46)
+                val debtColor = if (isDark) Color(0xFFFCA5A5) else Color(0xFF991B1B)
+
+                // 총자산(왼쪽) 및 총부채(오른쪽) 나란히 표기 (만원 단위까지)
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "총자산 ${CurrencyFormatter.formatKoreanWon(displayTotalAssets)}",
+                        text = "총자산 ${CurrencyFormatter.formatToManWon(displayTotalAssets)}",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f),
+                        color = assetColor,
                         maxLines = 1,
                         softWrap = false
                     )
                     Text(
-                        text = "총부채 ${CurrencyFormatter.formatKoreanWon(summary.currentTotalDebt, isShort = true)}",
+                        text = "총부채 ${CurrencyFormatter.formatToManWon(displayTotalDebt)}",
                         fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f),
+                        fontWeight = FontWeight.SemiBold,
+                        color = debtColor,
                         maxLines = 1,
                         softWrap = false
                     )
@@ -720,9 +762,9 @@ fun DashboardScreen(
             debt = summary.currentTotalDebt
         )
 
-        // 9. 대한민국 순자산 백분위 분포 차트 (로그정규분포)
+        // 9. 대한민국 순자산 백분위 분포 차트 (로그정규분포 - 오늘 0시 기준 만원단위 적용)
         WealthDistributionCanvasChart(
-            currentNetWorthWon = displayNetWorth,
+            currentNetWorthWon = todayMidnightNetWorthWon,
             mu = profile.policySettings.wealthDistributionMean,
             sigma = profile.policySettings.wealthDistributionStdDev
         )

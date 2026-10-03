@@ -80,10 +80,23 @@ fun AssetScreen(
         )
     }
 
-    val totalAssets = if (assets.any { !it.isLiability }) realTimeGrowth.realTimeTotalGrossAssets else 0L
-    val totalDebt = assets.filter { it.isLiability }.sumOf { it.currentValue }
+    val totalAssets = assets.filter { !it.isLiability }.sumOf {
+        RealTimeGrowthCalculator.calculateAssetGrowth(it, currentDateTime).realTimeValue
+    }
+    val totalDebt = assets.filter { it.isLiability }.sumOf {
+        RealTimeGrowthCalculator.calculateAssetGrowth(it, currentDateTime).realTimeValue
+    }
     val netWorth = (totalAssets - totalDebt).coerceAtLeast(0L)
     val totalMonthlyIncome = incomes.sumOf { it.monthlyAmount }
+    val totalMonthlyLoanRepayment = assets.filter { it.isLiability }.sumOf {
+        LoanCalculator.calculateMonthlyPayment(
+            principal = it.currentValue,
+            annualRatePercent = it.expectedGrowthRate,
+            maturityYears = it.maturityYears,
+            repaymentMethod = it.repaymentMethod
+        )
+    }
+    val disposableMonthlyIncome = (totalMonthlyIncome - totalMonthlyLoanRepayment).coerceAtLeast(0L)
 
     fun moveAsset(from: Int, to: Int) {
         if (from in assets.indices && to in assets.indices) {
@@ -232,7 +245,12 @@ fun AssetScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         SummaryCol("총 월 소득", CurrencyFormatter.formatKoreanWon(totalMonthlyIncome, isShort = true) + "/월", EmeraldPrimary)
-                        SummaryCol("연간 환산", CurrencyFormatter.formatKoreanWon(totalMonthlyIncome * 12L, isShort = true), CyanInfo)
+                        if (totalMonthlyLoanRepayment > 0L) {
+                            SummaryCol("대출 상환", "- " + CurrencyFormatter.formatKoreanWon(totalMonthlyLoanRepayment, isShort = true) + "/월", RoseDanger)
+                            SummaryCol("실질 가처분 소득", CurrencyFormatter.formatKoreanWon(disposableMonthlyIncome, isShort = true) + "/월", CyanInfo)
+                        } else {
+                            SummaryCol("연간 환산", CurrencyFormatter.formatKoreanWon(totalMonthlyIncome * 12L, isShort = true), CyanInfo)
+                        }
                     }
                 }
             }
@@ -475,14 +493,14 @@ private fun AssetItemRow(
             Spacer(modifier = Modifier.height(8.dp))
 
             // 2. 메인 금액 행: 전체 가로폭 활용하여 긴 금액도 줄바꿈 없이 표시
-            val displayVal = if (!asset.isLiability && growth.accumulatedGrowth != 0L) growth.realTimeValue else asset.currentValue
+            val displayVal = growth.realTimeValue
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Bottom
             ) {
                 Text(
-                    text = if (asset.isLiability) "대출 원금 (잔여 ${asset.maturityYears}년)" else "현재 평가액",
+                    text = if (asset.isLiability) "대출 잔액 (잔여 ${asset.maturityYears}년)" else "현재 평가액",
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -516,8 +534,13 @@ private fun AssetItemRow(
                         fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    val repaidText = if (growth.accumulatedGrowth > 0L) {
+                        "월 ${CurrencyFormatter.formatKoreanWon(monthlyPay)} (상환 -${CurrencyFormatter.formatKoreanWon(growth.accumulatedGrowth)})"
+                    } else {
+                        "월 상환 약 ${CurrencyFormatter.formatKoreanWon(monthlyPay)}/월"
+                    }
                     Text(
-                        text = "월 상환 약 ${CurrencyFormatter.formatKoreanWon(monthlyPay)}/월",
+                        text = repaidText,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = RoseDanger.copy(alpha = 0.9f)
