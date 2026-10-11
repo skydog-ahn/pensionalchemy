@@ -103,6 +103,55 @@ object CurrencyFormatter {
         return "${format(amount, currency, isShort = false)}/월"
     }
 
+    /**
+     * 주기별 환산 속도(만원/시, 만원/일, 만원/월) 포맷팅
+     * 기본 만원 단위로 띄어쓰기 없이 붙여서 표기하며,
+     * 시간(만원/시)은 1만원 이상이라도 소수점 둘째 자리까지 반올림하여 표기 (예: 44,280L -> "4.43만원/시")
+     * 일/월(만원/일, 만원/월)은 만원 미만 시에만 소수점 둘째 자리까지 표기 (예: 1,060,000L -> "106만원/일")
+     * 예: 5,420L, "만원/시" -> "0.54만원/시"
+     *     44,280L, "만원/시" -> "4.43만원/시"
+     *     1,060,000L, "만원/일" -> "106만원/일"
+     *     32,300,000L, "만원/월" -> "3,230만원/월"
+     *     0L, "만원/시" -> "0만원/시"
+     *     -44,280L, "만원/시" -> "-4.43만원/시"
+     */
+    fun formatRate(amount: Long, unit: String): String {
+        val isNegative = amount < 0
+        val absAmount = abs(amount)
+        val sign = if (isNegative) "-" else ""
+
+        val normalizedUnit = if (unit.startsWith("원/")) {
+            "만" + unit
+        } else {
+            unit
+        }
+
+        val isHourly = normalizedUnit.contains("/시")
+
+        val formattedNum = when {
+            absAmount == 0L -> "0"
+            isHourly -> {
+                val manDecimal = absAmount / 10_000.0
+                String.format(java.util.Locale.KOREA, "%,.2f", manDecimal)
+            }
+            absAmount < 10_000L -> {
+                val manDecimal = absAmount / 10_000.0
+                val str = String.format(java.util.Locale.KOREA, "%.2f", manDecimal)
+                if (str == "1.00") "1" else if (str == "0.00") "0" else str
+            }
+            else -> {
+                val manVal = (absAmount / 10_000.0).roundToLong()
+                decimalFormat.format(manVal)
+            }
+        }
+
+        return "$sign$formattedNum$normalizedUnit"
+    }
+
+    fun formatRate(amount: Double, unit: String): String {
+        return formatRate(amount.roundToLong(), unit)
+    }
+
     fun formatPercent(rate: Double): String {
         return "${String.format("%.1f", rate)}%"
     }

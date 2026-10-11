@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
     <title>연금술사 (PensionAlchemy) v1.3.5 - 상세 사용설명서 & 인터랙티브 시뮬레이터</title>
-    <meta name="description" content="대한민국 100세 생애 은퇴·연금 시뮬레이터 '연금술사' 공식 종합 매뉴얼 및 인터랙티브 앱 시뮬레이터. 전체 공통 기준일 연동 실시간 초당 순자산 증가 티커, 초고속 연·월 캘린더 탐색(FastDatePicker), 2026년 생애주기 프리셋, 사적연금 납입금 보존, 개별 자산 기대수익률 가중합산, 3층 연금 피라미드, 소득 크레바스 방어, 4% 룰, 6대 재무 계산기, 순자산 백분위 분석.">
+    <meta name="description" content="대한민국 100세 생애 은퇴·연금 시뮬레이터 '연금술사' 공식 종합 매뉴얼 및 인터랙티브 앱 시뮬레이터. 전체 공통 기준일 연동 실시간 초당 순자산 증가 티커, 초고속 연·월 캘린더 탐색(FastDatePicker), 2026년 생애주기 프리셋, 사적연금 납입금 보존, 개별 자산 기대수익률 가중합산, 3층 연금 피라미드, 소득 크레바스 방어, 4% 룰, 6대 전문 금융계산기, 순자산 백분위 분석.">
     
     <!-- 파비콘 및 앱 아이콘 -->
     <link rel="icon" type="image/png" href="assets/images/appicon.png">
@@ -436,20 +436,20 @@
 
 
                 <!-- ──────────────────────────────────────────────
-                     SECTION 5: 6대 재무 계산기 화면 매뉴얼
+                     SECTION 5: 6대 금융계산기 화면 매뉴얼
                      ────────────────────────────────────────────── -->
                 <section class="manual-section" id="menu-calculator">
                     <span class="section-badge">Part 2. Screen & Feature Guide</span>
-                    <h2 class="section-title">🧮 메뉴 4: 6대 전문 재무 계산기</h2>
+                    <h2 class="section-title">🧮 메뉴 4: 6대 전문 금융계산기</h2>
                     <p class="section-desc">
-                        은퇴 및 자산 형성에 필요한 6가지 핵심 공식을 앱 내에서 독립적으로 즉시 계산해 볼 수 있는 강력한 재무 계산 스위트입니다.
+                        은퇴 및 자산 형성에 필요한 6가지 핵심 공식을 앱 내에서 독립적으로 즉시 계산해 볼 수 있는 강력한 금융계산 스위트입니다.
                     </p>
 
                     <div class="manual-card">
                         <div class="card-row-between">
-                            <h3>🎯 6대 계산기 모드별 기능 및 금융 공식</h3>
+                            <h3>🎯 6대 금융계산기 모드별 기능 및 금융 공식</h3>
                             <button class="jump-to-sim-btn" onclick="ManualController.syncSimulatorTab('CALCULATOR')">
-                                📱 시뮬레이터에서 계산기 열기
+                                📱 시뮬레이터에서 금융계산기 열기
                             </button>
                         </div>
 
@@ -457,7 +457,7 @@
                             <table class="manual-table">
                                 <thead>
                                     <tr>
-                                        <th>계산기 모드</th>
+                                        <th>금융계산기 모드</th>
                                         <th>입력 파라미터</th>
                                         <th>핵심 출력 결과 및 금융 공식</th>
                                     </tr>
@@ -827,10 +827,10 @@
                         </div>
                     </div>
 
-                    <!-- 부록 6: 6대 재무 계산기 -->
+                    <!-- 부록 6: 6대 전문 금융계산기 -->
                     <div class="manual-card">
                         <span class="step-badge" style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6;">공식 6</span>
-                        <h3>6대 전문 재무 계산기 핵심 수학 공식</h3>
+                        <h3>6대 전문 금융계산기 핵심 수학 공식</h3>
                         <div class="formula-box" style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; font-family: monospace; margin: 8px 0; line-height: 1.6;">
                             // 1. 적립 복리 미래가치 (월복리 기말급)<br>
                             FV = PMT × [ (1 + r/12)^(12n) - 1 ] / (r/12) + PV × (1 + r)^n<br><br>
@@ -905,7 +905,7 @@
                         </button>
                         <button class="app-nav-item" data-tab="CALCULATOR" onclick="AppSimulator.switchTab('CALCULATOR')">
                             <span class="nav-icon">🧮</span>
-                            <span>계산기</span>
+                            <span>금융계산기</span>
                         </button>
                         <button class="app-nav-item" data-tab="SETTINGS" onclick="AppSimulator.switchTab('SETTINGS')">
                             <span class="nav-icon">⚙️</span>

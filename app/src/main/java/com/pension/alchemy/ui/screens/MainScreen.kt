@@ -24,7 +24,7 @@ enum class ScreenTab(val title: String, val icon: ImageVector) {
     DASHBOARD("대시보드", Icons.Default.Dashboard),
     ASSETS("자산관리", Icons.Default.AccountBalanceWallet),
     PENSIONS("연금관리", Icons.AutoMirrored.Filled.TrendingUp),
-    CALCULATOR("계산기", Icons.Default.Calculate),
+    CALCULATOR("금융계산기", Icons.Default.Calculate),
     SETTINGS("설정", Icons.Default.Settings)
 }
 

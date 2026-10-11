@@ -191,7 +191,7 @@ const AppSimulator = {
             DASHBOARD: { title: '연금술사', sub: '대시보드 종합 진단' },
             ASSETS: { title: '자산관리', sub: '보유 자산 및 정기 소득' },
             PENSIONS: { title: '연금관리', sub: '3층 연금 안전망' },
-            CALCULATOR: { title: '재무 계산기', sub: '6대 전문 금융 공식' },
+            CALCULATOR: { title: '금융계산기', sub: '6대 전문 금융 공식' },
             SETTINGS: { title: '환경 설정', sub: '생애주기 및 정책 변수' },
             GUIDE: { title: '연금술사 가이드', sub: '재무비법 & 공식포털' }
         };
@@ -705,7 +705,7 @@ const AppSimulator = {
             </div>
 
             <div style="margin-top: 10px; background: var(--bg-hover, rgba(255,255,255,0.04)); padding: 6px 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 11px; color: var(--text-muted);">${isPos ? '⚡ 자산증가속도' : '⚡ 자산감소속도'}</span>
+                <span style="font-size: 11px; color: var(--text-muted);">${isPos ? '⚡ 자산증가속도 (Wealth Velocity)' : '⚡ 자산감소속도 (Wealth Velocity)'}</span>
                 <span style="font-size: 11px; font-weight: 700; color: ${trendColor}; font-family: monospace;">
                     ${isPos ? '+' : ''}${wps.toFixed(1)} 원/초
                 </span>
@@ -715,17 +715,14 @@ const AppSimulator = {
             <div style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border-color); font-size: 11px;" onclick="event.stopPropagation()">
                 <div style="color: var(--text-muted); font-weight: 700; margin-bottom: 6px;">${isPos ? '⏱️ 주기별 실질 자산증가 환산' : '⏱️ 주기별 실질 자산감소 환산'}</div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 10px;">
-                    <div style="background: var(--bg-hover, rgba(255,255,255,0.03)); padding: 6px; border-radius: 6px; text-align: center;">
-                        <div style="color: var(--text-muted); font-size: 10px;">시간당</div>
-                        <div style="font-weight: 700; color: ${trendColor}; font-size: 11px;">${isPos ? '+' : ''}${CurrencyFormatter.formatKoreanWon(Math.round(y.wonPerHour || 0), true)}</div>
+                    <div style="background: var(--bg-hover, rgba(255,255,255,0.03)); padding: 8px 4px; border-radius: 6px; text-align: center;">
+                        <div style="font-weight: 700; color: ${trendColor}; font-size: 11px;">${isPos ? '+' : ''}${CurrencyFormatter.formatRate(Math.round(y.wonPerHour || 0), '만원/시')}</div>
                     </div>
-                    <div style="background: var(--bg-hover, rgba(255,255,255,0.03)); padding: 6px; border-radius: 6px; text-align: center;">
-                        <div style="color: var(--text-muted); font-size: 10px;">하루(일당)</div>
-                        <div style="font-weight: 700; color: ${trendColor}; font-size: 11px;">${isPos ? '+' : ''}${CurrencyFormatter.formatKoreanWon(Math.round(y.wonPerDay || 0), true)}</div>
+                    <div style="background: var(--bg-hover, rgba(255,255,255,0.03)); padding: 8px 4px; border-radius: 6px; text-align: center;">
+                        <div style="font-weight: 700; color: ${trendColor}; font-size: 11px;">${isPos ? '+' : ''}${CurrencyFormatter.formatRate(Math.round(y.wonPerDay || 0), '만원/일')}</div>
                     </div>
-                    <div style="background: var(--bg-hover, rgba(255,255,255,0.03)); padding: 6px; border-radius: 6px; text-align: center;">
-                        <div style="color: var(--text-muted); font-size: 10px;">한달(월)</div>
-                        <div style="font-weight: 700; color: ${trendColor}; font-size: 11px;">${isPos ? '+' : ''}${CurrencyFormatter.formatKoreanWon(Math.round(y.wonPerMonth || 0), true)}</div>
+                    <div style="background: var(--bg-hover, rgba(255,255,255,0.03)); padding: 8px 4px; border-radius: 6px; text-align: center;">
+                        <div style="font-weight: 700; color: ${trendColor}; font-size: 11px;">${isPos ? '+' : ''}${CurrencyFormatter.formatRate(Math.round(y.wonPerMonth || 0), '만원/월')}</div>
                     </div>
                 </div>
                 <div style="display: flex; justify-content: space-between; padding: 6px 0; border-top: 1px solid var(--border-color);">
@@ -1041,7 +1038,7 @@ const AppSimulator = {
     },
 
     // ──────────────────────────────────────────────
-    // 4. 6대 계산기 화면 HTML
+    // 4. 6대 금융계산기 화면 HTML
     // ──────────────────────────────────────────────
     getCalculatorHTML() {
         const modes = ["적립·예탁", "자산 인출", "고갈 타이머", "목표 필요자산", "국민연금 손익", "절세 연금술사"];
@@ -1058,7 +1055,7 @@ const AppSimulator = {
                     `).join('')}
                 </div>
 
-                <!-- 선택된 계산기 화면 뷰 -->
+                <!-- 선택된 금융계산기 화면 뷰 -->
                 <div class="calc-active-view">
                     ${this.getActiveCalculatorViewHTML()}
                 </div>
@@ -1581,7 +1578,7 @@ const AppSimulator = {
                             <div class="guide-tip-item"><strong>1. 대시보드:</strong> 순자산, 65세 월연금, 건강 점수 및 나이별 인스펙터 슬라이더</div>
                             <div class="guide-tip-item"><strong>2. 자산관리:</strong> 예금, 적금, 주식, 부동산 및 부채 4대 상환방식 관리</div>
                             <div class="guide-tip-item"><strong>3. 연금관리:</strong> 3층 연금 안전망 및 국민연금 조기(-30%)/연기(+36%) 슬라이더</div>
-                            <div class="guide-tip-item"><strong>4. 6대 계산기:</strong> 미래가치, 인출, 고갈 타이머, 목표자산, 손익분기, 절세 연금술</div>
+                            <div class="guide-tip-item"><strong>4. 6대 금융계산기:</strong> 미래가치, 인출, 고갈 타이머, 목표자산, 손익분기, 절세 연금술</div>
                             <div class="guide-tip-item"><strong>5. 환경설정:</strong> 5대 생애주기 프리셋 및 세법/정책 변수 커스텀</div>
                         </div>
                     ` : cat === 1 ? `

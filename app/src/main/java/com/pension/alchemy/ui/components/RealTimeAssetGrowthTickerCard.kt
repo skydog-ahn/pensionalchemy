@@ -268,7 +268,7 @@ fun RealTimeAssetGrowthTickerCard(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = if (isPositive) "⚡ 자산증가속도" else "⚡ 자산감소속도",
+                            text = if (isPositive) "⚡ 자산증가속도 (Wealth Velocity)" else "⚡ 자산감소속도 (Wealth Velocity)",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -310,9 +310,9 @@ fun RealTimeAssetGrowthTickerCard(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         val prefix = if (metrics.wonPerSecond >= 0) "+" else ""
-                        YieldPeriodChip("시간당", "$prefix${CurrencyFormatter.formatKoreanWon(metrics.wonPerHour.roundToLong(), isShort = true)}", Modifier.weight(1f))
-                        YieldPeriodChip("하루(일당)", "$prefix${CurrencyFormatter.formatKoreanWon(metrics.wonPerDay, isShort = true)}", Modifier.weight(1f))
-                        YieldPeriodChip("한달(월)", "$prefix${CurrencyFormatter.formatKoreanWon(metrics.wonPerMonth, isShort = true)}", Modifier.weight(1f))
+                        YieldPeriodChip("$prefix${CurrencyFormatter.formatRate(metrics.wonPerHour.roundToLong(), "만원/시")}", Modifier.weight(1f))
+                        YieldPeriodChip("$prefix${CurrencyFormatter.formatRate(metrics.wonPerDay, "만원/일")}", Modifier.weight(1f))
+                        YieldPeriodChip("$prefix${CurrencyFormatter.formatRate(metrics.wonPerMonth, "만원/월")}", Modifier.weight(1f))
                     }
 
                     // B) 종합 재정 흐름 브레이크다운 (유입 vs 유출)
@@ -446,7 +446,6 @@ fun RealTimeAssetGrowthTickerCard(
 
 @Composable
 private fun YieldPeriodChip(
-    title: String,
     amountStr: String,
     modifier: Modifier = Modifier
 ) {
@@ -455,12 +454,12 @@ private fun YieldPeriodChip(
         shape = RoundedCornerShape(10.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
     ) {
-        Column(
-            modifier = Modifier.padding(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 10.dp),
+            contentAlignment = Alignment.Center
         ) {
-            Text(text = title, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = amountStr,
                 fontSize = 12.sp,

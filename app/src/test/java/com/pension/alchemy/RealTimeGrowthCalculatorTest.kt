@@ -304,6 +304,32 @@ class RealTimeGrowthCalculatorTest {
     }
 
     @Test
+    fun testFormatRate() {
+        // 시간(만원/시): 1만원 미만 및 1만원 이상 모두 소수점 두자리까지 표기
+        assertEquals("0.54만원/시", CurrencyFormatter.formatRate(5_420L, "만원/시"))
+        assertEquals("0.79만원/시", CurrencyFormatter.formatRate(7_890L, "만원/시"))
+        assertEquals("0.05만원/시", CurrencyFormatter.formatRate(500L, "만원/시"))
+        assertEquals("0.01만원/시", CurrencyFormatter.formatRate(100L, "만원/시"))
+        assertEquals("1.00만원/시", CurrencyFormatter.formatRate(10_000L, "만원/시"))
+        assertEquals("4.43만원/시", CurrencyFormatter.formatRate(44_280L, "만원/시"))
+        assertEquals("12.50만원/시", CurrencyFormatter.formatRate(125_000L, "만원/시"))
+        assertEquals("0만원/시", CurrencyFormatter.formatRate(0L, "만원/시"))
+        assertEquals("-0.54만원/시", CurrencyFormatter.formatRate(-5_420L, "만원/시"))
+        assertEquals("-4.43만원/시", CurrencyFormatter.formatRate(-44_280L, "만원/시"))
+
+        // 하루/한달(만원/일, 만원/월): 만원 이상은 기본 정수 만원 단위
+        assertEquals("4만원/일", CurrencyFormatter.formatRate(44_280L, "만원/일"))
+        assertEquals("106만원/일", CurrencyFormatter.formatRate(1_060_000L, "만원/일"))
+        assertEquals("3,230만원/월", CurrencyFormatter.formatRate(32_300_000L, "만원/월"))
+        assertEquals("12,000만원/월", CurrencyFormatter.formatRate(120_000_000L, "만원/월"))
+        assertEquals("-5만원/일", CurrencyFormatter.formatRate(-50_000L, "만원/일"))
+
+        // '원/' 단위로 들어와도 자동으로 '만원/'으로 정규화
+        assertEquals("4.43만원/시", CurrencyFormatter.formatRate(44_280L, "원/시"))
+        assertEquals("106만원/일", CurrencyFormatter.formatRate(1_060_000L, "원/일"))
+    }
+
+    @Test
     fun testFormatToManWon() {
         // 5억 2000만원
         assertEquals("5억 2,000만원", CurrencyFormatter.formatToManWon(520_000_000L))

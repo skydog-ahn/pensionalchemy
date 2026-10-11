@@ -95,6 +95,40 @@ const CurrencyFormatter = {
         return `${this.format(amount, currency, false)}/월`;
     },
 
+    /**
+     * 주기별 환산 속도(만원/시, 만원/일, 만원/월) 포맷팅
+     * 기본 만원 단위로 띄어쓰기 없이 붙여서 표기하며,
+     * 시간(만원/시)은 1만원 이상이라도 소수점 둘째 자리까지 반올림하여 표기 (예: 44,280 -> 4.43만원/시)
+     * 일/월(만원/일, 만원/월)은 만원 미만 시에만 소수점 둘째 자리까지 표기 (예: 1,060,000 -> 106만원/일)
+     * 예: 5,420 -> "0.54만원/시", 44,280 -> "4.43만원/시", 1,060,000 -> "106만원/일"
+     */
+    formatRate(amount, unit) {
+        const num = Number(amount || 0);
+        const isNegative = num < 0;
+        const absAmount = Math.abs(num);
+        const sign = isNegative ? '-' : '';
+
+        const normalizedUnit = unit.startsWith('원/') ? `만${unit}` : unit;
+        const isHourly = normalizedUnit.includes('/시');
+
+        let formattedNum = '0';
+        if (absAmount === 0) {
+            formattedNum = '0';
+        } else if (isHourly) {
+            const manDecimal = absAmount / 10000.0;
+            formattedNum = manDecimal.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        } else if (absAmount < 10000) {
+            const manDecimal = absAmount / 10000.0;
+            const str = manDecimal.toFixed(2);
+            formattedNum = (str === '1.00') ? '1' : (str === '0.00') ? '0' : str;
+        } else {
+            const manVal = Math.round(absAmount / 10000.0);
+            formattedNum = this.decimalFormat(manVal);
+        }
+
+        return `${sign}${formattedNum}${normalizedUnit}`;
+    },
+
     formatPercent(rate) {
         return `${(rate || 0).toFixed(1)}%`;
     }

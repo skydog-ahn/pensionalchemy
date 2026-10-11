@@ -250,11 +250,11 @@ fun GuideHelpScreen(
 
                         item {
                             FeatureHelpCard(
-                                title = "4. 6대 재무 계산기",
+                                title = "4. 6대 금융계산기",
                                 icon = Icons.Default.Calculate,
                                 accentColor = AmberWarning,
                                 description = "①적립·예탁 미래가치 ②자산인출 시뮬레이션 ③자산고갈 타이머 ④목표 필요자산 ⑤국민연금 조기/연기 손익분기 ⑥연금저축/IRP 절세 연금술 등 6가지 전문 공식을 계산합니다.",
-                                shortcutLabel = "계산기 바로가기",
+                                shortcutLabel = "금융계산기 바로가기",
                                 onShortcut = { onNavigateToTab(ScreenTab.CALCULATOR) }
                             )
                         }
@@ -501,7 +501,7 @@ fun GuideHelpScreen(
                         item {
                             FormulaHelpCard(
                                 badge = "공식 6",
-                                title = "6대 전문 재무 계산기 핵심 공식",
+                                title = "6대 전문 금융계산기 핵심 공식",
                                 formula = """
                                     // 1. 적립 복리 미래가치 (월복리)
                                     FV = PMT × [ (1 + r/12)^(12×n) - 1 ] / (r/12) + PV × (1 + r)^n
